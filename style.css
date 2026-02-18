@@ -561,3 +561,45 @@ footer .footer-links a:hover {
     gap: 0.5rem;
   }
 }
+
+/* Stream fallback artwork */
+.stream-fallback {
+  display: block;
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+}
+.stream-fallback img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  border: 1px solid #bf00ff44;
+}
+.fallback-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 2rem 1rem 1rem;
+  text-align: center;
+}
+.fallback-text {
+  color: #bf00ff;
+  font-family: 'Creepster', cursive;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(191, 0, 255, 0.5);
+}
+.stream-fallback:hover .fallback-text {
+  text-shadow: 0 0 20px rgba(191, 0, 255, 0.8);
+}
+.stream-fallback:hover img {
+  border-color: #bf00ff;
+}
