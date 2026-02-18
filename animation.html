@@ -56,10 +56,30 @@
 
 <section class="fade-in">
   <h2>🎨 Gallery</h2>
-  <p>Art, animation stills, and visual transmissions from the Afterverse.</p>
+  <p>Art, comics, figures, and visual transmissions from the Afterverse.</p>
   <div class="ig-gallery">
-    <div class="ig-grid" id="ig-grid">
-      <!-- Images loaded dynamically from Instagram RSS via JS below -->
+    <div class="ig-grid">
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/horror-face.jpg');" aria-label="Horror Ink Art">
+        <span class="ig-overlay">Horror Ink Art</span>
+      </a>
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/deadanomicon.jpg');" aria-label="DEADANOMICON Comic">
+        <span class="ig-overlay">DEADANOMICON Comic</span>
+      </a>
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/crimson-ghost.jpg');" aria-label="Studio &amp; Figures">
+        <span class="ig-overlay">Studio &amp; Figures</span>
+      </a>
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/mini-arcade.jpg');" aria-label="Mini Arcade Setup">
+        <span class="ig-overlay">Mini Arcade Setup</span>
+      </a>
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/pitstops-of-peril.jpg');" aria-label="Pitstops of Peril Zine">
+        <span class="ig-overlay">Pitstops of Peril Zine</span>
+      </a>
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/alley-noir.jpg');" aria-label="Noir Character Art">
+        <span class="ig-overlay">Noir Character Art</span>
+      </a>
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-thumb" style="background-image: url('images/gallery/zombie-scream.jpg');" aria-label="Zombie Scream Art">
+        <span class="ig-overlay">Zombie Scream Art</span>
+      </a>
     </div>
     <div style="text-align:center; padding-top: 1rem;">
       <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="cta-button" style="font-size:1rem; padding: 0.75rem 2rem;">
@@ -67,50 +87,6 @@
       </a>
     </div>
   </div>
-  <script>
-    // Fetch Instagram posts via RSS bridge (rss.app free tier, no auth needed)
-    // Falls back to styled placeholder grid if feed unavailable
-    (function() {
-      const grid = document.getElementById('ig-grid');
-      const igUrl = 'https://www.instagram.com/spacetruckers.pit.stop/';
-
-      // Try fetching via public RSS proxy
-      fetch('https://rsshub.app/instagram/user/spacetruckers.pit.stop', {mode:'cors'})
-        .then(r => r.text())
-        .then(xml => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(xml, 'text/xml');
-          const items = doc.querySelectorAll('item');
-          if (items.length === 0) throw new Error('No items');
-          const count = Math.min(items.length, 8);
-          for (let i = 0; i < count; i++) {
-            const desc = items[i].querySelector('description')?.textContent || '';
-            const imgMatch = desc.match(/src="([^"]+)"/);
-            if (imgMatch) {
-              const a = document.createElement('a');
-              a.href = igUrl;
-              a.target = '_blank';
-              a.className = 'ig-thumb';
-              a.style.backgroundImage = 'url(' + imgMatch[1] + ')';
-              grid.appendChild(a);
-            }
-          }
-          if (grid.children.length === 0) throw new Error('No images parsed');
-        })
-        .catch(() => {
-          // Fallback: show styled placeholder cards
-          const labels = ['Afterverse Art', 'Character Art', 'Animation Stills', 'AI Experiments', 'Behind the Scenes', 'Latest Posts'];
-          labels.forEach(label => {
-            const a = document.createElement('a');
-            a.href = igUrl;
-            a.target = '_blank';
-            a.className = 'ig-thumb ig-placeholder';
-            a.innerHTML = '<span>' + label + '</span>';
-            grid.appendChild(a);
-          });
-        });
-    })();
-  </script>
 </section>
 
 <section class="fade-in">

@@ -919,3 +919,28 @@ footer .footer-links a:hover {
 .game-card:hover .play-btn {
   box-shadow: 0 0 20px rgba(0,255,136,0.4);
 }
+
+/* Gallery image overlay text */
+.ig-thumb {
+  position: relative;
+  overflow: hidden;
+}
+.ig-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  color: #fff;
+  padding: 2rem 0.75rem 0.75rem;
+  font-family: 'Creepster', cursive;
+  font-size: 1rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: all 0.3s ease;
+}
+.ig-thumb:hover .ig-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
