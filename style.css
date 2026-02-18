@@ -809,6 +809,47 @@ footer .footer-links a:hover {
   color: #000;
 }
 
+/* Ko-fi Section */
+.kofi-section {
+  text-align: center;
+  padding: 3rem 1rem;
+  margin: 2rem auto;
+  max-width: 600px;
+}
+.kofi-desc {
+  color: #ccc;
+  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.kofi-btn {
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, #ff5e5b, #d94a47);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 50px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(255, 94, 91, 0.3), 0 0 30px rgba(255, 94, 91, 0.1);
+}
+.kofi-btn:hover {
+  background: linear-gradient(135deg, #ff7673, #e05a57);
+  box-shadow: 0 0 25px rgba(255, 94, 91, 0.5), 0 0 50px rgba(255, 94, 91, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Ko-fi Card (Links page) */
+.kofi-card {
+  border-color: #ff5e5b !important;
+}
+.kofi-card:hover {
+  box-shadow: 0 0 20px rgba(255, 94, 91, 0.3);
+}
+
+
 .merch-card {
   border: 1px solid rgba(57, 255, 20, 0.25) !important;
   background: rgba(57, 255, 20, 0.05) !important;
