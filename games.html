@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Music — Spacetrucker's Pit Stop</title>
-  <meta name="description" content="The JURN — Horror Punk from the Grave. Music, animation, and transmissions from the Afterverse.">
+  <title>Games — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="Play games from the Afterverse. JURNBREAKER and more cursed arcade action.">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 </head>
@@ -17,10 +17,10 @@
     </button>
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
-<li><a href="music.html" class="active">Music</a></li>
+<li><a href="music.html">Music</a></li>
 <li><a href="animation.html">Animation & Art</a></li>
 <li><a href="about.html">About</a></li>
-<li><a href="games.html">Games</a></li>
+<li><a href="games.html" class="active">Games</a></li>
 <li><a href="links.html">Links</a></li>
 
     </ul>
@@ -28,40 +28,21 @@
 </nav>
 <main>
 
-<div class="quote">"Fueled by neon nightmares and undead rebellion."</div>
+<div class="hero">
+  <div class="tagline">Afterverse Arcade</div>
+  <p class="intro">Cursed games from the grave. Break bones, dodge skulls, and rack up high scores.</p>
+</div>
 
-<section class="fade-in">
-  <p>The JURN drags its sound straight from the grave &mdash; raw punk energy with eerie, blood-soaked melodies. A soundtrack for the misfits, the monsters, and the ones who never stay buried.</p>
-</section>
-
-<section class="fade-in">
-  <h2>Listen</h2>
-  <div style="text-align:center; padding: 1.5rem 0;">
-    <a href="https://thejurn.bandcamp.com/" target="_blank" class="cta-button" style="font-size:1.1rem; padding: 0.8rem 2rem;">
-      🎵 Listen on BandCamp
-    </a>
-  </div>
-</section>
-
-<section class="fade-in">
-  <h2>Available Everywhere</h2>
-  <p>Listen to The JURN and Trash Queen on your platform of choice:</p>
-  <div class="stream-links">
-    <a href="https://thejurn.bandcamp.com/" target="_blank" class="stream-link">BandCamp</a>
-    <a href="https://thejurn.hearnow.com/" target="_blank" class="stream-link">All Platforms (The JURN)</a>
-    <a href="https://open.spotify.com/artist/0ovh2bAJRccyOxGaZSDWDT?si=nZ8rC_AWSN6WaWrDAyjmQg" target="_blank" class="stream-link">Trash Queen (Spotify)</a>
-  </div>
-</section>
-
-<section class="fade-in">
-  <h2>Albums & Projects</h2>
-  <ul class="album-list">
-    <li>Blacklight Rituals</li>
-    <li>Crypt Collection</li>
-    <li>Infernal Setlist</li>
-    <li>Soundtrack Singles &mdash; songs based on classic horror films and cursed media</li>
-  </ul>
-</section>
+<div class="games-grid fade-in">
+  <a href="games/jurnbreaker/" class="game-card">
+    <div class="game-thumb">🎮</div>
+    <div class="game-info">
+      <div class="game-title">JURNBREAKER</div>
+      <div class="game-desc">Classic brick-breaker with a skull twist. Smash bones, dodge chaos, survive the Afterverse.</div>
+      <span class="play-btn">▶ Play Now</span>
+    </div>
+  </a>
+</div>
 
 </main>
 <footer>
@@ -76,11 +57,9 @@
 </footer>
 
 <script>
-  // Scroll-in animations
   document.addEventListener('DOMContentLoaded', function() {
     var targets = document.querySelectorAll('.fade-in');
     if (!targets.length) return;
-
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
@@ -89,7 +68,6 @@
         }
       });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
     targets.forEach(function(el) { observer.observe(el); });
   });
 </script>

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <style>
+    body {
+      background-color: #000;
+      background-image: url("backgroundtest.png");
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      cursor: default;
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    canvas {
+      cursor: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    canvas#gameCanvas {
+      margin-top: 60px;
+      margin-bottom: 60px;
+      background-color: rgba(0, 0, 0, 0.5);
+      border: 2px solid white;
+      margin: 0 auto;
+      display: block;
+    }
+
+    button {
+      background-color: #222;
+      color: white;
+      font-family: 'Cinzel', serif;
+      border-radius: 5px;
+      font-size: 1.5em;
+      display: block;
+      margin: 10px auto;
+      cursor: pointer;
+    }
+
+    #titleScreen {
+      transition: opacity 0.3s ease-in-out;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-image: url("title_hd.png");
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #titleScreen.hidden {
+      display: none;
+    }
+
+    #optionsScreen {
+      transition: opacity 0.3s ease-in-out;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-image: url("backgroundtest.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #optionsScreen.hidden {
+      display: none;
+    }
+
+    #optionsBox {
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 2px solid white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      color: white;
+      font-family: 'Cinzel', serif;
+    }
+
+    #optionsBox label {
+      display: block;
+      margin: 10px 0 5px;
+      font-size: 1.2em;
+    }
+
+    #optionsBox input[type="range"] {
+      width: 200px;
+      margin-bottom: 20px;
+    }
+
+    #optionsBox button {
+      margin-top: 20px;
+    }
+
+    #startPrompt {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      color: white;
+      font-family: 'Cinzel', serif;
+      font-size: 1.2em;
+      z-index: 11;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="titleScreen">
+    <div id="startPrompt">Click to start title music, 'o' for options</div>
+  </div>
+  <div id="optionsScreen" class="hidden">
+    <div id="optionsBox">
+      <label for="musicVolume">Music Volume</label>
+      <input type="range" id="musicVolume" min="0" max="100" value="100">
+      <label for="effectsVolume">Sound Effects Volume</label>
+      <input type="range" id="effectsVolume" min="0" max="100" value="100">
+      <button onclick="gameManager.returnToTitle()">Return to Title Screen</button>
+    </div>
+  </div>
+  <canvas id="gameCanvas" width="720" height="800"></canvas>
+  <button onclick="gameManager.resetGame()">Reset</button>
+
+  <script>
+    function randomInt(...args) {
+      if (args.length === 1) {
+        const [n] = args;
+        return Math.ceil(Math.random() * n);
+      }
+      if (args.length === 2) {
+        const [start, end] = args;
+        if (start > end) throw Error("시작값이 끝값보다 큼");
+        return Math.ceil(Math.random() * (end - start)) + start;
+      }
+    }
+
+    function random(...args) {
+      if (args.length === 1) {
+        const [n] = args;
+        return Math.random() * n;
+      }
+      if (args.length === 2) {
+        const [start, end] = args;
+        if (start > end) throw Error("시작값이 끝값보다 큼");
+        return Math.random() * (end - start) + start;
+      }
+    }
+
+    const range = function (n, m) {
+      if (arguments.length === 1)
+        return Array.from({ length: n }).map((_, i) => i);
+      if (arguments.length === 2) {
+        if (n === m) return [n];
+        else if (n < m) {
+          return Array.from({ length: m - n + 1 }).map((_, i) => i + n);
+        } else {
+          return Array.from({ length: n - m + 1 }).map((_, i) => n - i);
+        }
+      }
+    };
+
+    function normalize(n) {
+      return n < 0 ? -1 : n > 0 ? 1 : 0;
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function between(v, min, max) {
+      return min <= v && v <= max;
+    }
+
+    const delay = (n) => new Promise((r) => setTimeout(r, n));
+
+    const jurnVanLeft = new Image();
+    jurnVanLeft.src = "jurnleft.png";
+    const jurnVanRight = new Image();
+    jurnVanRight.src = "jurnright.png";
+
+    let vanX = 100;
+    let vanDir = 1;
+    let vanSpeed = 1.2;
+
+    const boneImg = new Image();
+    boneImg.src = "bone1.png";
+    let boneReady = false;
+    boneImg.onload = () => { boneReady = true; };
+
+    const gameoverImage = new Image();
+    gameoverImage.src = "gameover.png";
+    let showGameOver = false;
+
+    const skullball = new Image();
+    skullball.src = "skullball.png";
+    const totalFrames = 12;
+    const frameWidth = 13;
+    let skullFrame = 0;
+
+    let fadeOutStarted = false;
+    let fadeOpacity = 1.0;
+
+    function fadeOutTitleScreen() {
+      if (!fadeOutStarted) {
+        fadeOutStarted = true;
+        const interval = setInterval(() => {
+          fadeOpacity -= 0.05;
+          document.getElementById('titleScreen').style.opacity = fadeOpacity;
+          if (fadeOpacity <= 0) {
+            clearInterval(interval);
+            document.getElementById('titleScreen').classList.add('hidden');
+          }
+        }, 30);
+      }
+    }
+
+    function fadeOutOptionsScreen() {
+      const optionsScreen = document.getElementById('optionsScreen');
+      let opacity = 1.0;
+      const interval = setInterval(() => {
+        opacity -= 0.05;
+        optionsScreen.style.opacity = opacity;
+        if (opacity <= 0) {
+          clearInterval(interval);
+          optionsScreen.classList.add('hidden');
+          optionsScreen.style.opacity = 1.0;
+        }
+      }, 30);
+    }
+
+    const handImg = new Image();
+    handImg.src = "deadpoint_32x32.png";
+    let handReady = false;
+    handImg.onload = () => { handReady = true; };
+
+    // Audio setup
+    const titleMusic = new Audio("JURNBREAKERS.mp3");
+    titleMusic.loop = true;
+    let hasInteracted = false;
+
+    const gameMusic = new Audio("JURNBREAKERS.mp3");
+    gameMusic.loop = true;
+
+    const gameOverSound = new Audio("gameover.mp3");
+
+    const snareSounds = [
+      new Audio("snare.mp3"),
+      new Audio("snare1.mp3"),
+      new Audio("snare2.mp3"),
+      new Audio("snare3.mp3")
+    ];
+
+    function playRandomSnare() {
+      const index = randomInt(0, snareSounds.length - 1);
+      const snare = snareSounds[index];
+      snare.currentTime = 0;
+      snare.play().catch(e => console.error("Snare play failed:", e));
+    }
+
+    // Volume control
+    function updateMusicVolume(value) {
+      const volume = value / 100;
+      titleMusic.volume = volume;
+      gameMusic.volume = volume;
+    }
+
+    function updateEffectsVolume(value) {
+      const volume = value / 100;
+      gameOverSound.volume = volume;
+      snareSounds.forEach(snare => snare.volume = volume);
+    }
+
+    // Handle user interaction to enable audio
+    function enableAudio() {
+      if (!hasInteracted) {
+        hasInteracted = true;
+        titleMusic.play().catch(e => console.error("Title music play failed:", e));
+        document.getElementById('startPrompt').textContent = "Press 'o' for options";
+      }
+    }
+
+    document.addEventListener('click', enableAudio);
+  </script>
+
+  <script>
+    class Vector {
+      constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+      }
+      add(v) { this.x += v.x; this.y += v.y; }
+      sub(v) { this.x -= v.x; this.y -= v.y; }
+      mult(n) { this.x *= n; this.y *= n; }
+      mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+      get() { return new Vector(this.x, this.y); }
+      normalize() { this.x = normalize(this.x); this.y = normalize(this.y); }
+      copy() { return new Vector(this.x, this.y); }
+    }
+
+    Vector.mult = (v, n) => new Vector(v.x * n, v.y * n);
+    Vector.div = (v, n) => new Vector(v.x / n, v.y / n);
+  </script>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const width = 710;
+    const height = 880;
+    const uiOffsetY = 80;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    function line(x1, y1, x2, y2, color = "#000") {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    function dashLine(x1, y1, x2, y2) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'red';
+      ctx.setLineDash([5, 5]);
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function rect(x, y, w, h) {
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.strokeStyle = "#ffffff";
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    function fillRect(x, y, w, h, color = "#171717") {
+      ctx.save();
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+      ctx.closePath();
+      ctx.restore();
+    }
+
+    function circle(x, y, r, color = "#000") {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.lineWidth = 3;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.fill();
+      ctx.stroke();
+      ctx.closePath();
+      ctx.restore();
+    }
+
+    function clear() {
+      ctx.clearRect(0, 0, width, height);
+    }
+
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
+    }
+  </script>
+
+  <script>
+    const POWER = 0.3;
+    const Mouse = { position: new Vector(0, 0) };
+
+    class BallLine {
+      constructor() {}
+      display(state) {
+        if (!state.ballMoving && !state.brickMoving && state.ballPos) {
+          dashLine(state.ballPos.x, state.ballPos.y, Mouse.position.x, Math.min(Mouse.position.y, 720));
+        }
+      }
+    }
+
+    class Ball {
+      constructor(mass, x, y) {
+        this.position = new Vector(x, y);
+        this.velocity = new Vector(0, 0);
+        this.acceleration = new Vector(0, 0);
+        this.mass = mass;
+        this.r = this.mass * 8;
+        this.showDirection = true;
+      }
+
+      setOnStop(f) { this.onStop = f; }
+      applyForce(force) { const f = Vector.div(force, this.mass); this.acceleration.add(f); }
+      update() { this.velocity.add(this.acceleration); this.position.add(this.velocity); this.acceleration.mult(0); }
+      move(direction) {
+        if (direction === "right") this.applyForce(new Vector(20, 0));
+        else if (direction === "left") this.applyForce(new Vector(-20, 0));
+      }
+      stop() {
+        this.velocity = new Vector(0, 0);
+        this.showDirection = true;
+        this.onStop(this);
+        this.downing = false;
+      }
+      down() { this.downing = true; this.velocity = new Vector(0, 30); }
+      shoot(mousePos) {
+        this.showDirection = false;
+        const force = this.calcBallVelocity(this.angle(mousePos));
+        this.applyForce(force);
+      }
+      calcBallVelocity(angle) {
+        return new Vector(100 * Math.cos(angle) * POWER, 100 * Math.sin(angle) * POWER);
+      }
+      angle(mousePos) {
+        const opposite = mousePos.y - this.position.y;
+        const adjacent = mousePos.x - this.position.x;
+        return Math.atan2(opposite, adjacent);
+      }
+      display() {
+        const frameX = Math.floor(skullFrame % totalFrames) * frameWidth;
+        ctx.drawImage(skullball, frameX, 0, frameWidth, 128, this.position.x - this.r, this.position.y - this.r, this.r * 2, this.r * 2);
+        skullFrame += 0.3;
+      }
+      collideWith(brick) {
+        if (this.downing) return false;
+        const { x, y } = this.position;
+        const r = this.r;
+        const closestX = clamp(x, brick.x, brick.x + brick.w);
+        const closestY = clamp(y, brick.y, brick.y + brick.h);
+        const distanceX = x - closestX;
+        const distanceY = y - closestY;
+        const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+        const collided = distanceSquared < r * r;
+        if (!collided) return false;
+        if (closestY === brick.y && between(closestX, brick.x - r + 3, brick.x + brick.w + r - 3)) {
+          this.velocity.y *= -1;
+          this.position.y = closestY - r;
+        } else if (closestY === brick.y + brick.h && between(closestX, brick.x - r + 3, brick.x + brick.w + r - 3)) {
+          this.velocity.y *= -1;
+          this.position.y = closestY + r;
+        } else if (closestX === brick.x && between(closestY, brick.y - r + 3, brick.y + brick.h + r - 3)) {
+          this.velocity.x *= -1;
+          this.position.x = closestX - r;
+        } else if (closestX === brick.x + brick.w && between(closestY, brick.y - r + 3, brick.y + brick.h + r - 3)) {
+          this.velocity.x *= -1;
+          this.position.x = closestX + r;
+        }
+        return true;
+      }
+      collideWithBonusBall(bonusBall) {
+        if (this.downing) return false;
+        const x = this.position.x - bonusBall.x;
+        const y = this.position.y - bonusBall.y;
+        const r = this.r;
+        return 2 * r >= Math.sqrt(x * x + y * y);
+      }
+      checkEdges() {
+        if (this.position.x > width) { this.position.x = width; this.velocity.x *= -1; }
+        else if (this.position.x < 0) { this.position.x = 0; this.velocity.x *= -1; }
+        if (this.position.y > height - 100) { this.velocity.y *= -1; this.position.y = height - 100; this.stop(); }
+        else if (this.position.y < 100) { this.velocity.y *= -1; this.position.y = 100; }
+      }
+    }
+
+    class Brick {
+      constructor(n, x, y) {
+        this.n = n;
+        this.start = n;
+        this.x = x * 120;
+        this.y = y * 80 + uiOffsetY;
+        this.w = 110;
+        this.h = 70;
+      }
+      shouldMoveDown(state) { return this.y < 80 * (state.level - this.start + 1) + uiOffsetY; }
+      update(state) {
+        if (this.shouldMoveDown(state)) {
+          this.y = Math.min(this.y + 10, 80 * (state.level - this.start + 1) + uiOffsetY);
+        }
+      }
+      color(level) {
+        const percentage = ((level - this.n) / level) * 30;
+        return `hsl(${percentage}, ${100 - percentage}%, 63%)`;
+      }
+      display(state) {
+        fillRect(this.x, this.y, this.w, this.h, this.color(state.level));
+        ctx.fillStyle = "white";
+        ctx.font = "20px Cinzel";
+        ctx.fillText(this.n, this.x + this.w / 2 - 8, this.y + this.h / 2 + 5);
+      }
+      hit() { this.n--; playRandomSnare(); }
+      get broken() { return this.n <= 0; }
+      get hitBottom() { return this.y >= height - uiOffsetY - 80; }
+    }
+
+    class BrickParticle {
+      constructor(n, x, y) {
+        const i = n % 5;
+        const j = ~~(n / 4);
+        this.w = 22;
+        this.h = 18;
+        this.location = new Vector(x + i * this.w, y + j * this.h);
+        this.acceleration = new Vector(0, 0);
+        this.velocity = new Vector(
+          i > 2 ? random(0, 0.5) : i === 2 ? random(-0.5, 0.5) : random(-0.5, 0),
+          random(1, 3)
+        );
+        this.lifespan = 255;
+      }
+      update() { this.velocity.add(this.acceleration); this.location.add(this.velocity); this.lifespan -= 4; }
+      display() { fillRect(this.location.x, this.location.y, 22, 18, `hsla(30, 70%, 63%, ${this.lifespan / 255})`); }
+      run() { this.update(); this.display(); }
+      get isDead() { return this.lifespan < 0; }
+    }
+
+    class BrickParticleSystem {
+      constructor(x, y) {
+        this.origin = new Vector(x, y);
+        this.particles = range(20).map((n) => new BrickParticle(n, x, y));
+      }
+      addParticle() { this.particles.push(new BrickParticle(this.origin)); }
+      run() {
+        this.particles.forEach((particle) => particle.run());
+        this.particles = this.particles.filter((p) => !p.isDead);
+      }
+      get isDead() { return !this.particles.length || this.particles[0].isDead; }
+    }
+
+    class BrickParticleSystems {
+      constructor() { this.particleSystems = []; }
+      addParticleSystem(...bricks) {
+        const newPs = bricks.map(({ x, y }) => new BrickParticleSystem(x, y));
+        this.particleSystems.push(...newPs);
+      }
+      run() {
+        this.particleSystems = this.particleSystems.filter((ps) => !ps.isDead);
+        this.particleSystems.forEach((ps) => ps.run());
+      }
+    }
+
+    class BonusBall {
+      constructor(n, x, y) {
+        this.start = n;
+        this.r = 16;
+        this.x = x * 120 + 56;
+        this.y = y * 80 + 36 + uiOffsetY;
+        this.hit = false;
+      }
+      moveDownLittle(state) {
+        this.y = Math.min(this.y + 10, 80 * (state.level - this.start + 1) + uiOffsetY + 40);
+      }
+      update(state) {
+        if (this.hit) this.y = Math.min(this.y + 50, height - 100);
+        else this.moveDownLittle(state);
+        if (this.hit && this.y === height - 100 && state.brickMoving) {
+          if (this.x < state.ballPos.x) { this.x = Math.min(this.x + 30, state.ballPos.x); }
+          else { this.x = Math.max(this.x - 30, state.ballPos.x); }
+        }
+      }
+      display() {
+        const localFrame = Math.floor((skullFrame * 0.5) % totalFrames);
+        const frameX = localFrame * frameWidth;
+        ctx.drawImage(skullball, frameX, 0, frameWidth, 128, this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
+      }
+      hitWithBall() { this.hit = true; }
+      collideWith(ball) {
+        const x = ball.position.x - this.x;
+        const y = ball.position.y - this.y;
+        const r = this.r;
+        const collided = 2 * r >= Math.sqrt(x * x + y * y);
+        if (collided) { this.hit = true; }
+        return collided;
+      }
+    }
+
+    class UI {
+      constructor() {}
+      drawAimGuide(state) {
+        if (!boneReady || state.ballMoving || !state.ballPos) return;
+        const fromX = state.ballPos.x;
+        const fromY = state.ballPos.y;
+        const toX = Mouse.position.x;
+        const toY = Math.min(Mouse.position.y, 720);
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const step = 64;
+        for (let i = 0; i < dist - step; i += step) {
+          const x = fromX + Math.cos(angle) * i;
+          const y = fromY + Math.sin(angle) * i;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle + Math.PI / 2);
+          ctx.drawImage(boneImg, -10, -32, 21, 64);
+          ctx.restore();
+        }
+      }
+      display(state) {
+        line(0, uiOffsetY, width, uiOffsetY);
+        line(0, height - uiOffsetY, width, height - uiOffsetY);
+        this.showBallCount(state);
+        this.showScore(state);
+        this.drawPointer(state);
+      }
+      showScore(state) {
+        ctx.fillStyle = "white";
+        ctx.font = "18px Cinzel";
+        ctx.fillText(`Score: ${state.level}`, 30, uiOffsetY / 2 + 7);
+        ctx.fillText(`Best: ${state.bestLevel}`, width - 150, uiOffsetY / 2 + 7);
+      }
+      showBallCount(state) {
+        ctx.fillStyle = "white";
+        ctx.font = "18px Cinzel";
+        ctx.fillText(`Skulls: ${state.ballCount}`, 20, 30);
+        if (!state.ballMoving)
+          ctx.fillText(`x${state.ballCount}`, state.ballPos.x - 10, height - 55);
+      }
+      drawPointer(state) {
+        if (!handReady || !state.ballPos) return;
+        const fromX = state.ballPos.x;
+        const fromY = state.ballPos.y;
+        const toX = Mouse.position.x;
+        const toY = Math.min(Mouse.position.y, 720);
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        ctx.save();
+        ctx.translate(toX, toY);
+        ctx.rotate(angle + Math.PI / 2);
+        ctx.drawImage(handImg, -48, -48, 96, 96);
+        ctx.restore();
+      }
+      gameOver() {
+        showGameOver = true;
+        canvas.style.cursor = "default";
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
+        gameOverSound.play().catch(e => console.error("Game over sound play failed:", e));
+      }
+    }
+
+    class Balls {
+      constructor(state) {
+        this.balls = range(state.ballCount).map((i) => new Ball(2, state.ballPos.x, state.ballPos.y));
+        this.onBallStop = (ball) => {
+          if (!state.firstBallStop) {
+            state.ballPos = ball.position.copy();
+            state.firstBallStop = true;
+          }
+          ball.position.x = state.ballPos.x;
+        };
+        this.balls.forEach((ball) => ball.setOnStop(this.onBallStop));
+      }
+      collideWithBricks(bricks) {
+        bricks.bricks.forEach((brick) => {
+          this.balls.forEach((ball) => {
+            const collided = ball.collideWith(brick);
+            if (collided) { brick.hit(); }
+          });
+        });
+      }
+      collideWithBonusBall(bonusBalls) {
+        this.balls.forEach((ball) => {
+          bonusBalls.forEach((bonusBall) => {
+            const collided = ball.collideWithBonusBall(bonusBall);
+            if (collided) bonusBall.hitWithBall();
+          });
+        });
+      }
+      get allStopped() { return this.balls.every((ball) => ball.velocity.mag() === 0); }
+      addBalls(state, n) {
+        const newBalls = range(n).map((i) => new Ball(2, state.ballPos.x, state.ballPos.y));
+        newBalls.forEach((ball) => ball.setOnStop(this.onBallStop));
+        this.balls.push(...newBalls);
+      }
+      async shoot(mousePos, state) {
+        for (const ball of this.balls) {
+          if (state.ballDowning) return;
+          ball.shoot(mousePos);
+          await delay(Math.max(50 - ~~(state.ballCount / 10), 10));
+        }
+      }
+      down() { this.balls.forEach((ball) => ball.down()); }
+      display() {
+        this.balls.forEach((ball) => {
+          ball.update();
+          ball.checkEdges();
+          ball.display();
+        });
+      }
+    }
+
+    class Bricks {
+      constructor() {
+        this.bricks = [];
+        this.particleSystems = new BrickParticleSystems();
+      }
+      addBricks(state, newBrickIndeces) {
+        const newBricks = newBrickIndeces.map((i) => new Brick(state.level, i, 0));
+        this.bricks.push(...newBricks);
+      }
+      display(state) {
+        this.bricks.forEach((brick) => { brick.update(state); brick.display(state); });
+        this.particleSystems.run();
+      }
+      break() {
+        const brokenBricks = this.bricks.filter((brick) => brick.broken);
+        this.particleSystems.addParticleSystem(...brokenBricks);
+        this.bricks = this.bricks.filter((brick) => !brick.broken);
+      }
+      shouldSlideDown(state) { return this.bricks[0] && this.bricks[0].shouldMoveDown(state); }
+      get hitBottom() { return this.bricks[0] && this.bricks[0].hitBottom; }
+    }
+
+    class BonusBalls {
+      constructor() { this.bonusBalls = []; }
+      addBonusBalls(state, newBonusBallIndex) {
+        this.bonusBalls = [...this.bonusBalls, new BonusBall(state.level, newBonusBallIndex, 0)];
+      }
+      display(state) { this.bonusBalls.forEach((bonusBall) => { bonusBall.update(state); bonusBall.display(); }); }
+      collideWithBall(balls) {
+        this.bonusBalls.forEach((bonusBall) => balls.balls.forEach((ball) => bonusBall.collideWith(ball)));
+      }
+      removeHitBalls() { this.bonusBalls = this.bonusBalls.filter((b) => !b.hit || b.y > height); }
+      get hitBallCount() { return this.bonusBalls.filter((ball) => ball.hit).length; }
+    }
+
+    class LocalStorageManager {
+      constructor() {
+        this.bestScoreKey = "brickBestScore";
+        this.storage = window.localStorage;
+      }
+      getBestScore() { return this.storage.getItem(this.bestScoreKey) || 1; }
+      setBestScore(score) { this.storage.setItem(this.bestScoreKey, score); }
+      setScore(score) { this.setBestScore(Math.max(score, this.getBestScore())); }
+    }
+
+    class GameManager {
+      constructor() {
+        this.state = {
+          ballPos: new Vector(width / 2, height - 100),
+          ballMoving: false,
+          ballCount: 1,
+          ballDowning: false,
+          brickMoving: false,
+          firstBallStop: true,
+          level: 1,
+          over: false,
+          gameStarted: false,
+        };
+        this.balls = null;
+        this.bricks = null;
+        this.bonusBalls = null;
+        this.ballLine = null;
+        this.ui = null;
+        this.scoreStorage = new LocalStorageManager();
+        this.state.bestLevel = this.scoreStorage.getBestScore();
+        this.titleScreen = document.getElementById("titleScreen");
+        this.optionsScreen = document.getElementById("optionsScreen");
+        window.addEventListener("keydown", this.handleKeyDown.bind(this));
+        this.setupVolumeControls();
+      }
+      handleKeyDown(e) {
+        const key = e.key.toLowerCase();
+        if (!this.state.gameStarted && this.titleScreen.classList.contains('hidden') === false) {
+          enableAudio(); // Enable audio on any keypress when title screen is visible
+          if (key === "e") {
+            this.startGame();
+          } else if (key === "o") {
+            this.showOptions();
+          }
+        }
+      }
+      setupVolumeControls() {
+        const musicVolumeSlider = document.getElementById("musicVolume");
+        const effectsVolumeSlider = document.getElementById("effectsVolume");
+        musicVolumeSlider.addEventListener("input", () => updateMusicVolume(musicVolumeSlider.value));
+        effectsVolumeSlider.addEventListener("input", () => updateEffectsVolume(effectsVolumeSlider.value));
+      }
+      showOptions() {
+        this.titleScreen.classList.add('hidden');
+        this.optionsScreen.classList.remove('hidden');
+      }
+      returnToTitle() {
+        fadeOutOptionsScreen();
+        this.titleScreen.classList.remove('hidden');
+      }
+      startGame() {
+        this.state.gameStarted = true;
+        titleMusic.pause();
+        titleMusic.currentTime = 0;
+        gameMusic.play().catch(e => console.error("Game music play failed:", e));
+        fadeOutTitleScreen();
+        this.balls = new Balls(this.state);
+        this.bricks = new Bricks();
+        this.bonusBalls = new BonusBalls();
+        this.ballLine = new BallLine();
+        this.ui = new UI();
+        this.addBallsAndBricks();
+        canvas.addEventListener("click", (e) => this.shootBalls(e));
+        this.run();
+      }
+      resetGame() {
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
+        gameOverSound.pause();
+        gameOverSound.currentTime = 0;
+        hasInteracted = false;
+        titleMusic.play().catch(e => console.error("Title music play failed on reset:", e));
+        location.reload();
+      }
+      addBallsAndBricks() {
+        const bonusBallCount = this.bonusBalls.hitBallCount;
+        const newBrickIndeces = shuffle(range(6)).slice(0, Math.random() > 0.9 ? randomInt(5) : randomInt(4));
+        const newBonusBallIndex = shuffle(range(6).filter((i) => !newBrickIndeces.includes(i)))[0];
+        this.state.ballCount += bonusBallCount;
+        this.balls.addBalls(this.state, bonusBallCount);
+        this.bricks.addBricks(this.state, newBrickIndeces);
+        this.bonusBalls.addBonusBalls(this.state, newBonusBallIndex);
+      }
+      shootBalls(e) {
+        if (this.state.ballMoving || this.state.brickMoving || this.state.over) return;
+        this.state.ballPos = null;
+        this.state.ballMoving = true;
+        this.state.ballDowning = false;
+        this.state.firstBallStop = false;
+        const { x, y } = Mouse.position;
+        this.balls.shoot({ x, y: Math.min(y, 720) }, this.state);
+      }
+      checkCollision() {
+        this.balls.collideWithBricks(this.bricks);
+        this.bonusBalls.collideWithBall(this.balls);
+        this.bricks.break();
+      }
+      draw() {
+        clear();
+        this.ballLine.display(this.state);
+        this.balls.display();
+        this.bricks.display(this.state);
+        this.bonusBalls.display(this.state);
+        this.ui.drawAimGuide(this.state);
+        this.ui.display(this.state);
+        vanX += vanDir * vanSpeed;
+        if (vanX <= 0 || vanX >= width - 100) vanDir *= -1;
+        const vanImage = vanDir > 0 ? jurnVanRight : jurnVanLeft;
+        ctx.drawImage(vanImage, vanX, height - 70, 100, 50);
+      }
+      run() {
+        if (!this.state.gameStarted) return;
+        if (showGameOver) {
+          clear();
+          ctx.drawImage(gameoverImage, width / 2 - gameoverImage.width / 2, height / 2 - gameoverImage.height / 2);
+          return;
+        }
+        this.draw();
+        this.checkCollision();
+        if (this.state.ballMoving && this.balls.allStopped) {
+          this.state.ballMoving = false;
+          this.state.brickMoving = true;
+          this.state.level += 1;
+          this.scoreStorage.setScore(this.state.level);
+          this.state.bestLevel = this.scoreStorage.getBestScore();
+          this.addBallsAndBricks();
+        }
+        if (this.state.brickMoving) {
+          if (!this.bricks.shouldSlideDown(this.state)) {
+            this.state.brickMoving = false;
+            this.bonusBalls.removeHitBalls();
+          }
+        }
+        if (this.bricks.hitBottom) {
+          this.ui.gameOver();
+          this.state.over = true;
+        }
+        window.requestAnimationFrame(() => this.run());
+      }
+      downBalls() {
+        this.state.ballDowning = true;
+        this.balls.down();
+      }
+    }
+
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      Mouse.position = new Vector(mx, my);
+    });
+
+    const gameManager = new GameManager();
+  </script>
+</body>
+</html>
