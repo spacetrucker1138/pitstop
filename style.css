@@ -763,3 +763,58 @@ footer .footer-links a:hover {
     gap: 0.5rem;
   }
 }
+
+
+/* ==========================================
+   MERCH SECTION
+   ========================================== */
+.merch-section {
+  text-align: center;
+  padding: 3rem 2rem;
+  margin: 2rem auto;
+  max-width: 700px;
+}
+
+.merch-section .section-title {
+  font-family: 'Creepster', cursive;
+  font-size: 2rem;
+  color: var(--neon-green);
+  text-shadow: 0 0 15px rgba(57, 255, 20, 0.4), 0 0 40px rgba(57, 255, 20, 0.15);
+  margin-bottom: 0.75rem;
+}
+
+.merch-desc {
+  color: var(--text-dim);
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.merch-btn {
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  font-family: 'Creepster', cursive;
+  font-size: 1.4rem;
+  color: #000;
+  background: linear-gradient(135deg, var(--neon-green), #2ecc40);
+  border-radius: 8px;
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.3), 0 0 60px rgba(57, 255, 20, 0.1);
+}
+
+.merch-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 0 30px rgba(57, 255, 20, 0.5), 0 0 80px rgba(57, 255, 20, 0.2);
+  color: #000;
+}
+
+.merch-card {
+  border: 1px solid rgba(57, 255, 20, 0.25) !important;
+  background: rgba(57, 255, 20, 0.05) !important;
+}
+
+.merch-card:hover {
+  border-color: rgba(57, 255, 20, 0.5) !important;
+  box-shadow: 0 0 25px rgba(57, 255, 20, 0.15) !important;
+}
