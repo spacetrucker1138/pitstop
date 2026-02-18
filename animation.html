@@ -57,39 +57,65 @@
   <h2>🎨 Gallery</h2>
   <p>Art, animation stills, and visual transmissions from the Afterverse.</p>
   <div class="ig-gallery">
-    <div class="ig-scroll">
-      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-card">
-        <div class="ig-icon">🖤</div>
-        <div class="ig-label">Afterverse Art</div>
-      </a>
-      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-card">
-        <div class="ig-icon">💀</div>
-        <div class="ig-label">Character Art</div>
-      </a>
-      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-card">
-        <div class="ig-icon">🎬</div>
-        <div class="ig-label">Animation Stills</div>
-      </a>
-      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-card">
-        <div class="ig-icon">🧪</div>
-        <div class="ig-label">AI Experiments</div>
-      </a>
-      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-card">
-        <div class="ig-icon">🔮</div>
-        <div class="ig-label">Behind the Scenes</div>
-      </a>
-      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="ig-card">
-        <div class="ig-icon">📸</div>
-        <div class="ig-label">See All on Instagram →</div>
+    <div class="ig-grid" id="ig-grid">
+      <!-- Images loaded dynamically from Instagram RSS via JS below -->
+    </div>
+    <div style="text-align:center; padding-top: 1rem;">
+      <a href="https://www.instagram.com/spacetruckers.pit.stop/" target="_blank" class="cta-button" style="font-size:1rem; padding: 0.75rem 2rem;">
+        📸 See All on Instagram
       </a>
     </div>
   </div>
+  <script>
+    // Fetch Instagram posts via RSS bridge (rss.app free tier, no auth needed)
+    // Falls back to styled placeholder grid if feed unavailable
+    (function() {
+      const grid = document.getElementById('ig-grid');
+      const igUrl = 'https://www.instagram.com/spacetruckers.pit.stop/';
+
+      // Try fetching via public RSS proxy
+      fetch('https://rsshub.app/instagram/user/spacetruckers.pit.stop', {mode:'cors'})
+        .then(r => r.text())
+        .then(xml => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xml, 'text/xml');
+          const items = doc.querySelectorAll('item');
+          if (items.length === 0) throw new Error('No items');
+          const count = Math.min(items.length, 8);
+          for (let i = 0; i < count; i++) {
+            const desc = items[i].querySelector('description')?.textContent || '';
+            const imgMatch = desc.match(/src="([^"]+)"/);
+            if (imgMatch) {
+              const a = document.createElement('a');
+              a.href = igUrl;
+              a.target = '_blank';
+              a.className = 'ig-thumb';
+              a.style.backgroundImage = 'url(' + imgMatch[1] + ')';
+              grid.appendChild(a);
+            }
+          }
+          if (grid.children.length === 0) throw new Error('No images parsed');
+        })
+        .catch(() => {
+          // Fallback: show styled placeholder cards
+          const labels = ['Afterverse Art', 'Character Art', 'Animation Stills', 'AI Experiments', 'Behind the Scenes', 'Latest Posts'];
+          labels.forEach(label => {
+            const a = document.createElement('a');
+            a.href = igUrl;
+            a.target = '_blank';
+            a.className = 'ig-thumb ig-placeholder';
+            a.innerHTML = '<span>' + label + '</span>';
+            grid.appendChild(a);
+          });
+        });
+    })();
+  </script>
 </section>
 
 <section>
   <h2>Short-Form Chaos</h2>
   <p>Clips, behind-the-scenes, and cursed previews.</p>
-  <a href="https://tiktok.com/@spacetrucker1138" target="_blank" class="cta-button">📱 Follow on TikTok</a>
+  
 </section>
 
 </main>
