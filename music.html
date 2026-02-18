@@ -29,11 +29,11 @@
 
 <div class="quote">"Fueled by neon nightmares and undead rebellion."</div>
 
-<section>
+<section class="fade-in">
   <p>The JURN drags its sound straight from the grave &mdash; raw punk energy with eerie, blood-soaked melodies. A soundtrack for the misfits, the monsters, and the ones who never stay buried.</p>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>Listen</h2>
   <div style="text-align:center; padding: 1.5rem 0;">
     <a href="https://thejurn.bandcamp.com/" target="_blank" class="cta-button" style="font-size:1.1rem; padding: 0.8rem 2rem;">
@@ -42,7 +42,7 @@
   </div>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>Available Everywhere</h2>
   <p>Listen to The JURN and Trash Queen on your platform of choice:</p>
   <div class="stream-links">
@@ -52,7 +52,7 @@
   </div>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>Albums & Projects</h2>
   <ul class="album-list">
     <li>Blacklight Rituals</li>
@@ -73,5 +73,24 @@
   </div>
   <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
 </footer>
+
+<script>
+  // Scroll-in animations
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
 </body>
 </html>

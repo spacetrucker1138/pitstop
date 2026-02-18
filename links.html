@@ -32,7 +32,7 @@
   <p class="intro">All the places Spacetrucker and The JURN haunt across the internet.</p>
 </div>
 
-<div class="links-grid">
+<div class="links-grid fade-in">
   <a href="https://www.youtube.com/@Spacetrucker138" target="_blank" class="link-card">
     <span class="link-icon">🔴</span>
     <div><div class="link-name">YouTube</div><div class="link-sub">@Spacetrucker138 &mdash; Main + 24/7 Radio</div></div>
@@ -94,5 +94,24 @@
   </div>
   <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
 </footer>
+
+<script>
+  // Scroll-in animations
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
 </body>
 </html>

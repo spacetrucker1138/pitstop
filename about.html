@@ -29,18 +29,18 @@
 
 <div class="quote">"Comic book artist. Stone age to digital age. Underground and indie."</div>
 
-<div class="bio-section">
+<div class="bio-section fade-in">
   <h3>Spacetrucker</h3>
   <p>Founder, coordinator, ghoul manager. Former comic book artist from Amityville, New York. When the hands gave out, the art evolved &mdash; into music, animation, and a 24/7 radio station broadcasting from the other side.</p>
   <p>Spacetrucker handles mixing, animation, and remote coordination for The JURN. The reluctant host of every cursed broadcast and the keeper of the Afterverse signal.</p>
 </div>
 
-<div class="bio-section">
+<div class="bio-section fade-in">
   <h3>The JURN</h3>
   <p>The JURN is a horror-punk band of undead misfits traveling through time, reality, and the grave to deliver cursed riffs and forbidden lore. The band formed in the wreckage of underground punk and classic horror &mdash; skeleton characters with names like Vox De Gaunt, Taz De Gaunt, Riff-Rot, and Sir Bonecrush.</p>
 </div>
 
-<div class="bio-section">
+<div class="bio-section fade-in">
   <h3>The Afterverse</h3>
   <p>The mythology behind The JURN &mdash; a universe of graveyard dimensions, boxcar prophecies, and rituals that keep the dead touring forever. The full lore runs deep.</p>
   <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank" class="cta-button">📖 Explore the Full Afterverse Lore</a>
@@ -57,5 +57,24 @@
   </div>
   <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
 </footer>
+
+<script>
+  // Scroll-in animations
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
 </body>
 </html>

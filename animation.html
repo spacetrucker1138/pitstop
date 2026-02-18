@@ -29,11 +29,11 @@
 
 <div class="quote">"From comic books to cursed cartoons."</div>
 
-<section>
+<section class="fade-in">
   <p>Spacetrucker started as a comic book artist &mdash; pen and ink, old school. When the hands gave out, the art didn't stop. It just moved. Now it's animation, music videos, and visual chaos pulled straight from the Afterverse.</p>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>🎬 Music Videos & Animated Shorts</h2>
   <p>Official JURN music videos, animated shorts, and visual lore &mdash; all consolidated here at the Pit Stop.</p>
   <div class="video-grid">
@@ -43,7 +43,7 @@
   </div>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>🧪 AI Experiments & Animation R&D</h2>
   <p>Weird tech, animation tests, and whatever crawls out of the lab.</p>
   <div style="text-align:center; padding: 1.5rem 0;">
@@ -53,7 +53,7 @@
   </div>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>🎨 Gallery</h2>
   <p>Art, animation stills, and visual transmissions from the Afterverse.</p>
   <div class="ig-gallery">
@@ -112,7 +112,7 @@
   </script>
 </section>
 
-<section>
+<section class="fade-in">
   <h2>Short-Form Chaos</h2>
   <p>Clips, behind-the-scenes, and cursed previews.</p>
   
@@ -129,5 +129,24 @@
   </div>
   <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
 </footer>
+
+<script>
+  // Scroll-in animations
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
 </body>
 </html>
