@@ -36,67 +36,19 @@
 
 <div class="radio-section fade-in">
   <div class="radio-label"><span class="dot"></span> LIVE NOW &mdash; Double Future Radio</div>
-  <div class="video-embed" id="stream-container">
-    <iframe id="stream-frame" 
-            src="https://www.youtube.com/embed/RgBbz1QjXCw?autoplay=0&rel=0" 
+  <div class="video-embed">
+    <iframe src="https://www.youtube.com/embed/RgBbz1QjXCw?autoplay=0&rel=0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowfullscreen
             loading="lazy"></iframe>
-    <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" id="stream-fallback" class="stream-fallback" style="display:none;">
-      <img src="images/stream-fallback.jpg" alt="Double Future Radio — Click to watch on YouTube" />
-      <div class="fallback-overlay">
-        <div class="fallback-text">▶ Watch on YouTube</div>
-      </div>
-    </a>
   </div>
   <div style="text-align:center; padding: 0.75rem 0 0;">
     <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" style="color:#bf00ff; font-size:0.9rem;">
-      Open directly on YouTube →
+      Open directly on YouTube &rarr;
     </a>
   </div>
   <p class="radio-desc">Tune into the 24/7 broadcast &mdash; undead punk, dark beats, and transmissions from the Afterverse. Always on. Never resting.</p>
 </div>
-<script>
-  // Detect if YouTube embed fails and show fallback artwork
-  (function() {
-    var frame = document.getElementById('stream-frame');
-    var fallback = document.getElementById('stream-fallback');
-
-    // YouTube embeds don't fire standard error events, so we use the API
-    // Load YouTube IFrame API
-    var tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-
-    window.onYouTubeIframeAPIReady = function() {
-      var player = new YT.Player('stream-frame', {
-        events: {
-          'onError': function(e) {
-            // Error codes: 2=invalid param, 5=HTML5 error, 100=not found, 101/150=restricted
-            frame.style.display = 'none';
-            fallback.style.display = 'block';
-          },
-          'onStateChange': function(e) {
-            // -1=unstarted is fine (user hasn't clicked play yet)
-            // Just make sure iframe stays visible when working
-          }
-        }
-      });
-
-      // Also set a timeout fallback — if player hasn't initialized after 8s, 
-      // the embed is probably broken
-      setTimeout(function() {
-        try {
-          var state = player.getPlayerState();
-          // If state is undefined or player errored, show fallback
-        } catch(err) {
-          frame.style.display = 'none';
-          fallback.style.display = 'block';
-        }
-      }, 8000);
-    };
-  })();
-</script>
 
 <div class="quick-links fade-in">
   <a href="music.html" class="quick-link"><span class="icon">🎵</span> Music</a>
