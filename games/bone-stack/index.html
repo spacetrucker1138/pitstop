@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bone Stack — Afterverse Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; touch-action: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 440, H = 700;
+canvas.width = W; canvas.height = H;
+
+const COLS = 10, ROWS = 20, CELL = 30;
+const BOARD_X = (W - COLS * CELL) / 2, BOARD_Y = (H - ROWS * CELL) / 2 + 20;
+
+// Pieces (standard Tetris shapes)
+const SHAPES = [
+  [[1,1,1,1]],           // I
+  [[1,1],[1,1]],         // O
+  [[0,1,0],[1,1,1]],    // T
+  [[1,0,0],[1,1,1]],    // J
+  [[0,0,1],[1,1,1]],    // L
+  [[0,1,1],[1,1,0]],    // S
+  [[1,1,0],[0,1,1]]     // Z
+];
+
+const COLORS = [
+  '#a855f7', // I - purple
+  '#7c3aed', // O - deep purple
+  '#c084fc', // T - light purple
+  '#6d28d9', // J - violet
+  '#8b5cf6', // L - medium purple
+  '#d946ef', // S - fuchsia
+  '#a21caf'  // Z - dark fuchsia
+];
+
+const SKULL_EMOJIS = ['💀','☠️','🦴','⚰️','🪦','👻','🕷️'];
+
+// Audio
+class AudioMgr {
+  constructor() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.muted = false;
+    this.volume = 0.4;
+  }
+  resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
+  play(freq, dur, type='square', vol=0.3) {
+    if (this.muted) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.value = vol * this.volume;
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(); o.stop(this.ctx.currentTime + dur);
+  }
+  drop() { this.play(200, 0.08, 'square', 0.3); }
+  clear() { this.play(600, 0.15, 'square', 0.5); setTimeout(() => this.play(800, 0.15, 'square', 0.5), 100); }
+  tetris() { 
+    [600,700,800,1000].forEach((f,i) => setTimeout(() => this.play(f, 0.15, 'square', 0.6), i*80));
+  }
+  rotate() { this.play(400, 0.05, 'triangle', 0.2); }
+  gameOver() {
+    [300,250,200,150].forEach((f,i) => setTimeout(() => this.play(f, 0.3, 'sawtooth', 0.5), i*200));
+  }
+  start() {
+    [330,440,550].forEach((f,i) => setTimeout(() => this.play(f, 0.1, 'square', 0.4), i*100));
+  }
+}
+const audio = new AudioMgr();
+
+// State
+let state = 'title';
+let board = [];
+let piece = null, nextPiece = null;
+let pieceX, pieceY, pieceType;
+let score = 0, level = 1, lines = 0, bestScore = 0;
+let dropInterval = 48, dropTimer = 0;
+let particles = [];
+let countdownNum = 3, countdownTimer = 0;
+
+// Load best
+try { bestScore = parseInt(localStorage.getItem('bonestack_best')) || 0; } catch(e) {}
+
+function createBoard() {
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    board.push(new Array(COLS).fill(0));
+  }
+}
+
+function randomPiece() {
+  const t = Math.floor(Math.random() * SHAPES.length);
+  return { shape: SHAPES[t].map(r => [...r]), type: t };
+}
+
+function spawnPiece() {
+  piece = nextPiece || randomPiece();
+  nextPiece = randomPiece();
+  pieceType = piece.type;
+  pieceX = Math.floor((COLS - piece.shape[0].length) / 2);
+  pieceY = 0;
+  if (collides(piece.shape, pieceX, pieceY)) {
+    state = 'gameover';
+    audio.gameOver();
+    if (score > bestScore) { bestScore = score; try { localStorage.setItem('bonestack_best', bestScore); } catch(e) {} }
+  }
+}
+
+function collides(shape, px, py) {
+  for (let r = 0; r < shape.length; r++) {
+    for (let c = 0; c < shape[r].length; c++) {
+      if (!shape[r][c]) continue;
+      const nx = px + c, ny = py + r;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if (ny >= 0 && board[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function lockPiece() {
+  for (let r = 0; r < piece.shape.length; r++) {
+    for (let c = 0; c < piece.shape[r].length; c++) {
+      if (!piece.shape[r][c]) continue;
+      const ny = pieceY + r, nx = pieceX + c;
+      if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+        board[ny][nx] = pieceType + 1;
+      }
+    }
+  }
+  audio.drop();
+  clearLines();
+  spawnPiece();
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r].every(c => c > 0)) {
+      // Spawn particles for cleared line
+      for (let c = 0; c < COLS; c++) {
+        const px = BOARD_X + c * CELL + CELL/2;
+        const py = BOARD_Y + r * CELL + CELL/2;
+        for (let i = 0; i < 3; i++) {
+          particles.push({
+            x: px, y: py,
+            vx: (Math.random()-0.5)*8,
+            vy: (Math.random()-0.5)*8 - 2,
+            life: 1,
+            color: COLORS[board[r][c]-1] || '#a855f7',
+            size: Math.random()*4+2,
+            emoji: Math.random() > 0.5 ? SKULL_EMOJIS[Math.floor(Math.random()*SKULL_EMOJIS.length)] : null
+          });
+        }
+      }
+      board.splice(r, 1);
+      board.unshift(new Array(COLS).fill(0));
+      cleared++;
+      r++; // recheck this row
+    }
+  }
+  if (cleared > 0) {
+    const pts = [0, 100, 300, 500, 800];
+    score += (pts[cleared] || 800) * level;
+    lines += cleared;
+    level = Math.floor(lines / 10) + 1;
+    dropInterval = Math.max(4, 48 - (level - 1) * 4);
+    if (cleared >= 4) audio.tetris(); else audio.clear();
+  }
+}
+
+function rotatePiece() {
+  const s = piece.shape;
+  const rotated = s[0].map((_, c) => s.map(r => r[c]).reverse());
+  if (!collides(rotated, pieceX, pieceY)) {
+    piece.shape = rotated;
+    audio.rotate();
+  } else if (!collides(rotated, pieceX - 1, pieceY)) {
+    piece.shape = rotated; pieceX--;
+    audio.rotate();
+  } else if (!collides(rotated, pieceX + 1, pieceY)) {
+    piece.shape = rotated; pieceX++;
+    audio.rotate();
+  }
+}
+
+function hardDrop() {
+  while (!collides(piece.shape, pieceX, pieceY + 1)) pieceY++;
+  lockPiece();
+}
+
+// Input
+let keys = {};
+let keyTimer = {};
+document.addEventListener('keydown', e => {
+  if (e.key === 'm' || e.key === 'M') { audio.muted = !audio.muted; return; }
+  if (state === 'title' && (e.key === 'e' || e.key === 'E' || e.key === ' ')) { startGame(); return; }
+  if (state === 'gameover' && (e.key === 'e' || e.key === 'E' || e.key === ' ')) { state = 'title'; return; }
+  if (state === 'playing' && (e.key === 'p' || e.key === 'P' || e.key === 'Escape')) { state = 'paused'; return; }
+  if (state === 'paused' && (e.key === 'p' || e.key === 'P' || e.key === 'Escape')) { state = 'playing'; return; }
+
+  if (state !== 'playing') return;
+  if (e.key === 'ArrowLeft' || e.key === 'a') {
+    if (!collides(piece.shape, pieceX-1, pieceY)) pieceX--;
+  }
+  if (e.key === 'ArrowRight' || e.key === 'd') {
+    if (!collides(piece.shape, pieceX+1, pieceY)) pieceX++;
+  }
+  if (e.key === 'ArrowUp' || e.key === 'w') rotatePiece();
+  if (e.key === 'ArrowDown' || e.key === 's') {
+    if (!collides(piece.shape, pieceX, pieceY+1)) pieceY++;
+  }
+  if (e.key === ' ') hardDrop();
+});
+
+// Touch controls
+let touchStartX = 0, touchStartY = 0, touchMoved = false;
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  audio.resume();
+  if (state === 'title') { startGame(); return; }
+  if (state === 'gameover') { state = 'title'; return; }
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchMoved = false;
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (state !== 'playing') return;
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  const threshold = 30;
+  if (Math.abs(dx) > threshold && !touchMoved) {
+    if (dx > 0 && !collides(piece.shape, pieceX+1, pieceY)) pieceX++;
+    else if (dx < 0 && !collides(piece.shape, pieceX-1, pieceY)) pieceX--;
+    touchStartX = e.touches[0].clientX;
+    touchMoved = true;
+  }
+  if (dy > threshold * 2 && !touchMoved) {
+    hardDrop();
+    touchMoved = true;
+  }
+});
+canvas.addEventListener('touchend', e => {
+  if (!touchMoved && state === 'playing') rotatePiece();
+});
+canvas.addEventListener('click', () => {
+  audio.resume();
+  if (state === 'title') startGame();
+  if (state === 'gameover') state = 'title';
+});
+
+function startGame() {
+  audio.resume();
+  audio.start();
+  createBoard();
+  score = 0; level = 1; lines = 0;
+  dropTimer = 0;
+  particles = [];
+  nextPiece = null;
+  spawnPiece();
+  state = 'countdown';
+  countdownNum = 3;
+  countdownTimer = 0;
+}
+
+// Draw cell
+function drawCell(x, y, colorIdx) {
+  const color = COLORS[colorIdx];
+  const gx = BOARD_X + x * CELL, gy = BOARD_Y + y * CELL;
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(gx, gy, gx, gy + CELL);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, shadeColor(color, -30));
+  ctx.fillStyle = grad;
+  ctx.fillRect(gx + 1, gy + 1, CELL - 2, CELL - 2);
+
+  // Inner bevel
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(gx + 2, gy + 2, CELL - 4, 3);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(gx + 2, gy + CELL - 5, CELL - 4, 3);
+}
+
+function shadeColor(hex, amt) {
+  let r = parseInt(hex.slice(1,3),16) + amt;
+  let g = parseInt(hex.slice(3,5),16) + amt;
+  let b = parseInt(hex.slice(5,7),16) + amt;
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawMuteIndicator() {
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText(audio.muted ? '🔇 M — Muted' : '🔊 M — Sound', W - 8, H - 8);
+}
+
+function drawTitle() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  const t = Date.now()/1000;
+
+  // Floating bone emojis
+  for (let i = 0; i < 6; i++) {
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.12;
+    ctx.fillText(SKULL_EMOJIS[i % SKULL_EMOJIS.length], W*(i+1)/7, 100 + Math.sin(t+i*1.2)*30);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.font = '60px Creepster';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#a855f7';
+  ctx.shadowColor = '#a855f7';
+  ctx.shadowBlur = 30;
+  ctx.fillText('BONE STACK', W/2, 220);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '18px Creepster';
+  ctx.fillStyle = '#c084fc';
+  ctx.fillText('Stack the bones. Clear the rows.', W/2, 265);
+
+  if (bestScore > 0) {
+    ctx.font = '20px Creepster';
+    ctx.fillStyle = '#eab308';
+    ctx.fillText('🏆 Best: ' + bestScore, W/2, 310);
+  }
+
+  ctx.font = '16px Creepster';
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('← → Move | ↑ Rotate | ↓ Soft Drop | Space Hard Drop', W/2, 400);
+  ctx.fillText('Tap: Rotate | Swipe: Move | Swipe Down: Drop', W/2, 425);
+  ctx.fillText('M — Mute | P — Pause', W/2, 450);
+
+  const pulse = Math.sin(t*3)*0.3+0.7;
+  ctx.globalAlpha = pulse;
+  ctx.font = '28px Creepster';
+  ctx.fillStyle = '#f87171';
+  ctx.fillText('Press E or Tap to Start', W/2, 530);
+  ctx.globalAlpha = 1;
+
+  ctx.font = '14px Creepster';
+  ctx.fillStyle = 'rgba(168,85,247,0.6)';
+  ctx.fillText('☠ A JURN Production ☠', W/2, H - 25);
+
+  drawMuteIndicator();
+}
+
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(10,10,10,0.88)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.font = '52px Creepster';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f87171';
+  ctx.shadowColor = '#f87171';
+  ctx.shadowBlur = 25;
+  ctx.fillText('GAME OVER', W/2, 220);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '24px Creepster';
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('Score: ' + score, W/2, 280);
+  ctx.fillText('Level: ' + level + ' | Lines: ' + lines, W/2, 315);
+
+  if (score >= bestScore && score > 0) {
+    ctx.fillStyle = '#eab308';
+    ctx.fillText('🏆 NEW BEST!', W/2, 355);
+  }
+
+  const t = Date.now()/1000;
+  ctx.globalAlpha = Math.sin(t*3)*0.3+0.7;
+  ctx.font = '22px Creepster';
+  ctx.fillStyle = '#c084fc';
+  ctx.fillText('Press E or Tap to Continue', W/2, 430);
+  ctx.globalAlpha = 1;
+
+  drawMuteIndicator();
+}
+
+function update() {
+  if (state === 'countdown') {
+    countdownTimer++;
+    if (countdownTimer >= 60) { countdownTimer = 0; countdownNum--; }
+    if (countdownNum <= 0) state = 'playing';
+    return;
+  }
+  if (state !== 'playing') return;
+
+  dropTimer++;
+  if (dropTimer >= dropInterval) {
+    dropTimer = 0;
+    if (!collides(piece.shape, pieceX, pieceY + 1)) {
+      pieceY++;
+    } else {
+      lockPiece();
+    }
+  }
+
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.15;
+    p.life -= 0.025;
+  });
+  particles = particles.filter(p => p.life > 0);
+}
+
+function render() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  if (state === 'title') { drawTitle(); return; }
+  if (state === 'gameover') {
+    // Draw board behind overlay
+    drawBoard();
+    drawGameOver();
+    return;
+  }
+
+  drawBoard();
+
+  // Countdown
+  if (state === 'countdown') {
+    ctx.fillStyle = 'rgba(10,10,10,0.6)';
+    ctx.fillRect(0, 0, W, H);
+    const colors = ['#22c55e','#eab308','#f87171'];
+    const scale = 1 + (countdownTimer/60)*0.5;
+    ctx.save();
+    ctx.translate(W/2, H/2);
+    ctx.scale(scale, scale);
+    ctx.font = '80px Creepster';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = colors[3-countdownNum] || '#f87171';
+    ctx.fillText(countdownNum, 0, 0);
+    ctx.restore();
+  }
+
+  if (state === 'paused') {
+    ctx.fillStyle = 'rgba(10,10,10,0.7)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = '48px Creepster';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#a855f7';
+    ctx.fillText('PAUSED', W/2, H/2);
+    ctx.font = '20px Creepster';
+    ctx.fillStyle = '#c084fc';
+    ctx.fillText('Press P to Resume', W/2, H/2+50);
+  }
+
+  drawMuteIndicator();
+}
+
+function drawBoard() {
+  // Board border
+  ctx.strokeStyle = '#7c3aed';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#7c3aed';
+  ctx.shadowBlur = 10;
+  ctx.strokeRect(BOARD_X - 2, BOARD_Y - 2, COLS*CELL + 4, ROWS*CELL + 4);
+  ctx.shadowBlur = 0;
+
+  // Board bg
+  ctx.fillStyle = 'rgba(20,0,30,0.8)';
+  ctx.fillRect(BOARD_X, BOARD_Y, COLS*CELL, ROWS*CELL);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(168,85,247,0.08)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath();
+    ctx.moveTo(BOARD_X, BOARD_Y + r*CELL);
+    ctx.lineTo(BOARD_X + COLS*CELL, BOARD_Y + r*CELL);
+    ctx.stroke();
+  }
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath();
+    ctx.moveTo(BOARD_X + c*CELL, BOARD_Y);
+    ctx.lineTo(BOARD_X + c*CELL, BOARD_Y + ROWS*CELL);
+    ctx.stroke();
+  }
+
+  // Board cells
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c]) drawCell(c, r, board[r][c] - 1);
+    }
+  }
+
+  // Current piece
+  if (piece && (state === 'playing' || state === 'paused')) {
+    // Ghost piece
+    let ghostY = pieceY;
+    while (!collides(piece.shape, pieceX, ghostY + 1)) ghostY++;
+    if (ghostY !== pieceY) {
+      ctx.globalAlpha = 0.2;
+      for (let r = 0; r < piece.shape.length; r++) {
+        for (let c = 0; c < piece.shape[r].length; c++) {
+          if (piece.shape[r][c]) drawCell(pieceX + c, ghostY + r, pieceType);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Active piece
+    for (let r = 0; r < piece.shape.length; r++) {
+      for (let c = 0; c < piece.shape[r].length; c++) {
+        if (piece.shape[r][c]) drawCell(pieceX + c, pieceY + r, pieceType);
+      }
+    }
+  }
+
+  // Next piece preview
+  ctx.font = '14px Creepster';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#c084fc';
+  ctx.fillText('NEXT', BOARD_X + COLS*CELL + 15, BOARD_Y + 15);
+  if (nextPiece) {
+    for (let r = 0; r < nextPiece.shape.length; r++) {
+      for (let c = 0; c < nextPiece.shape[r].length; c++) {
+        if (nextPiece.shape[r][c]) {
+          const nx = BOARD_X + COLS*CELL + 15 + c*20;
+          const ny = BOARD_Y + 25 + r*20;
+          ctx.fillStyle = COLORS[nextPiece.type];
+          ctx.fillRect(nx, ny, 18, 18);
+        }
+      }
+    }
+  }
+
+  // HUD
+  ctx.font = '16px Creepster';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#e9d5ff';
+  const hudX = BOARD_X + COLS*CELL + 15;
+  ctx.fillText('SCORE', hudX, BOARD_Y + 120);
+  ctx.fillStyle = '#a855f7';
+  ctx.font = '22px Creepster';
+  ctx.fillText(score, hudX, BOARD_Y + 145);
+
+  ctx.font = '16px Creepster';
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('LEVEL', hudX, BOARD_Y + 185);
+  ctx.fillStyle = '#a855f7';
+  ctx.font = '22px Creepster';
+  ctx.fillText(level, hudX, BOARD_Y + 210);
+
+  ctx.font = '16px Creepster';
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('LINES', hudX, BOARD_Y + 250);
+  ctx.fillStyle = '#a855f7';
+  ctx.font = '22px Creepster';
+  ctx.fillText(lines, hudX, BOARD_Y + 275);
+
+  if (bestScore > 0) {
+    ctx.font = '14px Creepster';
+    ctx.fillStyle = '#eab308';
+    ctx.fillText('🏆 ' + bestScore, hudX, BOARD_Y + 320);
+  }
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    if (p.emoji) {
+      ctx.font = `${p.size*3}px serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.emoji, p.x, p.y);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+  ctx.globalAlpha = 1;
+}
+
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
