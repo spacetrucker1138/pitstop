@@ -437,10 +437,11 @@ function update(dt) {
     if (Math.random() < 0.3) { // 30% chance each interval — rarer than blue ghost
       parachuteHuman = {
         x: 40 + Math.random() * (W - 80),
-        y: -30,
-        w: 28, h: 28,
+        y: -36,
+        w: 34, h: 34,
         speed: 0.8 + Math.random() * 0.4,
         swayPhase: Math.random() * Math.PI * 2,
+        helpFlash: 0,
         caught: false
       };
     }
@@ -452,6 +453,7 @@ function update(dt) {
     ph.y += ph.speed;
     ph.swayPhase += 0.04;
     ph.x += Math.sin(ph.swayPhase) * 0.6; // gentle sway
+    ph.helpFlash = (ph.helpFlash || 0) + dt;
 
     // Check if player catches it (lands on the van)
     if (ph.y + ph.h >= player.y && ph.y <= player.y + PLAYER_H &&
@@ -742,9 +744,20 @@ function draw() {
   if (parachuteHuman && !parachuteHuman.caught) {
     const ph = parachuteHuman;
     ctx.save();
-    ctx.font = '26px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 12;
+    // 20% bigger, bright, no glow
+    ctx.font = '32px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowBlur = 0;
     ctx.fillText('🪂', ph.x + ph.w/2, ph.y + ph.h/2);
+    // Flashing red HELP! / ⁉️ alternating — pulses every 400ms
+    const flashCycle = Math.floor((ph.helpFlash || 0) / 400) % 2;
+    const flashAlpha = 0.6 + 0.4 * Math.abs(Math.sin((ph.helpFlash || 0) / 200));
+    ctx.globalAlpha = flashAlpha;
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = '#ff1744';
+    ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 6;
+    const helpText = flashCycle === 0 ? 'HELP!' : '⁉️';
+    ctx.fillText(helpText, ph.x + ph.w/2, ph.y - 6);
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
