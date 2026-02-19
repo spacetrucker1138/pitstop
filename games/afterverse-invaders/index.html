@@ -199,9 +199,6 @@ vanLeft.src = '../jurnbreaker/jurnleft.png'; vanRight.src = '../jurnbreaker/jurn
 // Title screen images
 const titleBgImg = new Image();
 titleBgImg.src = 'titlescreen_bg.jpg';
-const titleLogoImg = new Image();
-titleLogoImg.src = 'afterverse_logo.png';
-
 const NOTES = ['♩','♪','♫','♬','🎵','🎶'];
 const NOTE_COLORS = ['#39ff14','#00ff88','#7fff00','#adff2f','#00ffcc','#39ff14'];
 
@@ -695,14 +692,7 @@ function draw() {
     }
     // Dark overlay for readability
     ctx.fillStyle = 'rgba(5,5,8,0.45)'; ctx.fillRect(0, 0, W, H);
-    // Logo image (centered, sized to ~70% of canvas width)
-    if (titleLogoImg.complete && titleLogoImg.naturalWidth > 0) {
-      const logoW = W * 0.7;
-      const logoH = logoW * (titleLogoImg.naturalHeight / titleLogoImg.naturalWidth);
-      const logoX = (W - logoW) / 2;
-      const logoY = H * 0.08;
-      ctx.drawImage(titleLogoImg, logoX, logoY, logoW, logoH);
-    }
+    // Logo removed — using background image only
     ctx.textAlign = 'center';
     // Pulsing "Press E to Start"
     const titlePulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.004);
@@ -852,9 +842,11 @@ function draw() {
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // Clear the area behind parachute to prevent trail dimming
+    // Small dark circle behind parachute to prevent trail dimming
     ctx.fillStyle = 'rgba(5,5,8,1)';
-    ctx.fillRect(ph.x - 8, ph.y - 22, ph.w + 16, ph.h + 28);
+    ctx.beginPath();
+    ctx.arc(ph.x + ph.w/2, ph.y + ph.h/2, 16, 0, Math.PI * 2);
+    ctx.fill();
     // Draw emoji large and bright — double draw for vivid appearance
     ctx.font = '38px serif';
     ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 4;
