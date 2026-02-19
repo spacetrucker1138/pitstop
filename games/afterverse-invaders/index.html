@@ -90,6 +90,7 @@ resize();
 // === AUDIO ===
 // Boss entrance — synth fart barrage (no MP3 dependency)
 function playEvilLaugh() {
+  if (isMuted) return;
   const actx = new (window.AudioContext || window.webkitAudioContext)();
   // 3-4 rapid descending fart blasts
   const farts = [
@@ -134,21 +135,27 @@ function playEvilLaugh() {
 const bgMusic = new Audio('afterverseinvaders.mp3');
 bgMusic.loop = true; bgMusic.volume = 0.35; bgMusic.preload = 'auto';
 let bgMusicStarted = false;
+let isMuted = false;
 function startBgMusic() {
-  if (!bgMusicStarted && gameState === 'playing') { bgMusic.play().catch(()=>{}); bgMusicStarted = true; }
+  if (!bgMusicStarted && gameState === 'playing') { bgMusic.play().catch(()=>{}); bgMusicStarted = true; if (isMuted) bgMusic.volume = 0; }
+}
+function toggleMute() {
+  isMuted = !isMuted;
+  bgMusic.volume = isMuted ? 0 : 0.35;
 }
 const snares = ['../jurnbreaker/snare.mp3','../jurnbreaker/snare1.mp3','../jurnbreaker/snare2.mp3','../jurnbreaker/snare3.mp3'];
 const snarePool = [];
 snares.forEach(src => { for (let i = 0; i < 3; i++) { const a = new Audio(src); a.volume = 0.35; a.preload = 'auto'; snarePool.push(a); } });
 let snareIdx = 0;
-function playSnare() { const a = snarePool[snareIdx % snarePool.length]; a.currentTime = 0; a.play().catch(()=>{}); snareIdx++; }
+function playSnare() { if (isMuted) return; const a = snarePool[snareIdx % snarePool.length]; a.currentTime = 0; a.play().catch(()=>{}); snareIdx++; }
 
 const gameOverSound = new Audio('../jurnbreaker/gameover.mp3');
 gameOverSound.volume = 0.6; gameOverSound.preload = 'auto';
-function playGameOver() { gameOverSound.currentTime = 0; gameOverSound.play().catch(()=>{}); }
+function playGameOver() { if (isMuted) return; gameOverSound.currentTime = 0; gameOverSound.play().catch(()=>{}); }
 
 let audioCtx;
 function playShootSound() {
+  if (isMuted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
   osc.connect(gain); gain.connect(audioCtx.destination);
@@ -161,6 +168,7 @@ function playShootSound() {
 }
 
 function playBossSpawnSound() {
+  if (isMuted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
   osc.connect(gain); gain.connect(audioCtx.destination);
@@ -173,6 +181,7 @@ function playBossSpawnSound() {
 }
 
 function playBossDeathSound() {
+  if (isMuted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   for (let i = 0; i < 4; i++) {
     const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
@@ -199,6 +208,10 @@ vanLeft.src = '../jurnbreaker/jurnleft.png'; vanRight.src = '../jurnbreaker/jurn
 // Title screen images
 const titleBgImg = new Image();
 titleBgImg.src = 'titlescreen_bg.jpg';
+// Logo watermark
+const watermarkImg = new Image();
+watermarkImg.src = 'afterverse_logo.png';
+
 const NOTES = ['♩','♪','♫','♬','🎵','🎶'];
 const NOTE_COLORS = ['#39ff14','#00ff88','#7fff00','#adff2f','#00ffcc','#39ff14'];
 
@@ -492,7 +505,7 @@ function update(dt) {
       }
       addParticles(ph.x + ph.w/2, ph.y + ph.h/2, '#00e5ff', 15);
       // Play a happy chime
-      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!isMuted) { const actx = new (window.AudioContext || window.webkitAudioContext)();
       [523, 659, 784].forEach((freq, i) => {
         const o = actx.createOscillator(); const g = actx.createGain();
         o.type = 'sine'; o.frequency.value = freq;
@@ -500,7 +513,7 @@ function update(dt) {
         g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + i*0.08 + 0.2);
         o.connect(g); g.connect(actx.destination);
         o.start(actx.currentTime + i*0.08); o.stop(actx.currentTime + i*0.08 + 0.25);
-      });
+      }); }
       parachuteHuman = null;
     }
 
@@ -510,7 +523,7 @@ function update(dt) {
       splatters.push({ x: ph.x + ph.w/2, y: H - 8, life: 99999 });
       addParticles(ph.x + ph.w/2, H - 10, '#ff1744', 12);
       // Sad splat sound
-      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!isMuted) { const actx = new (window.AudioContext || window.webkitAudioContext)();
       const o = actx.createOscillator(); const g = actx.createGain();
       o.type = 'sawtooth'; o.frequency.setValueAtTime(200, actx.currentTime);
       o.frequency.exponentialRampToValueAtTime(50, actx.currentTime + 0.3);
@@ -518,7 +531,7 @@ function update(dt) {
       g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.35);
       const filt = actx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 400;
       o.connect(filt); filt.connect(g); g.connect(actx.destination);
-      o.start(); o.stop(actx.currentTime + 0.4);
+      o.start(); o.stop(actx.currentTime + 0.4); }
       parachuteHuman = null;
     }
   }
@@ -639,6 +652,7 @@ function update(dt) {
         shieldCountEl.textContent = playerShield;
         addParticles(player.x + PLAYER_W/2, player.y + PLAYER_H/2, '#00e5ff', 15);
         // Shield break sound
+        if (!isMuted) {
         const actx = new (window.AudioContext || window.webkitAudioContext)();
         const o = actx.createOscillator(); const g = actx.createGain();
         o.type = 'triangle'; o.frequency.setValueAtTime(800, actx.currentTime);
@@ -647,6 +661,7 @@ function update(dt) {
         g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.2);
         o.connect(g); g.connect(actx.destination);
         o.start(); o.stop(actx.currentTime + 0.25);
+        }
       } else {
         lives--; livesEl.textContent = lives;
         addParticles(player.x + PLAYER_W/2, player.y + PLAYER_H/2, '#ff1744', 20);
@@ -719,6 +734,11 @@ function draw() {
         ctx.fillText((i+1) + '. ' + s.name + ' — ' + s.score.toLocaleString(), W/2, H/2 + 172 + i * 22);
       });
     }
+    // Mute hint
+    ctx.font = '12px Creepster';
+    ctx.fillStyle = isMuted ? '#ff1744' : '#666';
+    ctx.shadowBlur = 0;
+    ctx.fillText(isMuted ? '🔇 M — Muted' : '🔊 M — Sound On', W/2, H - 20);
     ctx.restore();
     return;
   }
@@ -934,6 +954,26 @@ function draw() {
   ctx.fillStyle = 'rgba(191,0,255,0.3)'; ctx.font = '14px Creepster'; ctx.textAlign = 'center';
   ctx.fillText('WAVE ' + level, W/2, 30);
 
+  // Watermark logo — bottom-right corner, subtle
+  if (watermarkImg.complete && watermarkImg.naturalWidth > 0) {
+    ctx.save();
+    const wmW = 70;
+    const wmH = wmW * (watermarkImg.naturalHeight / watermarkImg.naturalWidth);
+    ctx.globalAlpha = 0.15;
+    ctx.drawImage(watermarkImg, W - wmW - 8, H - wmH - 22, wmW, wmH);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // Mute indicator — below watermark, bottom-right
+  ctx.save();
+  ctx.textAlign = 'right';
+  ctx.font = '11px Creepster';
+  ctx.fillStyle = isMuted ? '#ff1744' : '#888';
+  ctx.shadowBlur = 0;
+  ctx.fillText(isMuted ? '🔇 M — Muted' : '🔊 M — Sound', W - 10, H - 8);
+  ctx.restore();
+
   // Dead overlay
   if (gameState === 'dead') {
     ctx.fillStyle = 'rgba(255,23,68,0.15)'; ctx.fillRect(0, 0, W, H);
@@ -1022,6 +1062,7 @@ function loop(ts) { const dt = ts - lastTime; lastTime = ts; update(dt); draw();
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
   startBgMusic();
+  if (e.code === 'KeyM') { toggleMute(); return; }
 
   if (gameState === 'highscore_entry') {
     e.preventDefault();
