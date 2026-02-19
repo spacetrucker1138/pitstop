@@ -112,8 +112,8 @@ function playEvilLaugh() {
     filter.frequency.setValueAtTime(300, t0);
     filter.frequency.exponentialRampToValueAtTime(80, t0 + f.dur);
     // Volume envelope — quick attack, slow decay
-    gain.gain.setValueAtTime(0.25, t0);
-    gain.gain.linearRampToValueAtTime(0.3, t0 + 0.02);
+    gain.gain.setValueAtTime(0.325, t0);
+    gain.gain.linearRampToValueAtTime(0.39, t0 + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.01, t0 + f.dur);
     osc.connect(filter); filter.connect(gain); gain.connect(actx.destination);
     osc.start(t0); osc.stop(t0 + f.dur + 0.05);
@@ -123,7 +123,7 @@ function playEvilLaugh() {
     sub.type = 'sine';
     sub.frequency.setValueAtTime(f.freq * 0.5, t0);
     sub.frequency.exponentialRampToValueAtTime(25, t0 + f.dur);
-    subG.gain.setValueAtTime(0.15, t0);
+    subG.gain.setValueAtTime(0.195, t0);
     subG.gain.exponentialRampToValueAtTime(0.001, t0 + f.dur);
     sub.connect(subG); subG.connect(actx.destination);
     sub.start(t0); sub.stop(t0 + f.dur + 0.05);
@@ -167,7 +167,7 @@ function playBossSpawnSound() {
   osc.type = 'sawtooth';
   osc.frequency.setValueAtTime(80, audioCtx.currentTime);
   osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.6);
-  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.26, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
   osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.7);
 }
@@ -195,6 +195,12 @@ function onImageLoad() {
 }
 vanLeft.onload = onImageLoad; vanRight.onload = onImageLoad;
 vanLeft.src = '../jurnbreaker/jurnleft.png'; vanRight.src = '../jurnbreaker/jurnright.png';
+
+// Title screen images
+const titleBgImg = new Image();
+titleBgImg.src = 'titlescreen_bg.jpg';
+const titleLogoImg = new Image();
+titleLogoImg.src = 'afterverse_logo.png';
 
 const NOTES = ['♩','♪','♫','♬','🎵','🎶'];
 const NOTE_COLORS = ['#39ff14','#00ff88','#7fff00','#adff2f','#00ffcc','#39ff14'];
@@ -674,37 +680,53 @@ function draw() {
 
   // === TITLE SCREEN ===
   if (gameState === 'title') {
-    drawOverlay();
+    ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, W, H);
     ctx.save();
-    // Title
+    // Background image (cover-fit)
+    if (titleBgImg.complete && titleBgImg.naturalWidth > 0) {
+      const imgAspect = titleBgImg.naturalWidth / titleBgImg.naturalHeight;
+      const canvasAspect = W / H;
+      let dw, dh, dx, dy;
+      if (canvasAspect > imgAspect) { dw = W; dh = W / imgAspect; dx = 0; dy = (H - dh) / 2; }
+      else { dh = H; dw = H * imgAspect; dy = 0; dx = (W - dw) / 2; }
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(titleBgImg, dx, dy, dw, dh);
+      ctx.globalAlpha = 1;
+    }
+    // Dark overlay for readability
+    ctx.fillStyle = 'rgba(5,5,8,0.45)'; ctx.fillRect(0, 0, W, H);
+    // Logo image (centered, sized to ~70% of canvas width)
+    if (titleLogoImg.complete && titleLogoImg.naturalWidth > 0) {
+      const logoW = W * 0.7;
+      const logoH = logoW * (titleLogoImg.naturalHeight / titleLogoImg.naturalWidth);
+      const logoX = (W - logoW) / 2;
+      const logoY = H * 0.08;
+      ctx.drawImage(titleLogoImg, logoX, logoY, logoW, logoH);
+    }
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#bf00ff'; ctx.font = '52px Creepster';
-    ctx.shadowColor = '#bf00ff'; ctx.shadowBlur = 30;
-    ctx.fillText('AFTERVERSE', W/2, H/2 - 100);
-    ctx.fillStyle = '#ff1744'; ctx.font = '42px Creepster';
-    ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 20;
-    ctx.fillText('INVADERS', W/2, H/2 - 45);
     // Pulsing "Press E to Start"
     const titlePulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.004);
     ctx.globalAlpha = 0.5 + titlePulse * 0.5;
-    ctx.fillStyle = '#39ff14'; ctx.font = '22px Creepster';
-    ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 12;
-    ctx.fillText('Press E to Start', W/2, H/2 + 40);
+    ctx.fillStyle = '#39ff14'; ctx.font = '24px Creepster';
+    ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
+    ctx.fillText('Press E to Start', W/2, H/2 + 60);
     ctx.globalAlpha = 1;
-    // Subtitle
-    ctx.fillStyle = '#888'; ctx.font = '14px Creepster';
     ctx.shadowBlur = 0;
-    ctx.fillText('☠ A JURN Production ☠', W/2, H/2 + 90);
+    // Subtitle
+    ctx.fillStyle = '#aaa'; ctx.font = '14px Creepster';
+    ctx.fillText('☠ A JURN Production ☠', W/2, H/2 + 100);
     // High scores preview
     const scores = getHighScores();
     if (scores.length > 0) {
-      ctx.fillStyle = '#bf00ff'; ctx.font = '16px Creepster';
-      ctx.fillText('☠ HIGH SCORES ☠', W/2, H/2 + 130);
-      ctx.font = '13px Creepster';
+      ctx.fillStyle = '#bf00ff'; ctx.font = '18px Creepster';
+      ctx.shadowColor = '#bf00ff'; ctx.shadowBlur = 8;
+      ctx.fillText('☠ HIGH SCORES ☠', W/2, H/2 + 145);
+      ctx.shadowBlur = 0;
+      ctx.font = '14px Creepster';
       const top3 = scores.slice(0, 3);
       top3.forEach((s, i) => {
         ctx.fillStyle = i === 0 ? '#ffff00' : '#e8e0d4';
-        ctx.fillText(`${i+1}. ${s.name} — ${s.score.toLocaleString()}`, W/2, H/2 + 155 + i * 20);
+        ctx.fillText((i+1) + '. ' + s.name + ' — ' + s.score.toLocaleString(), W/2, H/2 + 172 + i * 22);
       });
     }
     ctx.restore();
@@ -824,23 +846,30 @@ function draw() {
     ctx.restore();
   });
 
-  // Parachute human — bright, no glow, flashing HELP!
+  // Parachute human — extra bright, double-drawn to beat canvas trail dimming
   if (parachuteHuman && !parachuteHuman.caught) {
     const ph = parachuteHuman;
     ctx.save();
-    ctx.font = '32px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.globalAlpha = 1;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // Clear the area behind parachute to prevent trail dimming
+    ctx.fillStyle = 'rgba(5,5,8,1)';
+    ctx.fillRect(ph.x - 8, ph.y - 22, ph.w + 16, ph.h + 28);
+    // Draw emoji large and bright — double draw for vivid appearance
+    ctx.font = '38px serif';
+    ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 4;
+    ctx.fillText('🪂', ph.x + ph.w/2, ph.y + ph.h/2);
     ctx.shadowBlur = 0;
     ctx.fillText('🪂', ph.x + ph.w/2, ph.y + ph.h/2);
     // Flashing red HELP! / ⁉️ alternating every 400ms
     const flashCycle = Math.floor((ph.helpFlash || 0) / 400) % 2;
-    const helpVis = Math.floor((ph.helpFlash || 0) / 250) % 2; // blink on/off
+    const helpVis = Math.floor((ph.helpFlash || 0) / 250) % 2;
     if (helpVis === 0) {
-      ctx.font = 'bold 12px monospace';
+      ctx.font = 'bold 13px monospace';
       ctx.fillStyle = '#ff1744';
-      ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 8;
+      ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 10;
       const helpText = flashCycle === 0 ? 'HELP!' : '⁉️';
-      ctx.fillText(helpText, ph.x + ph.w/2, ph.y - 8);
+      ctx.fillText(helpText, ph.x + ph.w/2, ph.y - 12);
     }
     ctx.restore();
   }
