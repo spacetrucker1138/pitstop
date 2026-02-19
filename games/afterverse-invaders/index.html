@@ -357,30 +357,26 @@ function draw() {
     ctx.fillRect(sx, sy, 1.5, 1.5);
   }
 
-  // Enemies — brightened with glow
+  // Enemies — purple ambient glow, lightning flash on hit
   enemies.forEach(e => {
     ctx.save();
-    if (e.flash > 0) {
-      // Lightning flash — bright white burst
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 25;
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillRect(e.x - 3, e.y - 3, e.w + 6, e.h + 6);
-    }
-    // Subtle ambient glow so enemies are visible (brighter than before)
-    ctx.shadowColor = 'rgba(191, 0, 255, 0.6)';
-    ctx.shadowBlur = e.flash > 0 ? 20 : 8;
     ctx.font = e.h + 'px serif';
     ctx.textAlign = 'center';
-    // Draw emoji with brightening filter trick: draw twice with glow
-    ctx.globalAlpha = 1;
-    ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
-    // Second pass for extra brightness
-    ctx.globalAlpha = 0.3;
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
-    ctx.shadowBlur = 4;
-    ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
-    ctx.globalAlpha = 1;
+    if (e.flash > 0) {
+      // Lightning flash — bright white glow radiating from the emoji itself
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 30 + Math.random() * 10;
+      ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
+      // Second burst layer for intensity
+      ctx.shadowColor = '#bf00ff';
+      ctx.shadowBlur = 15;
+      ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
+    } else {
+      // Normal state — purple ambient glow, slightly boosted
+      ctx.shadowColor = 'rgba(191, 0, 255, 0.7)';
+      ctx.shadowBlur = 12;
+      ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
+    }
     ctx.restore();
   });
 
