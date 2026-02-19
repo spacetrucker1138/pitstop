@@ -954,13 +954,13 @@ function draw() {
   ctx.fillStyle = 'rgba(191,0,255,0.3)'; ctx.font = '14px Creepster'; ctx.textAlign = 'center';
   ctx.fillText('WAVE ' + level, W/2, 30);
 
-  // Watermark logo — bottom-right corner, subtle
+  // Watermark logo — bottom-right corner
   if (watermarkImg.complete && watermarkImg.naturalWidth > 0) {
     ctx.save();
-    const wmW = 70;
+    const wmW = 160;
     const wmH = wmW * (watermarkImg.naturalHeight / watermarkImg.naturalWidth);
-    ctx.globalAlpha = 0.15;
-    ctx.drawImage(watermarkImg, W - wmW - 8, H - wmH - 22, wmW, wmH);
+    ctx.globalAlpha = 0.45;
+    ctx.drawImage(watermarkImg, W - wmW - 6, H - wmH - 24, wmW, wmH);
     ctx.globalAlpha = 1;
     ctx.restore();
   }
@@ -971,7 +971,7 @@ function draw() {
   ctx.font = '11px Creepster';
   ctx.fillStyle = isMuted ? '#ff1744' : '#888';
   ctx.shadowBlur = 0;
-  ctx.fillText(isMuted ? '🔇 M — Muted' : '🔊 M — Sound', W - 10, H - 8);
+  ctx.fillText(isMuted ? '🔇 M — Muted' : '🔊 M — Sound', W - 10, H - 6);
   ctx.restore();
 
   // Dead overlay
