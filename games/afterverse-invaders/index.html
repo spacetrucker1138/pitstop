@@ -135,7 +135,7 @@ const bgMusic = new Audio('afterverseinvaders.mp3');
 bgMusic.loop = true; bgMusic.volume = 0.35; bgMusic.preload = 'auto';
 let bgMusicStarted = false;
 function startBgMusic() {
-  if (!bgMusicStarted) { bgMusic.play().catch(()=>{}); bgMusicStarted = true; }
+  if (!bgMusicStarted && gameState === 'playing') { bgMusic.play().catch(()=>{}); bgMusicStarted = true; }
 }
 const snares = ['../jurnbreaker/snare.mp3','../jurnbreaker/snare1.mp3','../jurnbreaker/snare2.mp3','../jurnbreaker/snare3.mp3'];
 const snarePool = [];
@@ -220,7 +220,9 @@ function isHighScore(sc) {
 // === GAME STATE ===
 let player, bullets, enemies, enemyBullets, particles, score, lives, level;
 let enemyDir, enemySpeed, enemyShootTimer;
-let gameState; // playing, dead, gameover, highscore_entry, highscore_display
+let gameState; // title, countdown, playing, dead, gameover, highscore_entry, highscore_display
+let countdownTimer = 0;
+let countdownNum = 3;
 let keys = {};
 let deadTimer = 0;
 let playerFacing = 'right';
@@ -259,9 +261,17 @@ function init() {
   parachuteHuman = null; parachuteSpawnTimer = 0; playerShield = 0; splatters = [];
   scoreEl.textContent = '0'; livesEl.textContent = '3'; ghostKillsEl.textContent = '0';
   shieldCountEl.textContent = '0';
-  gameState = 'playing'; playerFacing = 'right';
+  gameState = 'title'; playerFacing = 'right';
   hsInitials = ''; hsCursorBlink = 0;
   spawnEnemies();
+}
+
+function startGame() {
+  // Reset everything and start countdown
+  init(); // sets gameState to 'title'
+  gameState = 'countdown';
+  countdownNum = 3;
+  countdownTimer = 1000;
 }
 
 function spawnEnemies() {
@@ -355,6 +365,20 @@ function collidesNoteRect(bullet, rect) {
 }
 
 function update(dt) {
+  if (gameState === 'title' || gameState === 'gameover' || gameState === 'highscore_display') return;
+  if (gameState === 'countdown') {
+    countdownTimer -= dt;
+    if (countdownTimer <= 0) {
+      countdownNum--;
+      if (countdownNum <= 0) {
+        gameState = 'playing';
+        startBgMusic();
+      } else {
+        countdownTimer = 1000;
+      }
+    }
+    return;
+  }
   if (gameState === 'dead') {
     deadTimer -= dt;
     if (deadTimer <= 0) {
@@ -648,21 +672,81 @@ function update(dt) {
 function draw() {
   ctx.fillStyle = 'rgba(5,5,8,0.85)'; ctx.fillRect(0, 0, W, H);
 
+  // === TITLE SCREEN ===
+  if (gameState === 'title') {
+    drawOverlay();
+    ctx.save();
+    // Title
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#bf00ff'; ctx.font = '52px Creepster';
+    ctx.shadowColor = '#bf00ff'; ctx.shadowBlur = 30;
+    ctx.fillText('AFTERVERSE', W/2, H/2 - 100);
+    ctx.fillStyle = '#ff1744'; ctx.font = '42px Creepster';
+    ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 20;
+    ctx.fillText('INVADERS', W/2, H/2 - 45);
+    // Pulsing "Press E to Start"
+    const titlePulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.004);
+    ctx.globalAlpha = 0.5 + titlePulse * 0.5;
+    ctx.fillStyle = '#39ff14'; ctx.font = '22px Creepster';
+    ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 12;
+    ctx.fillText('Press E to Start', W/2, H/2 + 40);
+    ctx.globalAlpha = 1;
+    // Subtitle
+    ctx.fillStyle = '#888'; ctx.font = '14px Creepster';
+    ctx.shadowBlur = 0;
+    ctx.fillText('☠ A JURN Production ☠', W/2, H/2 + 90);
+    // High scores preview
+    const scores = getHighScores();
+    if (scores.length > 0) {
+      ctx.fillStyle = '#bf00ff'; ctx.font = '16px Creepster';
+      ctx.fillText('☠ HIGH SCORES ☠', W/2, H/2 + 130);
+      ctx.font = '13px Creepster';
+      const top3 = scores.slice(0, 3);
+      top3.forEach((s, i) => {
+        ctx.fillStyle = i === 0 ? '#ffff00' : '#e8e0d4';
+        ctx.fillText(`${i+1}. ${s.name} — ${s.score.toLocaleString()}`, W/2, H/2 + 155 + i * 20);
+      });
+    }
+    ctx.restore();
+    return;
+  }
+
+  // === COUNTDOWN ===
+  if (gameState === 'countdown') {
+    drawOverlay();
+    ctx.save();
+    ctx.textAlign = 'center';
+    const num = countdownNum;
+    const scale = 1 + 0.3 * (countdownTimer / 1000); // shrinks as timer ticks
+    const countAlpha = Math.min(1, countdownTimer / 200);
+    ctx.globalAlpha = countAlpha;
+    ctx.fillStyle = num === 1 ? '#39ff14' : num === 2 ? '#ffff00' : '#ff1744';
+    ctx.font = (80 * scale) + 'px Creepster';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 40;
+    ctx.fillText(num, W/2, H/2 + 20);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#888'; ctx.font = '18px Creepster'; ctx.shadowBlur = 0;
+    ctx.fillText('GET READY', W/2, H/2 + 80);
+    ctx.restore();
+    return;
+  }
+
   // Starfield
   ctx.fillStyle = 'rgba(191,0,255,0.15)';
   for (let i = 0; i < 40; i++) { const sx = (i*137+50)%W; const sy = (i*251+80)%H; ctx.fillRect(sx, sy, 1.5, 1.5); }
 
-  // Enemies — purple ambient glow, lightning flash on hit
+  // Enemies — bright and vivid, lightning flash on hit
   enemies.forEach(e => {
     ctx.save();
-    ctx.font = e.h + 'px serif'; ctx.textAlign = 'center';
+    ctx.globalAlpha = 1;
+    ctx.font = (e.h + 4) + 'px serif'; ctx.textAlign = 'center';
     if (e.flash > 0) {
-      ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30 + Math.random() * 10;
+      ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 35 + Math.random() * 10;
       ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
-      ctx.shadowColor = '#bf00ff'; ctx.shadowBlur = 15;
+      ctx.shadowColor = '#bf00ff'; ctx.shadowBlur = 18;
       ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
     } else {
-      ctx.shadowColor = 'rgba(191, 0, 255, 0.7)'; ctx.shadowBlur = 12;
+      ctx.shadowColor = '#bf00ff'; ctx.shadowBlur = 6;
       ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
     }
     ctx.restore();
@@ -740,24 +824,24 @@ function draw() {
     ctx.restore();
   });
 
-  // Parachute human
+  // Parachute human — bright, no glow, flashing HELP!
   if (parachuteHuman && !parachuteHuman.caught) {
     const ph = parachuteHuman;
     ctx.save();
-    // 20% bigger, bright, no glow
     ctx.font = '32px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
     ctx.fillText('🪂', ph.x + ph.w/2, ph.y + ph.h/2);
-    // Flashing red HELP! / ⁉️ alternating — pulses every 400ms
+    // Flashing red HELP! / ⁉️ alternating every 400ms
     const flashCycle = Math.floor((ph.helpFlash || 0) / 400) % 2;
-    const flashAlpha = 0.6 + 0.4 * Math.abs(Math.sin((ph.helpFlash || 0) / 200));
-    ctx.globalAlpha = flashAlpha;
-    ctx.font = 'bold 11px monospace';
-    ctx.fillStyle = '#ff1744';
-    ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 6;
-    const helpText = flashCycle === 0 ? 'HELP!' : '⁉️';
-    ctx.fillText(helpText, ph.x + ph.w/2, ph.y - 6);
-    ctx.globalAlpha = 1;
+    const helpVis = Math.floor((ph.helpFlash || 0) / 250) % 2; // blink on/off
+    if (helpVis === 0) {
+      ctx.font = 'bold 12px monospace';
+      ctx.fillStyle = '#ff1744';
+      ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 8;
+      const helpText = flashCycle === 0 ? 'HELP!' : '⁉️';
+      ctx.fillText(helpText, ph.x + ph.w/2, ph.y - 8);
+    }
     ctx.restore();
   }
 
@@ -902,7 +986,7 @@ function draw() {
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#888'; ctx.font = '14px Creepster';
-    ctx.fillText('Press SPACE or Tap to haunt again', W/2, H/2 + 210);
+    ctx.fillText('Press SPACE to return to Title', W/2, H/2 + 210);
   }
 }
 
@@ -935,12 +1019,21 @@ document.addEventListener('keydown', e => {
     return;
   }
 
+  if (e.code === 'KeyE' && gameState === 'title') {
+    e.preventDefault();
+    startGame();
+    return;
+  }
   if (e.code === 'Space') {
     e.preventDefault();
-    if (gameState === 'gameover' || gameState === 'highscore_display') init();
-    else shoot();
+    if (gameState === 'title') { startGame(); return; }
+    if (gameState === 'gameover' || gameState === 'highscore_display') { init(); return; }
+    shoot();
   }
-  if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'highscore_display')) init();
+  if (e.code === 'Enter') {
+    if (gameState === 'title') { startGame(); return; }
+    if (gameState === 'gameover' || gameState === 'highscore_display') { init(); return; }
+  }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
@@ -952,11 +1045,13 @@ document.getElementById('m-right').addEventListener('touchend', () => { keys.mRi
 document.getElementById('m-fire').addEventListener('touchstart', e => {
   e.preventDefault();
   startBgMusic();
-  if (gameState === 'gameover' || gameState === 'highscore_display') init();
-  else if (gameState === 'highscore_entry') { /* handled by virtual keyboard */ }
-  else shoot();
+  if (gameState === 'title') { startGame(); return; }
+  if (gameState === 'gameover' || gameState === 'highscore_display') { init(); return; }
+  if (gameState === 'highscore_entry') { /* handled by virtual keyboard */ return; }
+  if (gameState === 'countdown') return;
+  shoot();
 });
-canvas.addEventListener('click', () => { if (gameState === 'gameover' || gameState === 'highscore_display') init(); });
+canvas.addEventListener('click', () => { if (gameState === 'title') startGame(); else if (gameState === 'gameover' || gameState === 'highscore_display') init(); });
 window.addEventListener('resize', () => { resize(); });
 </script>
 </body>
