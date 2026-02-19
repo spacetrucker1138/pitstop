@@ -43,6 +43,11 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
 @media (pointer: coarse) { #mobile-controls { display: block; } }
 #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
   color: #bf00ff; font-size: 1.5rem; text-shadow: 0 0 15px rgba(191,0,255,0.5); }
+#logo-watermark {
+  position: fixed; bottom: 50px; right: 20px; z-index: 10;
+  pointer-events: none; opacity: 0.6;
+}
+#logo-watermark img { width: 180px; height: auto; filter: drop-shadow(0 0 8px rgba(191,0,255,0.3)); }
 </style>
 </head>
 <body>
@@ -69,6 +74,9 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
   </div>
 </div>
 <a id="back-link" href="../../games.html">← Back to Afterverse Arcade</a>
+<div id="logo-watermark">
+  <img src="afterverse_logo.png" alt="Afterverse Invaders">
+</div>
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -208,10 +216,6 @@ vanLeft.src = '../jurnbreaker/jurnleft.png'; vanRight.src = '../jurnbreaker/jurn
 // Title screen images
 const titleBgImg = new Image();
 titleBgImg.src = 'titlescreen_bg.jpg';
-// Logo watermark
-const watermarkImg = new Image();
-watermarkImg.src = 'afterverse_logo.png';
-
 const NOTES = ['♩','♪','♫','♬','🎵','🎶'];
 const NOTE_COLORS = ['#39ff14','#00ff88','#7fff00','#adff2f','#00ffcc','#39ff14'];
 
@@ -954,18 +958,7 @@ function draw() {
   ctx.fillStyle = 'rgba(191,0,255,0.3)'; ctx.font = '14px Creepster'; ctx.textAlign = 'center';
   ctx.fillText('WAVE ' + level, W/2, 30);
 
-  // Watermark logo — bottom-right corner
-  if (watermarkImg.complete && watermarkImg.naturalWidth > 0) {
-    ctx.save();
-    const wmW = 160;
-    const wmH = wmW * (watermarkImg.naturalHeight / watermarkImg.naturalWidth);
-    ctx.globalAlpha = 0.45;
-    ctx.drawImage(watermarkImg, W - wmW - 6, H - wmH - 24, wmW, wmH);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
-  // Mute indicator — below watermark, bottom-right
+  // Mute indicator — bottom-right of canvas
   ctx.save();
   ctx.textAlign = 'right';
   ctx.font = '11px Creepster';
