@@ -76,7 +76,61 @@ function resize() {
 }
 resize();
 
-// Load JURN van sprites from jurnbreaker assets
+// === AUDIO ===
+// Reuse JURNBREAKER sound assets
+const snares = [
+  '../jurnbreaker/snare.mp3',
+  '../jurnbreaker/snare1.mp3',
+  '../jurnbreaker/snare2.mp3',
+  '../jurnbreaker/snare3.mp3'
+];
+const snarePool = [];
+snares.forEach(src => {
+  // Create 3 copies of each snare for overlapping playback
+  for (let i = 0; i < 3; i++) {
+    const a = new Audio(src);
+    a.volume = 0.35;
+    a.preload = 'auto';
+    snarePool.push(a);
+  }
+});
+let snareIdx = 0;
+
+function playSnare() {
+  // Cycle through pool to allow overlapping hits
+  const a = snarePool[snareIdx % snarePool.length];
+  a.currentTime = 0;
+  a.play().catch(() => {});
+  snareIdx++;
+}
+
+const gameOverSound = new Audio('../jurnbreaker/gameover.mp3');
+gameOverSound.volume = 0.5;
+gameOverSound.preload = 'auto';
+
+function playGameOver() {
+  gameOverSound.currentTime = 0;
+  gameOverSound.play().catch(() => {});
+}
+
+// Simple shoot sound via Web Audio API (quick blip)
+let audioCtx;
+function playShootSound() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.08);
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.1);
+}
+
+// === SPRITES ===
 const vanLeft = new Image();
 const vanRight = new Image();
 let imagesLoaded = 0;
@@ -105,8 +159,7 @@ let enemyDir, enemySpeed, enemyShootTimer;
 let gameState;
 let keys = {};
 let deadTimer = 0;
-let playerFacing = 'right'; // track van facing direction
-let lastMoveDir = 0; // -1 left, 0 still, 1 right
+let playerFacing = 'right';
 
 const PLAYER_W = 60, PLAYER_H = 40;
 const ENEMY_W = 30, ENEMY_H = 24;
@@ -161,8 +214,9 @@ function shoot() {
     note: NOTES[noteIdx],
     color: NOTE_COLORS[noteIdx],
     w: 16, h: 20,
-    rot: (Math.random() - 0.5) * 0.3 // slight random tilt
+    rot: (Math.random() - 0.5) * 0.3
   });
+  playShootSound();
 }
 
 function enemyShoot() {
@@ -176,7 +230,6 @@ function collides(a, b) {
 }
 
 function collidesNote(bullet, enemy) {
-  // Note bullets: center-based collision
   const bx = bullet.x - bullet.w/2;
   const by = bullet.y - bullet.h/2;
   return bx < enemy.x + enemy.w && bx + bullet.w > enemy.x &&
@@ -187,26 +240,22 @@ function update(dt) {
   if (gameState === 'dead') {
     deadTimer -= dt;
     if (deadTimer <= 0) {
-      if (lives <= 0) { gameState = 'gameover'; } else { gameState = 'playing'; }
+      if (lives <= 0) { gameState = 'gameover'; playGameOver(); }
+      else { gameState = 'playing'; }
     }
     return;
   }
   if (gameState !== 'playing') return;
 
   const spd = 4;
-  let moving = 0;
-  if (keys.ArrowLeft || keys.KeyA || keys.mLeft) { player.x -= spd; moving = -1; }
-  if (keys.ArrowRight || keys.KeyD || keys.mRight) { player.x += spd; moving = 1; }
+  if (keys.ArrowLeft || keys.KeyA || keys.mLeft) { player.x -= spd; playerFacing = 'left'; }
+  if (keys.ArrowRight || keys.KeyD || keys.mRight) { player.x += spd; playerFacing = 'right'; }
   player.x = Math.max(0, Math.min(W - PLAYER_W, player.x));
 
-  // Update facing direction based on movement
-  if (moving === -1) playerFacing = 'left';
-  else if (moving === 1) playerFacing = 'right';
-
-  // Player bullets (music notes float up with slight wobble)
+  // Player bullets
   bullets.forEach(b => {
     b.y -= 6;
-    b.x += Math.sin(b.y * 0.05 + b.rot * 10) * 0.5; // gentle wobble
+    b.x += Math.sin(b.y * 0.05 + b.rot * 10) * 0.5;
   });
   bullets = bullets.filter(b => b.y > -25);
 
@@ -240,13 +289,13 @@ function update(dt) {
       if (collidesNote(b, e)) {
         b.dead = true;
         e.hp--;
-        e.flash = 6;
+        e.flash = 8;
+        playSnare();
         if (e.hp <= 0) {
           e.dead = true;
           score += 10 * level;
           scoreEl.textContent = score;
           addParticles(e.x + e.w/2, e.y + e.h/2, '#bf00ff', 12);
-          // Scatter some music notes as particles
           for (let i = 0; i < 3; i++) {
             particles.push({
               x: e.x + e.w/2, y: e.y + e.h/2,
@@ -273,6 +322,7 @@ function update(dt) {
       lives--; livesEl.textContent = lives;
       addParticles(player.x + PLAYER_W/2, player.y + PLAYER_H/2, '#ff1744', 20);
       gameState = 'dead'; deadTimer = 1500;
+      if (lives <= 0) { /* gameover triggered when deadTimer expires */ }
     }
   });
   enemyBullets = enemyBullets.filter(b => !b.dead);
@@ -281,6 +331,7 @@ function update(dt) {
   if (enemies.some(e => e.y + e.h >= player.y)) {
     lives = 0; livesEl.textContent = '0';
     gameState = 'gameover';
+    playGameOver();
   }
 
   // Wave cleared
@@ -306,21 +357,36 @@ function draw() {
     ctx.fillRect(sx, sy, 1.5, 1.5);
   }
 
-  // Enemies
+  // Enemies — brightened with glow
   enemies.forEach(e => {
+    ctx.save();
     if (e.flash > 0) {
-      ctx.fillStyle = '#ff1744';
-      ctx.fillRect(e.x-2, e.y-2, e.w+4, e.h+4);
+      // Lightning flash — bright white burst
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(e.x - 3, e.y - 3, e.w + 6, e.h + 6);
     }
+    // Subtle ambient glow so enemies are visible (brighter than before)
+    ctx.shadowColor = 'rgba(191, 0, 255, 0.6)';
+    ctx.shadowBlur = e.flash > 0 ? 20 : 8;
     ctx.font = e.h + 'px serif';
     ctx.textAlign = 'center';
+    // Draw emoji with brightening filter trick: draw twice with glow
+    ctx.globalAlpha = 1;
     ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
+    // Second pass for extra brightness
+    ctx.globalAlpha = 0.3;
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
+    ctx.globalAlpha = 1;
+    ctx.restore();
   });
 
-  // Player — JURN tour van sprite!
+  // Player — JURN tour van
   if (gameState !== 'dead') {
     const vanImg = playerFacing === 'left' ? vanLeft : vanRight;
-    // Draw van with a subtle green underglow
     ctx.save();
     ctx.shadowColor = '#39ff14';
     ctx.shadowBlur = 15;
@@ -328,7 +394,7 @@ function draw() {
     ctx.restore();
   }
 
-  // Player bullets — MUSIC NOTES!
+  // Player bullets — music notes
   bullets.forEach(b => {
     ctx.save();
     ctx.translate(b.x, b.y);
@@ -337,13 +403,13 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = b.color;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 12;
     ctx.fillStyle = b.color;
     ctx.fillText(b.note, 0, 0);
     ctx.restore();
   });
 
-  // Enemy bullets
+  // Enemy bullets — red plasma
   ctx.fillStyle = '#ff1744';
   ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 6;
   enemyBullets.forEach(b => {
@@ -357,8 +423,10 @@ function draw() {
     if (p.isNote) {
       ctx.font = '14px serif';
       ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 6;
       ctx.textAlign = 'center';
       ctx.fillText(p.note, p.x, p.y);
+      ctx.shadowBlur = 0;
     } else {
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x, p.y, p.size, p.size);
