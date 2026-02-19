@@ -4,9 +4,150 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Games — Spacetrucker's Pit Stop</title>
-  <meta name="description" content="Play games from the Afterverse. JURNBREAKER and more cursed arcade action.">
+  <meta name="description" content="Play games from the Afterverse. JURNBREAKER, Grave Crawler, Afterverse Invaders and more cursed arcade action.">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+  <style>
+    .games-showcase {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    .showcase-card {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      background: rgba(15, 15, 25, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(191, 0, 255, 0.12);
+      border-radius: 16px;
+      overflow: hidden;
+      text-decoration: none;
+      color: #fff;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .showcase-card:hover {
+      border-color: rgba(0, 255, 136, 0.4);
+      box-shadow: 0 12px 40px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(0, 255, 136, 0.08);
+      transform: translateY(-4px);
+    }
+    .showcase-thumb {
+      position: relative;
+      overflow: hidden;
+      min-height: 200px;
+    }
+    .showcase-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .showcase-card:hover .showcase-thumb img {
+      transform: scale(1.05);
+    }
+    .showcase-thumb-emoji {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(191, 0, 255, 0.08));
+      min-height: 200px;
+    }
+    .showcase-body {
+      padding: 1.8rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    .showcase-title {
+      font-family: 'Creepster', cursive;
+      font-size: 2rem;
+      color: #0f8;
+      text-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+      letter-spacing: 1px;
+    }
+    .showcase-genre {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--neon-purple);
+      font-weight: 600;
+    }
+    .showcase-desc {
+      color: #bbb;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .showcase-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+    .feature-tag {
+      display: inline-block;
+      padding: 0.25rem 0.7rem;
+      background: rgba(191, 0, 255, 0.1);
+      border: 1px solid rgba(191, 0, 255, 0.2);
+      border-radius: 20px;
+      font-size: 0.7rem;
+      color: #c084fc;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .showcase-play {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 2rem;
+      background: linear-gradient(135deg, #0f8, #0a6);
+      color: #000;
+      border-radius: 50px;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      align-self: flex-start;
+      margin-top: 0.5rem;
+    }
+    .showcase-card:hover .showcase-play {
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    }
+    /* New badge */
+    .badge-new {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 0.25rem 0.6rem;
+      background: var(--accent-red);
+      color: #fff;
+      font-family: 'Creepster', cursive;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      border-radius: 4px;
+      box-shadow: 0 0 12px rgba(255, 23, 68, 0.4);
+      z-index: 2;
+    }
+    @media (max-width: 700px) {
+      .showcase-card {
+        grid-template-columns: 1fr;
+      }
+      .showcase-thumb {
+        min-height: 180px;
+        max-height: 220px;
+      }
+      .showcase-body {
+        padding: 1.2rem 1.5rem 1.5rem;
+      }
+      .showcase-title {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
 </head>
 <body>
 <nav>
@@ -33,34 +174,60 @@
   <p class="intro">Cursed games from the grave. Break bones, dodge skulls, and rack up high scores.</p>
 </div>
 
-<div class="games-grid fade-in">
-  <a href="games/jurnbreaker/" class="game-card">
-    <div class="game-thumb">🎮</div>
-    <div class="game-info">
-      <div class="game-title">JURNBREAKER</div>
-      <div class="game-desc">Classic brick-breaker with a skull twist. Smash bones, dodge chaos, survive the Afterverse.</div>
-      <span class="play-btn">▶ Play Now</span>
-    </div>
-  </a>
-</div>
+<div class="games-showcase">
 
-<div class="games-grid fade-in" style="margin-top: 2rem;">
-  <a href="games/grave-crawler/" class="game-card">
-    <div class="game-thumb">🐍</div>
-    <div class="game-info">
-      <div class="game-title">GRAVE CRAWLER</div>
-      <div class="game-desc">Slither through the graveyard collecting skulls. A bone chain grows with every kill. Don't hit the walls or yourself.</div>
-      <span class="play-btn">▶ Play Now</span>
+  <a href="games/jurnbreaker/" class="showcase-card fade-in">
+    <div class="showcase-thumb">
+      <img src="games/jurnbreaker/title_hd.png" alt="JURNBREAKER" loading="lazy">
+    </div>
+    <div class="showcase-body">
+      <div class="showcase-genre">Brick Breaker</div>
+      <div class="showcase-title">JURNBREAKER</div>
+      <div class="showcase-desc">Classic brick-breaker with a skull twist. Launch the skull ball, smash bone bricks, and dodge chaos. Features custom JURN character sprites and horror-punk soundtrack.</div>
+      <div class="showcase-features">
+        <span class="feature-tag">Original Music</span>
+        <span class="feature-tag">Custom Sprites</span>
+        <span class="feature-tag">Power-ups</span>
+      </div>
+      <span class="showcase-play">▶ Play Now</span>
     </div>
   </a>
-  <a href="games/afterverse-invaders/" class="game-card">
-    <div class="game-thumb">👾</div>
-    <div class="game-info">
-      <div class="game-title">AFTERVERSE INVADERS</div>
-      <div class="game-desc">Defend the Afterverse from waves of undead invaders. Pilot a coffin, shoot green plasma, survive the horde.</div>
-      <span class="play-btn">▶ Play Now</span>
+
+  <a href="games/afterverse-invaders/" class="showcase-card fade-in">
+    <div class="showcase-thumb">
+      <img src="games/afterverse-invaders/titlescreen_bg.jpg" alt="AFTERVERSE INVADERS" loading="lazy">
+      <span class="badge-new">NEW</span>
+    </div>
+    <div class="showcase-body">
+      <div class="showcase-genre">Space Invaders</div>
+      <div class="showcase-title">AFTERVERSE INVADERS</div>
+      <div class="showcase-desc">Pilot The JURN's tour van against waves of skulls, ghosts, bats, and spiders. Rescue parachuting humans for shield power, battle the Skull Boss, and survive the horde. 8-bit horror punk soundtrack and animated background.</div>
+      <div class="showcase-features">
+        <span class="feature-tag">Boss Fights</span>
+        <span class="feature-tag">Shield System</span>
+        <span class="feature-tag">High Scores</span>
+        <span class="feature-tag">Original Music</span>
+      </div>
+      <span class="showcase-play">▶ Play Now</span>
     </div>
   </a>
+
+  <a href="games/grave-crawler/" class="showcase-card fade-in">
+    <div class="showcase-thumb showcase-thumb-emoji">
+      🐍💀
+    </div>
+    <div class="showcase-body">
+      <div class="showcase-genre">Snake</div>
+      <div class="showcase-title">GRAVE CRAWLER</div>
+      <div class="showcase-desc">Slither through the graveyard collecting skulls. Your bone chain grows with every kill. Don't hit the walls or yourself — the dead don't get second chances.</div>
+      <div class="showcase-features">
+        <span class="feature-tag">Classic Arcade</span>
+        <span class="feature-tag">Neon Glow</span>
+      </div>
+      <span class="showcase-play">▶ Play Now</span>
+    </div>
+  </a>
+
 </div>
 
 </main>
