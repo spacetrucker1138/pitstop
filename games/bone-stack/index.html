@@ -12,7 +12,9 @@ canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contai
 </style>
 </head>
 <body>
-<div id="bg-art" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;background:url('graveyard_bg.jpg') center/cover no-repeat;opacity:0.3;pointer-events:none;"></div>
+<video id="bg-video" autoplay muted loop playsinline style="position:fixed;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);z-index:-1;opacity:0.3;object-fit:cover;pointer-events:none;">
+  <source src="gutstackers_video.mp4" type="video/mp4">
+</video>
 <canvas id="c"></canvas>
 <script>
 const canvas = document.getElementById('c');
@@ -45,12 +47,6 @@ const COLORS = [
 ];
 
 const SKULL_EMOJIS = ['💀','☠️','🦴','⚰️','🪦','👻','🕷️'];
-
-// Background art
-const bgImage = new Image();
-bgImage.src = 'graveyard_bg.jpg';
-let bgReady = false;
-bgImage.onload = function() { bgReady = true; };
 
 // Logo (stored for future use)
 const logoImage = new Image();
@@ -644,6 +640,11 @@ function render() {
   ctx.fillStyle = 'rgba(10,5,15,0.85)';
   ctx.fillRect(0, 0, W, H);
 
+  // Dim video during gameplay, bright on title (drawTitle handles its own opacity)
+  if (state !== 'title') {
+    const bgVid = document.getElementById('bg-video');
+    if (bgVid) bgVid.style.opacity = '0.25';
+  }
 
   if (state === 'title') { drawTitle(); return; }
   if (state === 'gameover') {
