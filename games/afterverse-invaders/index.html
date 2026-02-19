@@ -55,7 +55,10 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
     <div class="score-label">SCORE: <span id="score">0</span></div>
     <div class="ghost-counter">👻 <span id="ghostKills">0</span>/3</div>
   </div>
-  <div class="lives-label">LIVES: <span id="lives">3</span></div>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <div class="lives-label">LIVES: <span id="lives">3</span></div>
+    <div class="lives-label" style="color:#00e5ff;">🛡️ <span id="shieldCount">0</span></div>
+  </div>
 </div>
 <canvas id="game" style="display:none;"></canvas>
 <div id="mobile-controls">
@@ -72,6 +75,7 @@ const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
 const ghostKillsEl = document.getElementById('ghostKills');
+const shieldCountEl = document.getElementById('shieldCount');
 const loadingEl = document.getElementById('loading');
 const uiEl = document.getElementById('ui');
 
@@ -225,6 +229,11 @@ let playerFacing = 'right';
 let blueGhost = null;
 let blueGhostKills = 0;
 let blueGhostSpawnTimer = 0;
+let parachuteHuman = null;
+let parachuteSpawnTimer = 0;
+const PARACHUTE_INTERVAL = 10000; // twice as rare as blue ghost (10s vs 5s)
+let playerShield = 0; // 0-3 shield levels
+let splatters = []; // red splatters from missed humans
 const BLUE_GHOST_INTERVAL = 5000; // ms between spawn attempts
 
 // Skull boss system
@@ -247,7 +256,9 @@ function init() {
   score = 0; lives = 3; level = 1;
   blueGhost = null; blueGhostKills = 0; blueGhostSpawnTimer = 0;
   skullBoss = null; skullBossShootTimer = 0;
+  parachuteHuman = null; parachuteSpawnTimer = 0; playerShield = 0; splatters = [];
   scoreEl.textContent = '0'; livesEl.textContent = '3'; ghostKillsEl.textContent = '0';
+  shieldCountEl.textContent = '0';
   gameState = 'playing'; playerFacing = 'right';
   hsInitials = ''; hsCursorBlink = 0;
   spawnEnemies();
@@ -420,6 +431,69 @@ function update(dt) {
     if (bg.x < -60 || bg.x > W + 60) blueGhost = null;
   }
 
+  // === PARACHUTE HUMAN LOGIC ===
+  parachuteSpawnTimer += dt;
+  if (!parachuteHuman && parachuteSpawnTimer > PARACHUTE_INTERVAL) {
+    if (Math.random() < 0.3) { // 30% chance each interval — rarer than blue ghost
+      parachuteHuman = {
+        x: 40 + Math.random() * (W - 80),
+        y: -30,
+        w: 28, h: 28,
+        speed: 0.8 + Math.random() * 0.4,
+        swayPhase: Math.random() * Math.PI * 2,
+        caught: false
+      };
+    }
+    parachuteSpawnTimer = 0;
+  }
+
+  if (parachuteHuman && !parachuteHuman.caught) {
+    const ph = parachuteHuman;
+    ph.y += ph.speed;
+    ph.swayPhase += 0.04;
+    ph.x += Math.sin(ph.swayPhase) * 0.6; // gentle sway
+
+    // Check if player catches it (lands on the van)
+    if (ph.y + ph.h >= player.y && ph.y <= player.y + PLAYER_H &&
+        ph.x + ph.w > player.x && ph.x < player.x + PLAYER_W) {
+      // Caught! Add shield (max 3)
+      if (playerShield < 3) {
+        playerShield++;
+        shieldCountEl.textContent = playerShield;
+      }
+      addParticles(ph.x + ph.w/2, ph.y + ph.h/2, '#00e5ff', 15);
+      // Play a happy chime
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      [523, 659, 784].forEach((freq, i) => {
+        const o = actx.createOscillator(); const g = actx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.15, actx.currentTime + i*0.08);
+        g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + i*0.08 + 0.2);
+        o.connect(g); g.connect(actx.destination);
+        o.start(actx.currentTime + i*0.08); o.stop(actx.currentTime + i*0.08 + 0.25);
+      });
+      parachuteHuman = null;
+    }
+
+    // Missed — hit the ground
+    else if (ph.y > H - 15) {
+      // Splat! Red splatter stays until wave ends
+      splatters.push({ x: ph.x + ph.w/2, y: H - 8, life: 99999 });
+      addParticles(ph.x + ph.w/2, H - 10, '#ff1744', 12);
+      // Sad splat sound
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(); const g = actx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(200, actx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(50, actx.currentTime + 0.3);
+      g.gain.setValueAtTime(0.12, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.35);
+      const filt = actx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 400;
+      o.connect(filt); filt.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + 0.4);
+      parachuteHuman = null;
+    }
+  }
+
   // === SKULL BOSS LOGIC — ghost-style movement ===
   if (skullBoss) {
     const sb = skullBoss;
@@ -529,9 +603,26 @@ function update(dt) {
   enemyBullets.forEach(b => {
     const bRect = b.type === 'lightning' ? { x: b.x - 6, y: b.y - 6, w: 12, h: 12 } : { x: b.x, y: b.y, w: b.w, h: b.h };
     if (collides(bRect, player)) {
-      b.dead = true; lives--; livesEl.textContent = lives;
-      addParticles(player.x + PLAYER_W/2, player.y + PLAYER_H/2, '#ff1744', 20);
-      gameState = 'dead'; deadTimer = 1500;
+      b.dead = true;
+      if (playerShield > 0) {
+        // Shield absorbs the hit
+        playerShield--;
+        shieldCountEl.textContent = playerShield;
+        addParticles(player.x + PLAYER_W/2, player.y + PLAYER_H/2, '#00e5ff', 15);
+        // Shield break sound
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = actx.createOscillator(); const g = actx.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(800, actx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(200, actx.currentTime + 0.15);
+        g.gain.setValueAtTime(0.2, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.2);
+        o.connect(g); g.connect(actx.destination);
+        o.start(); o.stop(actx.currentTime + 0.25);
+      } else {
+        lives--; livesEl.textContent = lives;
+        addParticles(player.x + PLAYER_W/2, player.y + PLAYER_H/2, '#ff1744', 20);
+        gameState = 'dead'; deadTimer = 1500;
+      }
     }
   });
   enemyBullets = enemyBullets.filter(b => !b.dead);
@@ -545,7 +636,7 @@ function update(dt) {
   }
 
   // Wave cleared
-  if (enemies.length === 0 && !skullBoss) { level++; spawnEnemies(); }
+  if (enemies.length === 0 && !skullBoss) { level++; splatters = []; spawnEnemies(); }
 
   // Particles
   particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.08; });
@@ -638,11 +729,45 @@ function draw() {
     ctx.restore();
   }
 
+  // Ground splatters (missed parachute humans)
+  splatters.forEach(s => {
+    ctx.save();
+    ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 8;
+    ctx.fillText('💥', s.x, s.y);
+    ctx.restore();
+  });
+
+  // Parachute human
+  if (parachuteHuman && !parachuteHuman.caught) {
+    const ph = parachuteHuman;
+    ctx.save();
+    ctx.font = '26px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 12;
+    ctx.fillText('🪂', ph.x + ph.w/2, ph.y + ph.h/2);
+    ctx.restore();
+  }
+
   // Player
   if (gameState !== 'dead') {
     const vanImg = playerFacing === 'left' ? vanLeft : vanRight;
     ctx.save(); ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15;
     ctx.drawImage(vanImg, player.x, player.y, PLAYER_W, PLAYER_H);
+    // Shield bars — draw layered arcs above the van
+    if (playerShield > 0) {
+      ctx.shadowBlur = 0;
+      const cx = player.x + PLAYER_W/2;
+      const cy = player.y - 2;
+      const shieldColors = ['#00e5ff', '#00bcd4', '#0097a7'];
+      for (let i = 0; i < playerShield; i++) {
+        ctx.strokeStyle = shieldColors[i];
+        ctx.lineWidth = 3;
+        ctx.shadowColor = shieldColors[i]; ctx.shadowBlur = 8 + i * 4;
+        ctx.beginPath();
+        ctx.arc(cx, cy + i * 2, PLAYER_W/2 + 4 + i * 5, Math.PI, 0);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
