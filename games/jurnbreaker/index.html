@@ -484,7 +484,7 @@
     constructor() {
       this.titleMusic = new Audio("JURNBREAKERS.mp3");
       this.titleMusic.loop = true;
-      this.gameMusic = new Audio("JURNBREAKERS.mp3"); // Will be replaced with separate track later
+      this.gameMusic = new Audio("jurnbreaker2nd.mp3"); // Separate gameplay track
       this.gameMusic.loop = true;
       this.gameOverSound = new Audio("gameover.mp3");
       this.snareSounds = [
@@ -649,8 +649,10 @@
 
     display() {
       const frameX = Math.floor(skullFrame % SKULL_TOTAL_FRAMES) * SKULL_FRAME_W;
+      // Visual size 1.6x larger than hitbox
+      const visualR = this.r * 1.6;
       ctx.drawImage(skullball, frameX, 0, SKULL_FRAME_W, 128,
-        this.position.x - this.r, this.position.y - this.r, this.r * 2, this.r * 2);
+        this.position.x - visualR, this.position.y - visualR, visualR * 2, visualR * 2);
     }
 
     collideWith(brick) {
@@ -720,8 +722,12 @@
     }
 
     color(level) {
-      const pct = ((level - this.n) / level) * 30;
-      return `hsl(${pct}, ${100 - pct}%, 63%)`;
+      // Purple gradient: deeper purple for newer bricks, lighter for older
+      const pct = (this.n / Math.max(level, 1));
+      const hue = 270 + pct * 20; // 270-290 range (purple to blue-purple)
+      const sat = 60 + pct * 30;  // 60-90% saturation
+      const lit = 40 + (1 - pct) * 25; // 40-65% lightness
+      return `hsl(${hue}, ${sat}%, ${lit}%)`;
     }
 
     display(state) {
@@ -730,7 +736,10 @@
       // Gradient fill
       const grad = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.h);
       grad.addColorStop(0, baseColor);
-      grad.addColorStop(1, `hsl(${((state.level - this.n) / state.level) * 30}, 60%, 35%)`);
+      grad.addColorStop(1, (() => {
+        const pct = (this.n / Math.max(state.level, 1));
+        return `hsl(${275 + pct * 15}, ${50 + pct * 20}%, ${20 + (1 - pct) * 15}%)`;
+      })());
       ctx.fillStyle = grad;
 
       // Rounded rect
@@ -765,7 +774,7 @@
       // Number with shadow
       ctx.save();
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 22px Cinzel";
+      ctx.font = "bold 24px Creepster";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.shadowColor = 'rgba(0,0,0,0.5)';
@@ -796,7 +805,7 @@
       this.decay = random(0.015, 0.04);
       this.rotation = random(0, Math.PI * 2);
       this.rotSpeed = random(-0.2, 0.2);
-      this.color = color || `hsl(${random(10, 40)}, 80%, 60%)`;
+      this.color = color || `hsl(${random(260, 300)}, 70%, 55%)`;
       this.shape = Math.random() > 0.5 ? 'circle' : 'shard';
     }
 
@@ -882,8 +891,9 @@
       ctx.shadowBlur = 12;
       const localFrame = Math.floor((skullFrame * 0.5) % SKULL_TOTAL_FRAMES);
       const frameX = localFrame * SKULL_FRAME_W;
+      const visualR = this.r * 1.4;
       ctx.drawImage(skullball, frameX, 0, SKULL_FRAME_W, 128,
-        this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
+        this.x - visualR, this.y - visualR, visualR * 2, visualR * 2);
       ctx.restore();
 
       // "+1" label
@@ -930,7 +940,7 @@
           if (ball.collideWith(brick)) {
             brick.hit();
             if (brick.broken) {
-              particles.burst(brick.x + brick.w / 2, brick.y + brick.h / 2, 12, brick.color(999));
+              particles.burst(brick.x + brick.w / 2, brick.y + brick.h / 2, 12, `hsl(${270 + Math.random() * 30}, 70%, ${40 + Math.random() * 30}%)`);
             }
           }
         });
@@ -1277,7 +1287,7 @@
 
       // Balls
       this.balls.display();
-      skullFrame += 0.3;
+      skullFrame += 0.1; // Slower rotation
 
       // Aim guide
       this.ui.drawAimGuide(this.state);
