@@ -84,29 +84,46 @@ function resize() {
 resize();
 
 // === AUDIO ===
-// Evil laugh — real MP3 for boss entrance
-// Preload on first user interaction to avoid autoplay restrictions
-let bossLaughSound = null;
-let bossLaughReady = false;
-function initBossLaugh() {
-  if (bossLaughSound) return;
-  bossLaughSound = new Audio('bosslaugh.mp3');
-  bossLaughSound.volume = 0.7;
-  bossLaughSound.preload = 'auto';
-  // Force browser to load by playing muted then pausing
-  bossLaughSound.muted = true;
-  const p = bossLaughSound.play();
-  if (p) p.then(() => { bossLaughSound.pause(); bossLaughSound.muted = false; bossLaughSound.currentTime = 0; bossLaughReady = true; }).catch(() => { bossLaughSound.muted = false; bossLaughReady = true; });
-  else { bossLaughSound.muted = false; bossLaughReady = true; }
-}
-// Hook into first user interactions
-['click','touchstart','keydown'].forEach(evt => window.addEventListener(evt, initBossLaugh, { once: false }));
+// Boss entrance — synth fart barrage (no MP3 dependency)
 function playEvilLaugh() {
-  if (!bossLaughSound) initBossLaugh();
-  if (bossLaughSound) {
-    bossLaughSound.currentTime = 0;
-    bossLaughSound.play().catch(()=>{});
-  }
+  const actx = new (window.AudioContext || window.webkitAudioContext)();
+  // 3-4 rapid descending fart blasts
+  const farts = [
+    { t: 0,    freq: 120, dur: 0.18 },
+    { t: 0.22, freq: 95,  dur: 0.22 },
+    { t: 0.50, freq: 70,  dur: 0.28 },
+    { t: 0.85, freq: 50,  dur: 0.35 },
+  ];
+  farts.forEach(f => {
+    // Main oscillator — low sawtooth for that raspy buzz
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    const filter = actx.createBiquadFilter();
+    osc.type = 'sawtooth';
+    const t0 = actx.currentTime + f.t;
+    osc.frequency.setValueAtTime(f.freq, t0);
+    osc.frequency.exponentialRampToValueAtTime(f.freq * 0.4, t0 + f.dur);
+    // Lowpass filter for muffled rumble
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(300, t0);
+    filter.frequency.exponentialRampToValueAtTime(80, t0 + f.dur);
+    // Volume envelope — quick attack, slow decay
+    gain.gain.setValueAtTime(0.25, t0);
+    gain.gain.linearRampToValueAtTime(0.3, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, t0 + f.dur);
+    osc.connect(filter); filter.connect(gain); gain.connect(actx.destination);
+    osc.start(t0); osc.stop(t0 + f.dur + 0.05);
+    // Sub-bass rumble underneath each fart
+    const sub = actx.createOscillator();
+    const subG = actx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(f.freq * 0.5, t0);
+    sub.frequency.exponentialRampToValueAtTime(25, t0 + f.dur);
+    subG.gain.setValueAtTime(0.15, t0);
+    subG.gain.exponentialRampToValueAtTime(0.001, t0 + f.dur);
+    sub.connect(subG); subG.connect(actx.destination);
+    sub.start(t0); sub.stop(t0 + f.dur + 0.05);
+  });
 }
 
 // Background music — loops, starts on first user interaction
@@ -238,7 +255,7 @@ function init() {
 
 function spawnEnemies() {
   enemies = [];
-  const types = ['💀','👻','🦇','☠️','🧟'];
+  const types = ['💀','👻','🦇','☠️','🕷️'];
   const rows = Math.min(3 + Math.floor(level / 2), 5);
   const cols = Math.min(6 + level, 10);
   const gap = 42;
