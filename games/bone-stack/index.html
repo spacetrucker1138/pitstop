@@ -45,6 +45,18 @@ const COLORS = [
 
 const SKULL_EMOJIS = ['💀','☠️','🦴','⚰️','🪦','👻','🕷️'];
 
+// Background art
+const bgImage = new Image();
+bgImage.src = 'graveyard_bg.jpg';
+let bgReady = false;
+bgImage.onload = function() { bgReady = true; };
+
+// Logo (stored for future use)
+const logoImage = new Image();
+logoImage.src = 'gut_logo.png';
+let logoReady = false;
+logoImage.onload = function() { logoReady = true; };
+
 // Organ tile texture
 const organTile = new Image();
 organTile.src = 'organ_tile.png';
@@ -629,6 +641,26 @@ function update() {
 function render() {
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
+
+  // Draw background art during gameplay (subtle, behind everything)
+  if (bgReady && state !== 'title') {
+    ctx.globalAlpha = 0.2;
+    const imgRatio = bgImage.width / bgImage.height;
+    const canRatio = W / H;
+    let sw, sh, sx, sy;
+    if (canRatio > imgRatio) {
+      sw = bgImage.width; sh = bgImage.width / canRatio;
+      sx = 0; sy = (bgImage.height - sh) / 2;
+    } else {
+      sh = bgImage.height; sw = bgImage.height * canRatio;
+      sx = (bgImage.width - sw) / 2; sy = 0;
+    }
+    ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.globalAlpha = 1;
+    // Dark overlay so the board area is still readable
+    ctx.fillStyle = 'rgba(5,0,10,0.7)';
+    ctx.fillRect(0, 0, W, H);
+  }
 
   if (state === 'title') { drawTitle(); return; }
   if (state === 'gameover') {
