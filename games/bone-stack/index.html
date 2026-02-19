@@ -45,6 +45,75 @@ const COLORS = [
 
 const SKULL_EMOJIS = ['💀','☠️','🦴','⚰️','🪦','👻','🕷️'];
 
+// Organ tile texture
+const organTile = new Image();
+organTile.src = 'organ_tile.png';
+let tintedTiles = []; // pre-rendered tinted tiles per piece type
+let tilesReady = false;
+
+// Organ color tints (hue-shifted body horror palette)
+const ORGAN_TINTS = [
+  { r: 180, g: 40, b: 40 },   // I - Deep blood red
+  { r: 120, g: 40, b: 160 },  // O - Bruised purple
+  { r: 220, g: 100, b: 140 }, // T - Raw pink flesh (closest to original)
+  { r: 50, g: 130, b: 60 },   // J - Bile green (necrotic)
+  { r: 170, g: 160, b: 40 },  // L - Infected yellow-green
+  { r: 200, g: 40, b: 120 },  // S - Arterial magenta
+  { r: 100, g: 30, b: 130 },  // Z - Venous dark purple
+];
+
+organTile.onload = function() {
+  // Pre-render tinted versions of the tile for each piece type
+  for (let i = 0; i < ORGAN_TINTS.length; i++) {
+    const tc = document.createElement('canvas');
+    tc.width = CELL; tc.height = CELL;
+    const tctx = tc.getContext('2d');
+    // Draw the organ tile scaled to cell size
+    tctx.drawImage(organTile, 0, 0, CELL, CELL);
+    // Apply color tint using multiply blend
+    tctx.globalCompositeOperation = 'multiply';
+    const t = ORGAN_TINTS[i];
+    tctx.fillStyle = `rgb(${t.r},${t.g},${t.b})`;
+    tctx.fillRect(0, 0, CELL, CELL);
+    // Restore original alpha from the base image
+    tctx.globalCompositeOperation = 'destination-in';
+    tctx.drawImage(organTile, 0, 0, CELL, CELL);
+    // Add slight highlight on top for wet look
+    tctx.globalCompositeOperation = 'screen';
+    tctx.fillStyle = 'rgba(255,200,200,0.08)';
+    tctx.fillRect(0, 0, CELL, CELL/3);
+    tintedTiles.push(tc);
+  }
+  tilesReady = true;
+};
+
+// Gore drip system - liquid that flows down from locked pieces
+let goreDrips = [];
+function spawnGoreDrips(lockedCells) {
+  for (const cell of lockedCells) {
+    // 40% chance per cell to spawn a drip
+    if (Math.random() > 0.4) continue;
+    const tint = ORGAN_TINTS[cell.type];
+    // Random gore color based on piece tint but shifted toward red/dark
+    const r = Math.min(255, tint.r + Math.floor(Math.random()*60));
+    const g = Math.max(0, tint.g - Math.floor(Math.random()*30));
+    const b = Math.max(0, tint.b - Math.floor(Math.random()*20));
+    const alpha = 0.6 + Math.random() * 0.3;
+    goreDrips.push({
+      x: BOARD_X + cell.col * CELL + Math.random() * CELL,
+      y: BOARD_Y + cell.row * CELL + CELL,
+      vy: 0.3 + Math.random() * 0.8,
+      width: 2 + Math.random() * 3,
+      length: 8 + Math.random() * 20,
+      color: `rgba(${r},${g},${b},`,
+      alpha: alpha,
+      fadeRate: 0.003 + Math.random() * 0.004,
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.02 + Math.random() * 0.03
+    });
+  }
+}
+
 // Audio
 class AudioMgr {
   constructor() {
@@ -170,6 +239,18 @@ function lockPiece() {
     }
   }
   audio.drop();
+  // Spawn gore drips from newly locked cells
+  const lockedCells = [];
+  for (let r = 0; r < piece.shape.length; r++) {
+    for (let c = 0; c < piece.shape[r].length; c++) {
+      if (!piece.shape[r][c]) continue;
+      const ny = pieceY + r, nx = pieceX + c;
+      if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+        lockedCells.push({ col: nx, row: ny, type: pieceType });
+      }
+    }
+  }
+  spawnGoreDrips(lockedCells);
   clearLines();
   spawnPiece();
 }
@@ -178,19 +259,39 @@ function clearLines() {
   let cleared = 0;
   for (let r = ROWS - 1; r >= 0; r--) {
     if (board[r].every(c => c > 0)) {
-      // Spawn particles for cleared line
+      // Spawn gore splash particles for cleared line
       for (let c = 0; c < COLS; c++) {
         const px = BOARD_X + c * CELL + CELL/2;
         const py = BOARD_Y + r * CELL + CELL/2;
-        for (let i = 0; i < 3; i++) {
+        const tIdx = board[r][c] - 1;
+        const tint = ORGAN_TINTS[tIdx] || ORGAN_TINTS[0];
+        for (let i = 0; i < 4; i++) {
+          const rr = Math.min(255, tint.r + Math.floor(Math.random()*80));
+          const gg = Math.max(0, tint.g - Math.floor(Math.random()*20));
+          const bb = Math.max(0, tint.b - Math.floor(Math.random()*20));
           particles.push({
             x: px, y: py,
-            vx: (Math.random()-0.5)*8,
-            vy: (Math.random()-0.5)*8 - 2,
+            vx: (Math.random()-0.5)*10,
+            vy: (Math.random()-0.5)*10 - 3,
             life: 1,
-            color: COLORS[board[r][c]-1] || '#a855f7',
-            size: Math.random()*4+2,
-            emoji: Math.random() > 0.5 ? SKULL_EMOJIS[Math.floor(Math.random()*SKULL_EMOJIS.length)] : null
+            color: `rgb(${rr},${gg},${bb})`,
+            size: Math.random()*5+2,
+            emoji: Math.random() > 0.6 ? SKULL_EMOJIS[Math.floor(Math.random()*SKULL_EMOJIS.length)] : null
+          });
+        }
+        // Extra gore drips from cleared line
+        if (Math.random() > 0.5) {
+          goreDrips.push({
+            x: px + (Math.random()-0.5) * CELL,
+            y: py,
+            vy: 0.5 + Math.random() * 1.2,
+            width: 2 + Math.random() * 4,
+            length: 12 + Math.random() * 25,
+            color: `rgba(${Math.min(255,tint.r+40)},${Math.max(0,tint.g-10)},${Math.max(0,tint.b-10)},`,
+            alpha: 0.7 + Math.random() * 0.3,
+            fadeRate: 0.002 + Math.random() * 0.003,
+            wobble: Math.random() * Math.PI * 2,
+            wobbleSpeed: 0.02 + Math.random() * 0.04
           });
         }
       }
@@ -307,21 +408,24 @@ function startGame() {
 
 // Draw cell
 function drawCell(x, y, colorIdx) {
-  const color = COLORS[colorIdx];
   const gx = BOARD_X + x * CELL, gy = BOARD_Y + y * CELL;
 
-  // Gradient fill
-  const grad = ctx.createLinearGradient(gx, gy, gx, gy + CELL);
-  grad.addColorStop(0, color);
-  grad.addColorStop(1, shadeColor(color, -30));
-  ctx.fillStyle = grad;
-  ctx.fillRect(gx + 1, gy + 1, CELL - 2, CELL - 2);
-
-  // Inner bevel
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.fillRect(gx + 2, gy + 2, CELL - 4, 3);
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.fillRect(gx + 2, gy + CELL - 5, CELL - 4, 3);
+  if (tilesReady && tintedTiles[colorIdx]) {
+    // Draw organ tile texture
+    ctx.drawImage(tintedTiles[colorIdx], gx + 1, gy + 1, CELL - 2, CELL - 2);
+    // Subtle wet highlight shimmer
+    const shimmer = Math.sin(Date.now() * 0.003 + x * 0.5 + y * 0.7) * 0.04 + 0.02;
+    ctx.fillStyle = `rgba(255,220,220,${shimmer})`;
+    ctx.fillRect(gx + 3, gy + 3, CELL - 6, CELL/3);
+  } else {
+    // Fallback: gradient fill (before tile loads)
+    const color = COLORS[colorIdx];
+    const grad = ctx.createLinearGradient(gx, gy, gx, gy + CELL);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, shadeColor(color, -30));
+    ctx.fillStyle = grad;
+    ctx.fillRect(gx + 1, gy + 1, CELL - 2, CELL - 2);
+  }
 }
 
 function shadeColor(hex, amt) {
@@ -366,7 +470,7 @@ function drawTitle() {
 
   ctx.font = '18px Creepster';
   ctx.fillStyle = '#c084fc';
-  ctx.fillText('Stack the bones. Clear the rows.', W/2, 265);
+  ctx.fillText('Stack the organs. Clear the gore.', W/2, 265);
 
   if (bestScore > 0) {
     ctx.font = '20px Creepster';
@@ -451,6 +555,17 @@ function update() {
     p.life -= 0.025;
   });
   particles = particles.filter(p => p.life > 0);
+
+  // Update gore drips
+  goreDrips.forEach(d => {
+    d.y += d.vy;
+    d.alpha -= d.fadeRate;
+    d.wobble += d.wobbleSpeed;
+    d.x += Math.sin(d.wobble) * 0.3;
+    // Slow down as it drips
+    d.vy *= 0.998;
+  });
+  goreDrips = goreDrips.filter(d => d.alpha > 0 && d.y < BOARD_Y + ROWS * CELL + 10);
 }
 
 function render() {
@@ -605,6 +720,34 @@ function drawBoard() {
     ctx.fillStyle = '#eab308';
     ctx.fillText('🏆 ' + bestScore, hudX, BOARD_Y + 320);
   }
+
+  // Gore drips
+  goreDrips.forEach(d => {
+    const clipBottom = BOARD_Y + ROWS * CELL;
+    if (d.y > clipBottom) return;
+    const drawLen = Math.min(d.length, clipBottom - d.y);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(BOARD_X, BOARD_Y, COLS * CELL, ROWS * CELL);
+    ctx.clip();
+    const grad = ctx.createLinearGradient(d.x, d.y - drawLen, d.x, d.y);
+    grad.addColorStop(0, d.color + '0)');
+    grad.addColorStop(0.3, d.color + (d.alpha * 0.6) + ')');
+    grad.addColorStop(1, d.color + d.alpha + ')');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = d.width;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y - drawLen);
+    ctx.lineTo(d.x, d.y);
+    ctx.stroke();
+    // Drip bulge at bottom
+    ctx.fillStyle = d.color + d.alpha + ')';
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.width * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
 
   // Particles
   particles.forEach(p => {
