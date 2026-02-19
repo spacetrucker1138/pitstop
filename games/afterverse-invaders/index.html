@@ -8,7 +8,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #050508; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; font-family: 'Creepster', cursive; overflow: hidden;
 }
 canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 0 0 30px rgba(57,255,20,0.1), 0 0 60px rgba(0,0,0,0.5); }
@@ -46,6 +46,9 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
 </style>
 </head>
 <body>
+<video id="bg-video" autoplay muted loop playsinline style="position:fixed;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);z-index:-1;opacity:0.25;object-fit:cover;pointer-events:none;">
+  <source src="animatedbackground.mp4" type="video/mp4">
+</video>
 <div id="loading">Loading the tour van...</div>
 <div id="ui" style="display:none;">
   <div>
@@ -81,6 +84,13 @@ function resize() {
 resize();
 
 // === AUDIO ===
+// Background music — loops, starts on first user interaction
+const bgMusic = new Audio('afterverseinvaders.mp3');
+bgMusic.loop = true; bgMusic.volume = 0.35; bgMusic.preload = 'auto';
+let bgMusicStarted = false;
+function startBgMusic() {
+  if (!bgMusicStarted) { bgMusic.play().catch(()=>{}); bgMusicStarted = true; }
+}
 const snares = ['../jurnbreaker/snare.mp3','../jurnbreaker/snare1.mp3','../jurnbreaker/snare2.mp3','../jurnbreaker/snare3.mp3'];
 const snarePool = [];
 snares.forEach(src => { for (let i = 0; i < 3; i++) { const a = new Audio(src); a.volume = 0.35; a.preload = 'auto'; snarePool.push(a); } });
@@ -88,7 +98,7 @@ let snareIdx = 0;
 function playSnare() { const a = snarePool[snareIdx % snarePool.length]; a.currentTime = 0; a.play().catch(()=>{}); snareIdx++; }
 
 const gameOverSound = new Audio('../jurnbreaker/gameover.mp3');
-gameOverSound.volume = 0.5; gameOverSound.preload = 'auto';
+gameOverSound.volume = 0.6; gameOverSound.preload = 'auto';
 function playGameOver() { gameOverSound.currentTime = 0; gameOverSound.play().catch(()=>{}); }
 
 let audioCtx;
@@ -258,6 +268,7 @@ function addParticles(x, y, color, count) {
 
 function shoot() {
   if (gameState !== 'playing') return;
+  startBgMusic();
   const noteIdx = Math.floor(Math.random() * NOTES.length);
   bullets.push({ x: player.x + PLAYER_W/2, y: player.y - 5, note: NOTES[noteIdx], color: NOTE_COLORS[noteIdx], w: 16, h: 20, rot: (Math.random()-0.5)*0.3 });
   playShootSound();
@@ -486,7 +497,7 @@ function update(dt) {
 }
 
 function draw() {
-  ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(5,5,8,0.85)'; ctx.fillRect(0, 0, W, H);
 
   // Starfield
   ctx.fillStyle = 'rgba(191,0,255,0.15)';
@@ -706,6 +717,7 @@ function loop(ts) { const dt = ts - lastTime; lastTime = ts; update(dt); draw();
 // === INPUT ===
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
+  startBgMusic();
 
   if (gameState === 'highscore_entry') {
     e.preventDefault();
@@ -740,6 +752,7 @@ document.getElementById('m-right').addEventListener('touchstart', e => { e.preve
 document.getElementById('m-right').addEventListener('touchend', () => { keys.mRight = false; });
 document.getElementById('m-fire').addEventListener('touchstart', e => {
   e.preventDefault();
+  startBgMusic();
   if (gameState === 'gameover' || gameState === 'highscore_display') init();
   else if (gameState === 'highscore_entry') { /* handled by virtual keyboard */ }
   else shoot();
