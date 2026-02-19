@@ -183,7 +183,7 @@ let playerFacing = 'right';
 let blueGhost = null;
 let blueGhostKills = 0;
 let blueGhostSpawnTimer = 0;
-const BLUE_GHOST_INTERVAL = 8000; // ms between spawn attempts
+const BLUE_GHOST_INTERVAL = 5000; // ms between spawn attempts
 
 // Skull boss system
 let skullBoss = null;
@@ -222,6 +222,13 @@ function spawnEnemies() {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       enemies.push({ x: startX + c * gap, y: 50 + r * 38, w: ENEMY_W, h: ENEMY_H, type: types[r % types.length], hp: r === 0 ? 2 : 1, flash: 0 });
+    }
+  }
+  // Wave 4+: add an extra bottom row of skulls (tougher, 2 HP)
+  if (level >= 4) {
+    const extraY = 50 + rows * 38;
+    for (let c = 0; c < cols; c++) {
+      enemies.push({ x: startX + c * gap, y: extraY, w: ENEMY_W, h: ENEMY_H, type: '💀', hp: 2, flash: 0 });
     }
   }
   enemyDir = 1; enemySpeed = 0.3 + level * 0.15; enemyShootTimer = 0;
@@ -296,6 +303,7 @@ function update(dt) {
     if (deadTimer <= 0) {
       if (lives <= 0) {
         gameState = isHighScore(score) ? 'highscore_entry' : 'highscore_display';
+        bgMusic.pause(); bgMusic.currentTime = 0; bgMusicStarted = false;
         playGameOver();
       } else { gameState = 'playing'; }
     }
@@ -344,7 +352,7 @@ function update(dt) {
   // === BLUE GHOST LOGIC ===
   blueGhostSpawnTimer += dt;
   if (!blueGhost && !skullBoss && blueGhostKills < 3 && blueGhostSpawnTimer > BLUE_GHOST_INTERVAL) {
-    if (Math.random() < 0.4) spawnBlueGhost();
+    if (Math.random() < 0.6) spawnBlueGhost();
     blueGhostSpawnTimer = 0;
   }
 
@@ -376,7 +384,8 @@ function update(dt) {
     } else {
       // Movement — left/right like normal enemies + slow vertical bob
       sb.x += sb.dir * sb.speed;
-      if (sb.x <= 10 || sb.x + sb.w >= W - 10) sb.dir *= -1;
+      if (sb.x <= 10) { sb.x = 10; sb.dir = 1; }
+      if (sb.x + sb.w >= W - 10) { sb.x = W - 10 - sb.w; sb.dir = -1; }
       // Slow up/down bob
       if (!sb.bobPhase) sb.bobPhase = 0;
       sb.bobPhase += 0.015;
@@ -396,8 +405,8 @@ function update(dt) {
         const bspd = 2.8;
         enemyBullets.push({ x: eyeL.x, y: eyeL.y, vx: spreadL, vy: bspd, w: 16, h: 16, color: '#ffff00', type: 'lightning', text: '⚡' });
         enemyBullets.push({ x: eyeR.x, y: eyeR.y, vx: spreadR, vy: bspd, w: 16, h: 16, color: '#ffff00', type: 'lightning', text: '⚡' });
-        addParticles(eyeL.x, eyeL.y, '#ffff00', 3);
-        addParticles(eyeR.x, eyeR.y, '#ffff00', 3);
+        addParticles(eyeL.x, eyeL.y, '#ffffff', 5);
+        addParticles(eyeR.x, eyeR.y, '#ffffff', 5);
       }
     }
     if (sb.flash > 0) sb.flash--;
@@ -485,6 +494,7 @@ function update(dt) {
   if (enemies.some(e => e.y + e.h >= player.y)) {
     lives = 0; livesEl.textContent = '0';
     gameState = isHighScore(score) ? 'highscore_entry' : 'highscore_display';
+    bgMusic.pause(); bgMusic.currentTime = 0; bgMusicStarted = false;
     playGameOver();
   }
 
@@ -555,7 +565,7 @@ function draw() {
     } else {
       ctx.shadowColor = 'rgba(255, 50, 50, 0.8)'; ctx.shadowBlur = 25;
     }
-    ctx.fillText('💀', sb.x + sb.w/2, sb.y + sb.h - 5);
+    ctx.fillText('☠️', sb.x + sb.w/2, sb.y + sb.h - 5);
 
     // Eye glow effect
     const pulse = Math.sin(Date.now() * 0.005) * 0.3 + 0.7;
@@ -602,8 +612,13 @@ function draw() {
   enemyBullets.forEach(b => {
     ctx.save();
     if (b.type === 'lightning') {
-      ctx.font = '16px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#ffff00'; ctx.shadowBlur = 15;
+      ctx.font = '18px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      // Triple-layer glow for maximum brightness
+      ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30;
+      ctx.fillText('⚡', b.x, b.y);
+      ctx.shadowColor = '#ffff00'; ctx.shadowBlur = 20;
+      ctx.fillText('⚡', b.x, b.y);
+      ctx.shadowColor = '#ffee00'; ctx.shadowBlur = 8;
       ctx.fillText('⚡', b.x, b.y);
     } else if (b.type === 'blue') {
       ctx.fillStyle = '#00bfff'; ctx.shadowColor = '#00bfff'; ctx.shadowBlur = 10;
