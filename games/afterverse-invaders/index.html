@@ -84,34 +84,12 @@ function resize() {
 resize();
 
 // === AUDIO ===
-// Evil laugh — synthesized descending cackle for boss entrance
+// Evil laugh — real MP3 for boss entrance
+const bossLaughSound = new Audio('bosslaugh.mp3');
+bossLaughSound.volume = 0.7; bossLaughSound.preload = 'auto';
 function playEvilLaugh() {
-  const actx = new (window.AudioContext || window.webkitAudioContext)();
-  const notes = [600, 500, 580, 460, 540, 420, 380, 300, 250];
-  const timing = [0, 0.09, 0.18, 0.27, 0.38, 0.5, 0.65, 0.82, 1.0];
-  notes.forEach((freq, i) => {
-    const osc = actx.createOscillator();
-    const gain = actx.createGain();
-    const t = actx.currentTime + timing[i];
-    // Sawtooth for raspy evil texture
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(freq, t);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + 0.08);
-    gain.gain.setValueAtTime(0.18, t);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-    osc.connect(gain); gain.connect(actx.destination);
-    osc.start(t); osc.stop(t + 0.12);
-  });
-  // Low rumble underneath
-  const rumble = actx.createOscillator();
-  const rGain = actx.createGain();
-  rumble.type = 'sine';
-  rumble.frequency.setValueAtTime(80, actx.currentTime);
-  rumble.frequency.exponentialRampToValueAtTime(40, actx.currentTime + 1.2);
-  rGain.gain.setValueAtTime(0.15, actx.currentTime);
-  rGain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 1.3);
-  rumble.connect(rGain); rGain.connect(actx.destination);
-  rumble.start(actx.currentTime); rumble.stop(actx.currentTime + 1.4);
+  bossLaughSound.currentTime = 0;
+  bossLaughSound.play().catch(()=>{});
 }
 
 // Background music — loops, starts on first user interaction
