@@ -41,18 +41,21 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
 }
 .m-fire:active { background: rgba(255,23,68,0.5); }
 @media (pointer: coarse) { #mobile-controls { display: block; } }
+#loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  color: #bf00ff; font-size: 1.5rem; text-shadow: 0 0 15px rgba(191,0,255,0.5); }
 </style>
 </head>
 <body>
-<div id="ui">
+<div id="loading">Loading the tour van...</div>
+<div id="ui" style="display:none;">
   <div class="score-label">SCORE: <span id="score">0</span></div>
   <div class="lives-label">LIVES: <span id="lives">3</span></div>
 </div>
-<canvas id="game"></canvas>
+<canvas id="game" style="display:none;"></canvas>
 <div id="mobile-controls">
   <div class="m-row">
     <div class="m-btn" id="m-left">◀</div>
-    <div class="m-btn m-fire" id="m-fire">💀</div>
+    <div class="m-btn m-fire" id="m-fire">🎵</div>
     <div class="m-btn" id="m-right">▶</div>
   </div>
 </div>
@@ -62,6 +65,8 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
+const loadingEl = document.getElementById('loading');
+const uiEl = document.getElementById('ui');
 
 let W, H;
 function resize() {
@@ -71,23 +76,48 @@ function resize() {
 }
 resize();
 
+// Load JURN van sprites from jurnbreaker assets
+const vanLeft = new Image();
+const vanRight = new Image();
+let imagesLoaded = 0;
+function onImageLoad() {
+  imagesLoaded++;
+  if (imagesLoaded >= 2) {
+    loadingEl.style.display = 'none';
+    canvas.style.display = 'block';
+    uiEl.style.display = 'flex';
+    init();
+    requestAnimationFrame(loop);
+  }
+}
+vanLeft.onload = onImageLoad;
+vanRight.onload = onImageLoad;
+vanLeft.src = '../jurnbreaker/jurnleft.png';
+vanRight.src = '../jurnbreaker/jurnright.png';
+
+// Music note types for projectiles
+const NOTES = ['♩', '♪', '♫', '♬', '🎵', '🎶'];
+const NOTE_COLORS = ['#39ff14', '#00ff88', '#7fff00', '#adff2f', '#00ffcc', '#39ff14'];
+
 // Game state
 let player, bullets, enemies, enemyBullets, particles, score, lives, level;
-let enemyDir, enemySpeed, enemyDropTimer, enemyShootTimer;
-let gameState; // 'playing', 'dead', 'gameover', 'win'
+let enemyDir, enemySpeed, enemyShootTimer;
+let gameState;
 let keys = {};
 let deadTimer = 0;
+let playerFacing = 'right'; // track van facing direction
+let lastMoveDir = 0; // -1 left, 0 still, 1 right
 
-const PLAYER_W = 36, PLAYER_H = 28;
+const PLAYER_W = 60, PLAYER_H = 40;
 const ENEMY_W = 30, ENEMY_H = 24;
-const BULLET_W = 3, BULLET_H = 12;
 
 function init() {
-  player = { x: W/2 - PLAYER_W/2, y: H - 60, w: PLAYER_W, h: PLAYER_H };
+  player = { x: W/2 - PLAYER_W/2, y: H - 70, w: PLAYER_W, h: PLAYER_H };
   bullets = []; enemyBullets = []; particles = [];
   score = 0; lives = 3; level = 1;
   scoreEl.textContent = '0'; livesEl.textContent = '3';
   gameState = 'playing';
+  playerFacing = 'right';
   spawnEnemies();
 }
 
@@ -110,28 +140,7 @@ function spawnEnemies() {
     }
   }
   enemyDir = 1; enemySpeed = 0.3 + level * 0.15;
-  enemyDropTimer = 0; enemyShootTimer = 0;
-}
-
-function drawCoffin(x, y, w, h) {
-  ctx.save();
-  ctx.translate(x + w/2, y + h/2);
-  // coffin body
-  ctx.fillStyle = '#39ff14';
-  ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 10;
-  ctx.beginPath();
-  ctx.moveTo(0, -h/2);
-  ctx.lineTo(w/2, -h/4);
-  ctx.lineTo(w/3, h/2);
-  ctx.lineTo(-w/3, h/2);
-  ctx.lineTo(-w/2, -h/4);
-  ctx.closePath();
-  ctx.fill();
-  // cross
-  ctx.strokeStyle = '#050508'; ctx.lineWidth = 2; ctx.shadowBlur = 0;
-  ctx.beginPath(); ctx.moveTo(0, -h/4); ctx.lineTo(0, h/5); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-w/5, -h/10); ctx.lineTo(w/5, -h/10); ctx.stroke();
-  ctx.restore();
+  enemyShootTimer = 0;
 }
 
 function addParticles(x, y, color, count) {
@@ -145,7 +154,15 @@ function addParticles(x, y, color, count) {
 
 function shoot() {
   if (gameState !== 'playing') return;
-  bullets.push({ x: player.x + PLAYER_W/2 - BULLET_W/2, y: player.y - 10, w: BULLET_W, h: BULLET_H });
+  const noteIdx = Math.floor(Math.random() * NOTES.length);
+  bullets.push({
+    x: player.x + PLAYER_W/2,
+    y: player.y - 5,
+    note: NOTES[noteIdx],
+    color: NOTE_COLORS[noteIdx],
+    w: 16, h: 20,
+    rot: (Math.random() - 0.5) * 0.3 // slight random tilt
+  });
 }
 
 function enemyShoot() {
@@ -158,6 +175,14 @@ function collides(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+function collidesNote(bullet, enemy) {
+  // Note bullets: center-based collision
+  const bx = bullet.x - bullet.w/2;
+  const by = bullet.y - bullet.h/2;
+  return bx < enemy.x + enemy.w && bx + bullet.w > enemy.x &&
+         by < enemy.y + enemy.h && by + bullet.h > enemy.y;
+}
+
 function update(dt) {
   if (gameState === 'dead') {
     deadTimer -= dt;
@@ -168,21 +193,28 @@ function update(dt) {
   }
   if (gameState !== 'playing') return;
 
-  // player movement
   const spd = 4;
-  if (keys.ArrowLeft || keys.KeyA || keys.mLeft) player.x -= spd;
-  if (keys.ArrowRight || keys.KeyD || keys.mRight) player.x += spd;
+  let moving = 0;
+  if (keys.ArrowLeft || keys.KeyA || keys.mLeft) { player.x -= spd; moving = -1; }
+  if (keys.ArrowRight || keys.KeyD || keys.mRight) { player.x += spd; moving = 1; }
   player.x = Math.max(0, Math.min(W - PLAYER_W, player.x));
 
-  // player bullets
-  bullets.forEach(b => b.y -= 7);
-  bullets = bullets.filter(b => b.y > -20);
+  // Update facing direction based on movement
+  if (moving === -1) playerFacing = 'left';
+  else if (moving === 1) playerFacing = 'right';
 
-  // enemy bullets
+  // Player bullets (music notes float up with slight wobble)
+  bullets.forEach(b => {
+    b.y -= 6;
+    b.x += Math.sin(b.y * 0.05 + b.rot * 10) * 0.5; // gentle wobble
+  });
+  bullets = bullets.filter(b => b.y > -25);
+
+  // Enemy bullets
   enemyBullets.forEach(b => b.y += 3.5);
   enemyBullets = enemyBullets.filter(b => b.y < H + 20);
 
-  // enemy movement
+  // Enemy movement
   let edgeHit = false;
   enemies.forEach(e => {
     e.x += enemyDir * enemySpeed;
@@ -194,7 +226,7 @@ function update(dt) {
     enemies.forEach(e => e.y += 12);
   }
 
-  // enemy shooting
+  // Enemy shooting
   enemyShootTimer += dt;
   const shootInterval = Math.max(600 - level * 50, 200);
   if (enemyShootTimer > shootInterval) {
@@ -202,10 +234,10 @@ function update(dt) {
     enemyShoot();
   }
 
-  // bullet-enemy collision
+  // Note-enemy collision
   bullets.forEach(b => {
     enemies.forEach(e => {
-      if (collides(b, e)) {
+      if (collidesNote(b, e)) {
         b.dead = true;
         e.hp--;
         e.flash = 6;
@@ -214,6 +246,17 @@ function update(dt) {
           score += 10 * level;
           scoreEl.textContent = score;
           addParticles(e.x + e.w/2, e.y + e.h/2, '#bf00ff', 12);
+          // Scatter some music notes as particles
+          for (let i = 0; i < 3; i++) {
+            particles.push({
+              x: e.x + e.w/2, y: e.y + e.h/2,
+              vx: (Math.random()-0.5)*3, vy: -Math.random()*3 - 1,
+              life: 40, maxLife: 40,
+              color: NOTE_COLORS[Math.floor(Math.random()*NOTE_COLORS.length)],
+              size: 3, isNote: true,
+              note: NOTES[Math.floor(Math.random()*NOTES.length)]
+            });
+          }
         } else {
           addParticles(e.x + e.w/2, e.y + e.h/2, '#ff1744', 5);
         }
@@ -223,7 +266,7 @@ function update(dt) {
   bullets = bullets.filter(b => !b.dead);
   enemies = enemies.filter(e => !e.dead);
 
-  // enemy-bullet hits player
+  // Enemy bullets hit player
   enemyBullets.forEach(b => {
     if (collides(b, player)) {
       b.dead = true;
@@ -234,20 +277,20 @@ function update(dt) {
   });
   enemyBullets = enemyBullets.filter(b => !b.dead);
 
-  // enemies reach bottom
+  // Enemies reach bottom
   if (enemies.some(e => e.y + e.h >= player.y)) {
     lives = 0; livesEl.textContent = '0';
     gameState = 'gameover';
   }
 
-  // wave cleared
+  // Wave cleared
   if (enemies.length === 0) {
     level++;
     spawnEnemies();
   }
 
-  // particles
-  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.1; });
+  // Particles
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.08; });
   particles = particles.filter(p => p.life > 0);
 }
 
@@ -255,7 +298,7 @@ function draw() {
   ctx.fillStyle = '#050508';
   ctx.fillRect(0, 0, W, H);
 
-  // starfield
+  // Starfield
   ctx.fillStyle = 'rgba(191,0,255,0.15)';
   for (let i = 0; i < 40; i++) {
     const sx = (i * 137 + 50) % W;
@@ -263,29 +306,44 @@ function draw() {
     ctx.fillRect(sx, sy, 1.5, 1.5);
   }
 
-  // enemies
+  // Enemies
   enemies.forEach(e => {
     if (e.flash > 0) {
       ctx.fillStyle = '#ff1744';
       ctx.fillRect(e.x-2, e.y-2, e.w+4, e.h+4);
     }
-    ctx.font = `${e.h}px serif`;
+    ctx.font = e.h + 'px serif';
     ctx.textAlign = 'center';
     ctx.fillText(e.type, e.x + e.w/2, e.y + e.h - 2);
   });
 
-  // player
-  if (gameState !== 'dead') drawCoffin(player.x, player.y, PLAYER_W, PLAYER_H);
+  // Player — JURN tour van sprite!
+  if (gameState !== 'dead') {
+    const vanImg = playerFacing === 'left' ? vanLeft : vanRight;
+    // Draw van with a subtle green underglow
+    ctx.save();
+    ctx.shadowColor = '#39ff14';
+    ctx.shadowBlur = 15;
+    ctx.drawImage(vanImg, player.x, player.y, PLAYER_W, PLAYER_H);
+    ctx.restore();
+  }
 
-  // player bullets
-  ctx.fillStyle = '#39ff14';
-  ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 8;
+  // Player bullets — MUSIC NOTES!
   bullets.forEach(b => {
-    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.rot);
+    ctx.font = '18px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = b.color;
+    ctx.fillText(b.note, 0, 0);
+    ctx.restore();
   });
-  ctx.shadowBlur = 0;
 
-  // enemy bullets
+  // Enemy bullets
   ctx.fillStyle = '#ff1744';
   ctx.shadowColor = '#ff1744'; ctx.shadowBlur = 6;
   enemyBullets.forEach(b => {
@@ -293,20 +351,27 @@ function draw() {
   });
   ctx.shadowBlur = 0;
 
-  // particles
+  // Particles
   particles.forEach(p => {
     ctx.globalAlpha = p.life / p.maxLife;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, p.size, p.size);
+    if (p.isNote) {
+      ctx.font = '14px serif';
+      ctx.fillStyle = p.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.note, p.x, p.y);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
   });
   ctx.globalAlpha = 1;
 
-  // level indicator
+  // Wave indicator
   ctx.fillStyle = 'rgba(191,0,255,0.3)';
   ctx.font = '14px Creepster'; ctx.textAlign = 'center';
   ctx.fillText('WAVE ' + level, W/2, 30);
 
-  // overlays
+  // Overlays
   if (gameState === 'dead') {
     ctx.fillStyle = 'rgba(255,23,68,0.15)';
     ctx.fillRect(0, 0, W, H);
@@ -336,7 +401,7 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-// keyboard
+// Keyboard
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Space') {
@@ -348,7 +413,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
-// mobile
+// Mobile controls
 document.getElementById('m-left').addEventListener('touchstart', e => { e.preventDefault(); keys.mLeft = true; });
 document.getElementById('m-left').addEventListener('touchend', () => { keys.mLeft = false; });
 document.getElementById('m-right').addEventListener('touchstart', e => { e.preventDefault(); keys.mRight = true; });
@@ -360,9 +425,7 @@ document.getElementById('m-fire').addEventListener('touchstart', e => {
 });
 canvas.addEventListener('click', () => { if (gameState === 'gameover') init(); });
 
-window.addEventListener('resize', () => { resize(); init(); });
-init();
-requestAnimationFrame(loop);
+window.addEventListener('resize', () => { resize(); if (imagesLoaded >= 2) init(); });
 </script>
 </body>
 </html>
