@@ -178,8 +178,8 @@ const BLUE_GHOST_INTERVAL = 8000; // ms between spawn attempts
 // Skull boss system
 let skullBoss = null;
 const SKULL_BOSS_HP = 20;
-const SKULL_BOSS_W = 80;
-const SKULL_BOSS_H = 70;
+const SKULL_BOSS_W = 120;
+const SKULL_BOSS_H = 100;
 let skullBossShootTimer = 0;
 let skullBossEntryY = 0; // for entry animation
 
@@ -306,10 +306,10 @@ function update(dt) {
   // Enemy bullets
   enemyBullets.forEach(b => {
     if (b.type === 'lightning') {
-      // Lightning bolts track slightly toward player
-      const dx = (player.x + PLAYER_W/2) - b.x;
-      b.vx += dx * 0.0003;
-      b.x += b.vx;
+      // Lightning bolts wiggle left/right as they descend — no tracking
+      if (!b.wigglePhase) b.wigglePhase = Math.random() * Math.PI * 2;
+      b.wigglePhase += 0.15;
+      b.x += Math.sin(b.wigglePhase) * 2.5;
       b.y += b.vy;
     } else if (b.type === 'blue') {
       b.y += 3.8;
@@ -358,13 +358,18 @@ function update(dt) {
   // === SKULL BOSS LOGIC ===
   if (skullBoss) {
     const sb = skullBoss;
-    // Entry animation
-    if (sb.y < skullBossEntryY) {
-      sb.y += 0.5;
+    // Entry animation — descend to middle of screen
+    const targetY = H * 0.3;
+    if (sb.y < targetY) {
+      sb.y += 0.8;
     } else {
-      // Movement — slow side to side
+      // Movement — left/right like normal enemies + slow vertical bob
       sb.x += sb.dir * sb.speed;
       if (sb.x <= 10 || sb.x + sb.w >= W - 10) sb.dir *= -1;
+      // Slow up/down bob
+      if (!sb.bobPhase) sb.bobPhase = 0;
+      sb.bobPhase += 0.015;
+      sb.y = targetY + Math.sin(sb.bobPhase) * 35;
 
       // Shooting — lightning ⚡ from eyes
       sb.phase += dt;
@@ -372,12 +377,14 @@ function update(dt) {
       if (skullBossShootTimer > 800) {
         skullBossShootTimer = 0;
         // Fire from left eye
-        const eyeL = { x: sb.x + sb.w * 0.3, y: sb.y + sb.h * 0.4 };
-        const eyeR = { x: sb.x + sb.w * 0.7, y: sb.y + sb.h * 0.4 };
-        const angle = Math.atan2((player.y - eyeL.y), (player.x + PLAYER_W/2 - eyeL.x));
-        const bspd = 2.5;
-        enemyBullets.push({ x: eyeL.x, y: eyeL.y, vx: Math.cos(angle) * bspd, vy: Math.sin(angle) * bspd, w: 16, h: 16, color: '#ffff00', type: 'lightning', text: '⚡' });
-        enemyBullets.push({ x: eyeR.x, y: eyeR.y, vx: Math.cos(angle) * bspd, vy: Math.sin(angle) * bspd, w: 16, h: 16, color: '#ffff00', type: 'lightning', text: '⚡' });
+        const eyeL = { x: sb.x + sb.w * 0.32, y: sb.y + sb.h * 0.38 };
+        const eyeR = { x: sb.x + sb.w * 0.68, y: sb.y + sb.h * 0.38 };
+        // Fire lightning downward with slight random spread — no tracking
+        const spreadL = (Math.random() - 0.5) * 1.2;
+        const spreadR = (Math.random() - 0.5) * 1.2;
+        const bspd = 2.8;
+        enemyBullets.push({ x: eyeL.x, y: eyeL.y, vx: spreadL, vy: bspd, w: 16, h: 16, color: '#ffff00', type: 'lightning', text: '⚡' });
+        enemyBullets.push({ x: eyeR.x, y: eyeR.y, vx: spreadR, vy: bspd, w: 16, h: 16, color: '#ffff00', type: 'lightning', text: '⚡' });
         addParticles(eyeL.x, eyeL.y, '#ffff00', 3);
         addParticles(eyeR.x, eyeR.y, '#ffff00', 3);
       }
