@@ -44,6 +44,37 @@ class AudioMgr {
 }
 const audio = new AudioMgr();
 
+// Background Music
+const bgMusic = new Audio('hauntedsong5.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.35;
+let musicStarted = false;
+
+function updateMusic() {
+  if (audio.muted) {
+    bgMusic.volume = 0;
+  } else {
+    bgMusic.volume = 0.35;
+  }
+  if (state === 'playing') {
+    if (bgMusic.paused) {
+      bgMusic.play().catch(() => {});
+    }
+    musicStarted = true;
+  } else if (state === 'gameover') {
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    musicStarted = false;
+  } else if (state === 'title') {
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    musicStarted = false;
+  } else if (state === 'paused') {
+    bgMusic.pause();
+  }
+}
+
+
 // Physics
 const GRAVITY = 0.45;
 const FLAP_FORCE = -7.5;
@@ -473,7 +504,7 @@ function render() {
   drawMuteIndicator();
 }
 
-function loop() { update(); render(); requestAnimationFrame(loop); }
+function loop() { updateMusic(); update(); render(); requestAnimationFrame(loop); }
 loop();
 </script>
 </body>
