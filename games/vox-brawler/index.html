@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOX BRAWLER - Afterverse Arcade</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0a0a0a;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    font-family: 'Creepster', cursive;
+    overflow: hidden;
+  }
+  canvas {
+    border: 2px solid #6a0dad;
+    box-shadow: 0 0 30px rgba(106,13,173,0.5);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  #controls {
+    color: #888;
+    font-family: monospace;
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="controls">
+  WASD / Arrow Keys: Move | SPACE: Jump | LEFT CLICK: Punch | M: Mute | P: Pause
+</div>
+<script>
+// ═══════════════════════════════════════════════
+// VOX BRAWLER - Sprite Sheet Platformer Test
+// A JURN Production ☠
+// ═══════════════════════════════════════════════
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// Canvas size
+const W = 800;
+const H = 500;
+canvas.width = W;
+canvas.height = H;
+
+// ── Game State ──
+let gameState = 'loading'; // loading, title, playing, paused
+let isMuted = false;
+
+// ── Audio Context ──
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(freq, duration, type='square', vol=0.15) {
+  if (isMuted || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+}
+
+function playJumpSound() { playSound(250, 0.15, 'square', 0.12); setTimeout(()=>playSound(400, 0.1, 'square', 0.1), 50); }
+function playLandSound() { playSound(100, 0.08, 'triangle', 0.1); }
+function playPunchSound() { playSound(80, 0.12, 'sawtooth', 0.2); playSound(150, 0.08, 'square', 0.15); }
+function playStepSound() {
+  if (isMuted || !audioCtx) return;
+  playSound(60 + Math.random()*40, 0.05, 'triangle', 0.04);
+}
+
+// ── Sprite Sheet Loading ──
+const spriteImg = new Image();
+spriteImg.crossOrigin = 'anonymous';
+
+// We'll process the sprite to remove the checkerboard background
+let cleanSprite = null;
+
+// Sprite sheet layout (from analysis):
+// Row 0: 8 frames - Walk
+// Row 1: 6 frames - Run
+// Row 2: 3 frames Jump + 3 frames Punch
+// Frame size will be detected from the image
+
+let FRAME_W, FRAME_H;
+let spriteReady = false;
+
+// Animation definitions (frame indices within each row)
+const ANIMS = {
+  idle:  { row: 0, frames: [0], speed: 0 },
+  walk:  { row: 0, frames: [0,1,2,3,4,5,6,7], speed: 100 },
+  run:   { row: 1, frames: [0,1,2,3,4,5], speed: 70 },
+  jump:  { row: 2, frames: [0,1,2], speed: 120 },
+  punch: { row: 2, frames: [3,4,5], speed: 80 }
+};
+
+function processSprite(img) {
+  // Detect frame size from the image
+  // Row 0 has 8 frames, so width / 8 = frame width
+  FRAME_W = Math.floor(img.width / 8);
+  FRAME_H = Math.floor(img.height / 3);
+
+  // Create offscreen canvas and remove checkerboard background
+  const oc = document.createElement('canvas');
+  oc.width = img.width;
+  oc.height = img.height;
+  const octx = oc.getContext('2d');
+  octx.drawImage(img, 0, 0);
+
+  const imageData = octx.getImageData(0, 0, oc.width, oc.height);
+  const data = imageData.data;
+
+  // The checkerboard is typically light gray (#C0C0C0) and white (#FFFFFF)
+  // or similar pattern. We'll detect the most common "background" colors
+  // from the corners and make them transparent
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i+1], b = data[i+2];
+
+    // Detect checkerboard pattern colors (light gray and white)
+    // Typical checkerboard: rgb(192,192,192) and rgb(255,255,255)
+    // or rgb(204,204,204) and rgb(255,255,255)
+    const isLightGray = (r > 180 && g > 180 && b > 180) && Math.abs(r-g) < 15 && Math.abs(g-b) < 15;
+    const isWhite = (r > 240 && g > 240 && b > 240);
+
+    if (isLightGray || isWhite) {
+      data[i+3] = 0; // Make transparent
+    }
+  }
+
+  octx.putImageData(imageData, 0, 0);
+  cleanSprite = oc;
+  spriteReady = true;
+  gameState = 'title';
+}
+
+spriteImg.onload = () => processSprite(spriteImg);
+spriteImg.onerror = () => {
+  console.error('Failed to load sprite sheet');
+  // Fallback: draw a simple rectangle character
+  spriteReady = false;
+  gameState = 'title';
+};
+spriteImg.src = 'Voxspritesheet.jpg';
+
+// ── Parallax Background Layers ──
+const stars = [];
+for (let i = 0; i < 60; i++) {
+  stars.push({ x: Math.random()*W*3, y: Math.random()*H*0.6, size: Math.random()*2+0.5, bright: Math.random() });
+}
+
+const bgMountains = [];
+for (let i = 0; i < 20; i++) {
+  bgMountains.push({
+    x: i * 200 - 200,
+    h: 80 + Math.random()*120,
+    w: 150 + Math.random()*200
+  });
+}
+
+const fgHills = [];
+for (let i = 0; i < 30; i++) {
+  fgHills.push({
+    x: i * 120 - 100,
+    h: 40 + Math.random()*60,
+    w: 80 + Math.random()*120
+  });
+}
+
+// ── Platforms ──
+const GROUND_Y = H - 60;
+const platforms = [
+  // Main ground - extends far
+  { x: -500, y: GROUND_Y, w: 4000, h: 60, type: 'ground' },
+
+  // Floating platforms at various heights
+  { x: 200, y: GROUND_Y - 80, w: 150, h: 20, type: 'platform' },
+  { x: 420, y: GROUND_Y - 150, w: 120, h: 20, type: 'platform' },
+  { x: 620, y: GROUND_Y - 100, w: 180, h: 20, type: 'platform' },
+  { x: 850, y: GROUND_Y - 180, w: 100, h: 20, type: 'platform' },
+  { x: 1020, y: GROUND_Y - 120, w: 160, h: 20, type: 'platform' },
+  { x: 1250, y: GROUND_Y - 200, w: 140, h: 20, type: 'platform' },
+  { x: 1450, y: GROUND_Y - 80, w: 200, h: 20, type: 'platform' },
+
+  // Some stacked platforms
+  { x: 300, y: GROUND_Y - 250, w: 100, h: 20, type: 'platform' },
+  { x: 700, y: GROUND_Y - 260, w: 130, h: 20, type: 'platform' },
+  { x: 1100, y: GROUND_Y - 280, w: 110, h: 20, type: 'platform' },
+];
+
+// ── Camera ──
+let cameraX = 0;
+
+// ── Player ──
+const player = {
+  x: 100,
+  y: GROUND_Y - 60,
+  w: 40,
+  h: 56,
+  vx: 0,
+  vy: 0,
+  speed: 3.5,
+  runSpeed: 5.5,
+  jumpForce: -11,
+  gravity: 0.45,
+  grounded: false,
+  facing: 1, // 1=right, -1=left
+  // Animation
+  anim: 'idle',
+  animFrame: 0,
+  animTimer: 0,
+  // Punch
+  punching: false,
+  punchTimer: 0,
+  // Step sound
+  stepTimer: 0
+};
+
+// ── Input ──
+const keys = {};
+let mouseDown = false;
+
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyM') isMuted = !isMuted;
+  if (e.code === 'KeyP' && gameState === 'playing') gameState = 'paused';
+  else if (e.code === 'KeyP' && gameState === 'paused') gameState = 'playing';
+  if ((e.code === 'Space' || e.code === 'KeyE') && gameState === 'title') {
+    ensureAudio();
+    gameState = 'playing';
+    player.x = 100;
+    player.y = GROUND_Y - 60;
+    player.vx = 0;
+    player.vy = 0;
+  }
+  if (e.code === 'Space') e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+canvas.addEventListener('mousedown', e => { mouseDown = true; ensureAudio(); });
+canvas.addEventListener('mouseup', e => { mouseDown = false; });
+canvas.addEventListener('touchstart', e => { ensureAudio(); if(gameState==='title') gameState='playing'; });
+
+// ── Update ──
+function update(dt) {
+  if (gameState !== 'playing') return;
+
+  const p = player;
+
+  // Running?
+  const running = keys['ShiftLeft'] || keys['ShiftRight'];
+  const moveSpeed = running ? p.runSpeed : p.speed;
+
+  // Horizontal movement
+  let moving = false;
+  if (keys['KeyA'] || keys['ArrowLeft']) {
+    p.vx = -moveSpeed;
+    p.facing = -1;
+    moving = true;
+  } else if (keys['KeyD'] || keys['ArrowRight']) {
+    p.vx = moveSpeed;
+    p.facing = 1;
+    moving = true;
+  } else {
+    p.vx = 0;
+  }
+
+  // Jump
+  if ((keys['Space'] || keys['KeyW'] || keys['ArrowUp']) && p.grounded) {
+    p.vy = p.jumpForce;
+    p.grounded = false;
+    playJumpSound();
+  }
+
+  // Punch
+  if (mouseDown && !p.punching) {
+    p.punching = true;
+    p.punchTimer = 0;
+    p.animFrame = 0;
+    p.animTimer = 0;
+    playPunchSound();
+  }
+
+  // Gravity
+  p.vy += p.gravity;
+  p.y += p.vy;
+  p.x += p.vx;
+
+  // Platform collision
+  p.grounded = false;
+  for (const plat of platforms) {
+    if (p.x + p.w > plat.x && p.x < plat.x + plat.w) {
+      // Landing on top
+      if (p.vy >= 0 && p.y + p.h > plat.y && p.y + p.h < plat.y + plat.h + p.vy + 2) {
+        p.y = plat.y - p.h;
+        p.vy = 0;
+        if (!p.grounded) playLandSound();
+        p.grounded = true;
+      }
+    }
+  }
+
+  // Don't fall off world
+  if (p.y > H + 100) {
+    p.x = 100;
+    p.y = GROUND_Y - 60;
+    p.vy = 0;
+    p.vx = 0;
+  }
+
+  // Punch timer
+  if (p.punching) {
+    p.punchTimer += dt;
+    if (p.punchTimer > ANIMS.punch.speed * ANIMS.punch.frames.length) {
+      p.punching = false;
+    }
+  }
+
+  // Animation state
+  if (p.punching) {
+    p.anim = 'punch';
+  } else if (!p.grounded) {
+    p.anim = 'jump';
+  } else if (moving && running) {
+    p.anim = 'run';
+  } else if (moving) {
+    p.anim = 'walk';
+  } else {
+    p.anim = 'idle';
+  }
+
+  // Animation frame
+  p.animTimer += dt;
+  const animDef = ANIMS[p.anim];
+  if (animDef.speed > 0 && p.animTimer > animDef.speed) {
+    p.animTimer = 0;
+    p.animFrame = (p.animFrame + 1) % animDef.frames.length;
+  }
+
+  // Step sound
+  if (p.grounded && moving) {
+    p.stepTimer += dt;
+    if (p.stepTimer > (running ? 150 : 220)) {
+      playStepSound();
+      p.stepTimer = 0;
+    }
+  } else {
+    p.stepTimer = 200; // Next step plays quickly when landing
+  }
+
+  // Camera follows player
+  const targetCam = p.x - W/3;
+  cameraX += (targetCam - cameraX) * 0.08;
+}
+
+// ── Draw ──
+function drawBackground() {
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrad.addColorStop(0, '#0a0015');
+  skyGrad.addColorStop(0.4, '#1a0030');
+  skyGrad.addColorStop(0.7, '#2a1045');
+  skyGrad.addColorStop(1, '#0d0020');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Moon
+  const moonX = W * 0.75 - cameraX * 0.02;
+  const moonY = 60;
+  ctx.save();
+  ctx.shadowColor = '#9966cc';
+  ctx.shadowBlur = 40;
+  ctx.fillStyle = '#e8d8f0';
+  ctx.beginPath();
+  ctx.arc(moonX, moonY, 35, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Moon craters
+  ctx.fillStyle = 'rgba(180,160,200,0.3)';
+  ctx.beginPath(); ctx.arc(moonX-10, moonY-8, 8, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(moonX+12, moonY+5, 5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(moonX-5, moonY+12, 4, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Stars (parallax layer 0.05)
+  ctx.fillStyle = '#fff';
+  for (const s of stars) {
+    const sx = ((s.x - cameraX * 0.05) % (W*3) + W*3) % (W*3) - W;
+    if (sx > -5 && sx < W+5) {
+      const flicker = 0.5 + 0.5 * Math.sin(Date.now()*0.003 + s.bright*10);
+      ctx.globalAlpha = s.bright * flicker;
+      ctx.fillRect(sx, s.y, s.size, s.size);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Background mountains (parallax 0.15)
+  ctx.fillStyle = '#1a0828';
+  for (const m of bgMountains) {
+    const mx = m.x - cameraX * 0.15;
+    if (mx > -m.w && mx < W + m.w) {
+      ctx.beginPath();
+      ctx.moveTo(mx, GROUND_Y);
+      ctx.lineTo(mx + m.w/2, GROUND_Y - m.h);
+      ctx.lineTo(mx + m.w, GROUND_Y);
+      ctx.fill();
+    }
+  }
+
+  // Foreground hills (parallax 0.3)
+  ctx.fillStyle = '#250f3a';
+  for (const h of fgHills) {
+    const hx = h.x - cameraX * 0.3;
+    if (hx > -h.w && hx < W + h.w) {
+      ctx.beginPath();
+      ctx.moveTo(hx, GROUND_Y);
+      ctx.quadraticCurveTo(hx + h.w/2, GROUND_Y - h.h, hx + h.w, GROUND_Y);
+      ctx.fill();
+    }
+  }
+
+  // Graveyard silhouettes (parallax 0.5)
+  ctx.fillStyle = '#1a0828';
+  for (let i = 0; i < 40; i++) {
+    const gx = i * 90 + 20 - cameraX * 0.5;
+    if (gx > -30 && gx < W + 30) {
+      // Tombstone
+      const tw = 16 + (i%3)*6;
+      const th = 25 + (i%5)*10;
+      ctx.fillRect(gx, GROUND_Y - th, tw, th);
+      // Rounded top
+      ctx.beginPath();
+      ctx.arc(gx + tw/2, GROUND_Y - th, tw/2, Math.PI, 0);
+      ctx.fill();
+      // Cross on some
+      if (i % 3 === 0) {
+        ctx.fillRect(gx + tw/2 - 2, GROUND_Y - th - 15, 4, 15);
+        ctx.fillRect(gx + tw/2 - 7, GROUND_Y - th - 10, 14, 4);
+      }
+    }
+  }
+}
+
+function drawPlatforms() {
+  for (const plat of platforms) {
+    const px = plat.x - cameraX;
+    const py = plat.y;
+
+    if (px + plat.w < -50 || px > W + 50) continue;
+
+    if (plat.type === 'ground') {
+      // Ground - dark earth with grass top
+      const groundGrad = ctx.createLinearGradient(0, py, 0, py + plat.h);
+      groundGrad.addColorStop(0, '#2a1a0a');
+      groundGrad.addColorStop(0.1, '#1a0f05');
+      groundGrad.addColorStop(1, '#0a0505');
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(px, py, plat.w, plat.h);
+
+      // Purple grass line on top
+      ctx.fillStyle = '#6a0dad';
+      ctx.fillRect(px, py, plat.w, 3);
+      ctx.shadowColor = '#9933ff';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(px, py, plat.w, 2);
+      ctx.shadowBlur = 0;
+
+      // Some grass tufts
+      ctx.fillStyle = '#4a0d8d';
+      for (let gx = px; gx < px + plat.w; gx += 12 + Math.random()*8) {
+        if (gx > -10 && gx < W + 10) {
+          const gh = 4 + Math.random() * 6;
+          ctx.fillRect(gx, py - gh, 2, gh);
+        }
+      }
+    } else {
+      // Floating platform - stone/bone look
+      ctx.save();
+      ctx.shadowColor = '#6a0dad';
+      ctx.shadowBlur = 10;
+
+      const platGrad = ctx.createLinearGradient(0, py, 0, py + plat.h);
+      platGrad.addColorStop(0, '#4a3a5a');
+      platGrad.addColorStop(0.5, '#3a2a4a');
+      platGrad.addColorStop(1, '#2a1a3a');
+      ctx.fillStyle = platGrad;
+
+      // Rounded rect
+      const r = 4;
+      ctx.beginPath();
+      ctx.moveTo(px + r, py);
+      ctx.lineTo(px + plat.w - r, py);
+      ctx.quadraticCurveTo(px + plat.w, py, px + plat.w, py + r);
+      ctx.lineTo(px + plat.w, py + plat.h - r);
+      ctx.quadraticCurveTo(px + plat.w, py + plat.h, px + plat.w - r, py + plat.h);
+      ctx.lineTo(px + r, py + plat.h);
+      ctx.quadraticCurveTo(px, py + plat.h, px, py + plat.h - r);
+      ctx.lineTo(px, py + r);
+      ctx.quadraticCurveTo(px, py, px + r, py);
+      ctx.fill();
+
+      // Top highlight
+      ctx.strokeStyle = '#8866aa';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px + 5, py + 1);
+      ctx.lineTo(px + plat.w - 5, py + 1);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+  }
+}
+
+function drawPlayer() {
+  const p = player;
+  const screenX = p.x - cameraX;
+  const screenY = p.y;
+
+  const animDef = ANIMS[p.anim];
+  const frameIdx = animDef.frames[p.animFrame % animDef.frames.length];
+
+  // Scale factor for the sprite (3x for nice pixel art look)
+  const scale = 3;
+
+  if (spriteReady && cleanSprite) {
+    const sx = frameIdx * FRAME_W;
+    const sy = animDef.row * FRAME_H;
+    const drawW = FRAME_W * scale;
+    const drawH = FRAME_H * scale;
+
+    ctx.save();
+
+    // Purple glow under character
+    ctx.shadowColor = '#9933ff';
+    ctx.shadowBlur = 15;
+
+    // Flip horizontally if facing left
+    if (p.facing === -1) {
+      ctx.translate(screenX + p.w/2, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(cleanSprite, sx, sy, FRAME_W, FRAME_H,
+        -drawW/2, screenY - (drawH - p.h), drawW, drawH);
+    } else {
+      ctx.drawImage(cleanSprite, sx, sy, FRAME_W, FRAME_H,
+        screenX + p.w/2 - drawW/2, screenY - (drawH - p.h), drawW, drawH);
+    }
+
+    ctx.restore();
+  } else {
+    // Fallback: draw a simple skeleton character
+    ctx.save();
+    ctx.shadowColor = '#9933ff';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#d4c4a0';
+    ctx.fillRect(screenX + 8, screenY, 24, 40);
+    // Head
+    ctx.fillStyle = '#e8e0d0';
+    ctx.beginPath();
+    ctx.arc(screenX + 20, screenY - 5, 12, 0, Math.PI*2);
+    ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(screenX + 14, screenY - 8, 4, 4);
+    ctx.fillRect(screenX + 22, screenY - 8, 4, 4);
+    ctx.restore();
+  }
+
+  // Punch effect
+  if (p.punching) {
+    const punchX = screenX + (p.facing === 1 ? p.w + 10 : -30);
+    const punchY = screenY + 15;
+    const progress = p.punchTimer / (ANIMS.punch.speed * ANIMS.punch.frames.length);
+    const alpha = 1 - progress;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = '#ff6600';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ff4400';
+    ctx.beginPath();
+
+    // Impact star burst
+    const cx = punchX + 10;
+    const cy = punchY;
+    const spikes = 5;
+    const outerR = 15 * (0.5 + progress);
+    const innerR = 7 * (0.5 + progress);
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = (i * Math.PI / spikes) - Math.PI/2;
+      if (i === 0) ctx.moveTo(cx + r*Math.cos(angle), cy + r*Math.sin(angle));
+      else ctx.lineTo(cx + r*Math.cos(angle), cy + r*Math.sin(angle));
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Impact text
+    if (progress > 0.2 && progress < 0.7) {
+      ctx.font = '16px Creepster';
+      ctx.fillStyle = '#ffcc00';
+      ctx.shadowColor = '#ff6600';
+      ctx.shadowBlur = 10;
+      ctx.fillText('💥', cx - 10, cy - 15);
+    }
+
+    ctx.restore();
+  }
+}
+
+function drawHUD() {
+  // Position display
+  ctx.fillStyle = 'rgba(106,13,173,0.3)';
+  ctx.fillRect(10, 10, 200, 60);
+  ctx.strokeStyle = '#6a0dad';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(10, 10, 200, 60);
+
+  ctx.font = '14px Creepster';
+  ctx.fillStyle = '#cc99ff';
+  ctx.fillText('VOX BRAWLER', 20, 30);
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#8866aa';
+  ctx.fillText(`X: ${Math.floor(player.x)}  Y: ${Math.floor(player.y)}`, 20, 48);
+  ctx.fillText(`State: ${player.anim} | Grounded: ${player.grounded}`, 20, 62);
+
+  // Mute indicator
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#666';
+  const muteText = isMuted ? '🔇 M — Muted' : '🔊 M — Sound';
+  ctx.fillText(muteText, W - 130, 25);
+
+  // JURN credit
+  ctx.font = '12px Creepster';
+  ctx.fillStyle = '#4a3a5a';
+  ctx.textAlign = 'center';
+  ctx.fillText('☠ A JURN Production ☠', W/2, H - 8);
+  ctx.textAlign = 'left';
+}
+
+function drawTitle() {
+  drawBackground();
+
+  // Title
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  ctx.shadowColor = '#9933ff';
+  ctx.shadowBlur = 30;
+  ctx.font = '52px Creepster';
+  ctx.fillStyle = '#cc66ff';
+  ctx.fillText('VOX BRAWLER', W/2, H*0.3);
+
+  ctx.shadowBlur = 15;
+  ctx.font = '20px Creepster';
+  ctx.fillStyle = '#9966cc';
+  ctx.fillText('Sprite Sheet Platformer Test', W/2, H*0.3 + 40);
+
+  // Pulsing start text
+  const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.004);
+  ctx.globalAlpha = 0.5 + pulse * 0.5;
+  ctx.font = '24px Creepster';
+  ctx.fillStyle = '#ffcc66';
+  ctx.fillText('Press E or SPACE to Start', W/2, H*0.55);
+  ctx.globalAlpha = 1;
+
+  // Controls
+  ctx.font = '14px Creepster';
+  ctx.fillStyle = '#8866aa';
+  ctx.fillText('WASD / Arrows: Move  |  SPACE: Jump  |  Click: Punch', W/2, H*0.7);
+  ctx.fillText('SHIFT: Run  |  M: Mute  |  P: Pause', W/2, H*0.7 + 25);
+
+  // Preview the sprite if loaded
+  if (spriteReady && cleanSprite) {
+    const previewScale = 4;
+    const pw = FRAME_W * previewScale;
+    const ph = FRAME_H * previewScale;
+    // Animate walk preview
+    const walkFrame = Math.floor(Date.now() / 120) % 8;
+    ctx.shadowColor = '#9933ff';
+    ctx.shadowBlur = 20;
+    ctx.drawImage(cleanSprite, walkFrame * FRAME_W, 0, FRAME_W, FRAME_H,
+      W/2 - pw/2, H*0.78, pw, ph);
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.font = '14px Creepster';
+  ctx.fillStyle = '#4a3a5a';
+  ctx.fillText('☠ A JURN Production ☠', W/2, H - 15);
+
+  ctx.restore();
+}
+
+function drawPauseOverlay() {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.font = '36px Creepster';
+  ctx.fillStyle = '#cc66ff';
+  ctx.shadowColor = '#9933ff';
+  ctx.shadowBlur = 20;
+  ctx.fillText('PAUSED', W/2, H/2);
+  ctx.shadowBlur = 0;
+  ctx.font = '16px Creepster';
+  ctx.fillStyle = '#8866aa';
+  ctx.fillText('Press P to Resume', W/2, H/2 + 35);
+  ctx.textAlign = 'left';
+}
+
+// ── Game Loop ──
+let lastTime = 0;
+function gameLoop(timestamp) {
+  const dt = timestamp - lastTime;
+  lastTime = timestamp;
+
+  if (gameState === 'loading') {
+    ctx.fillStyle = '#0a0015';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.font = '20px Creepster';
+    ctx.fillStyle = '#6a0dad';
+    ctx.fillText('Loading sprites...', W/2, H/2);
+    ctx.textAlign = 'left';
+  } else if (gameState === 'title') {
+    drawTitle();
+  } else if (gameState === 'playing' || gameState === 'paused') {
+    update(dt);
+    drawBackground();
+    drawPlatforms();
+    drawPlayer();
+    drawHUD();
+    if (gameState === 'paused') drawPauseOverlay();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
