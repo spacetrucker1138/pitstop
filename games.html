@@ -8,17 +8,19 @@
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
   <style>
+    
     .games-showcase {
-      display: grid;
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 2rem;
       max-width: 900px;
       margin: 0 auto;
-      padding: 0 1rem;
+      padding: 0 1.5rem 4rem;
     }
+
     .showcase-card {
-      display: grid;
-      grid-template-columns: 280px 1fr;
+      display: flex;
+      flex-direction: column;
       background: rgba(15, 15, 25, 0.65);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
@@ -30,40 +32,55 @@
       transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
+
     .showcase-card:hover {
-      border-color: rgba(0, 255, 136, 0.4);
-      box-shadow: 0 12px 40px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(0, 255, 136, 0.08);
       transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(168, 85, 247, 0.15), 0 0 0 1px rgba(191, 0, 255, 0.25);
+      border-color: rgba(191, 0, 255, 0.3);
     }
+
+    .showcase-card:hover .showcase-thumb img {
+      transform: scale(1.05);
+    }
+
     .showcase-thumb {
       position: relative;
       overflow: hidden;
-      min-height: 200px;
+      aspect-ratio: 16 / 9;
+      background: rgba(10, 5, 20, 0.8);
     }
+
     .showcase-thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform 0.4s ease;
     }
-    .showcase-card:hover .showcase-thumb img {
-      transform: scale(1.05);
-    }
+
     .showcase-thumb-emoji {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 5rem;
-      background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(191, 0, 255, 0.08));
-      min-height: 200px;
+      font-size: 4rem;
+      aspect-ratio: 3 / 1;
+      background: linear-gradient(135deg, rgba(30, 10, 50, 0.9), rgba(10, 5, 20, 0.9));
     }
+
     .showcase-body {
-      padding: 1.8rem 2rem;
+      padding: 1.5rem 2rem 1.8rem;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      gap: 0.6rem;
+      gap: 0.5rem;
     }
+
+    .showcase-genre {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #a855f7;
+      font-weight: 600;
+    }
+
     .showcase-title {
       font-family: 'Creepster', cursive;
       font-size: 2rem;
@@ -71,74 +88,69 @@
       text-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
       letter-spacing: 1px;
     }
-    .showcase-genre {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      color: var(--neon-purple);
-      font-weight: 600;
-    }
+
     .showcase-desc {
-      color: #bbb;
       font-size: 0.95rem;
-      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
     }
+
     .showcase-features {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.4rem;
       margin-top: 0.3rem;
     }
+
     .feature-tag {
-      display: inline-block;
-      padding: 0.25rem 0.7rem;
-      background: rgba(191, 0, 255, 0.1);
-      border: 1px solid rgba(191, 0, 255, 0.2);
-      border-radius: 20px;
-      font-size: 0.7rem;
-      color: #c084fc;
-      letter-spacing: 1px;
+      font-size: 0.65rem;
       text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      background: rgba(168, 85, 247, 0.12);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.2);
     }
+
     .showcase-play {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 2rem;
-      background: linear-gradient(135deg, #0f8, #0a6);
-      color: #000;
-      border-radius: 50px;
-      font-weight: bold;
-      font-size: 1rem;
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.5rem 1.4rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(168, 85, 247, 0.15));
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #e9d5ff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
       transition: all 0.3s ease;
       align-self: flex-start;
-      margin-top: 0.5rem;
     }
+
     .showcase-card:hover .showcase-play {
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(168, 85, 247, 0.25));
+      border-color: rgba(168, 85, 247, 0.5);
     }
-    /* New badge */
+
     .badge-new {
       position: absolute;
       top: 12px;
       right: 12px;
-      padding: 0.25rem 0.6rem;
-      background: var(--accent-red);
-      color: #fff;
-      font-family: 'Creepster', cursive;
-      font-size: 0.75rem;
-      letter-spacing: 2px;
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: white;
+      padding: 0.2rem 0.7rem;
       border-radius: 4px;
-      box-shadow: 0 0 12px rgba(255, 23, 68, 0.4);
-      z-index: 2;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
     }
+
     @media (max-width: 700px) {
-      .showcase-card {
-        grid-template-columns: 1fr;
-      }
-      .showcase-thumb {
-        min-height: 180px;
-        max-height: 220px;
+      .showcase-thumb-emoji {
+        aspect-ratio: 2 / 1;
       }
       .showcase-body {
         padding: 1.2rem 1.5rem 1.5rem;
@@ -147,6 +159,7 @@
         font-size: 1.6rem;
       }
     }
+
   </style>
 </head>
 <body>
