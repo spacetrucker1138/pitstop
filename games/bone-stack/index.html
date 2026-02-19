@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Bone Stack — Afterverse Arcade</title>
+<title>Gut Stackers — Afterverse Arcade</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -91,26 +91,30 @@ organTile.onload = function() {
 let goreDrips = [];
 function spawnGoreDrips(lockedCells) {
   for (const cell of lockedCells) {
-    // 40% chance per cell to spawn a drip
-    if (Math.random() > 0.4) continue;
+    // 90% chance per cell to spawn a drip (TRIPLE GORE)
+    if (Math.random() > 0.9) continue;
+    // Spawn 2-3 drips per cell for maximum slushie
+    const dripCount = 2 + Math.floor(Math.random() * 2);
     const tint = ORGAN_TINTS[cell.type];
-    // Random gore color based on piece tint but shifted toward red/dark
-    const r = Math.min(255, tint.r + Math.floor(Math.random()*60));
-    const g = Math.max(0, tint.g - Math.floor(Math.random()*30));
-    const b = Math.max(0, tint.b - Math.floor(Math.random()*20));
-    const alpha = 0.6 + Math.random() * 0.3;
-    goreDrips.push({
-      x: BOARD_X + cell.col * CELL + Math.random() * CELL,
-      y: BOARD_Y + cell.row * CELL + CELL,
-      vy: 0.3 + Math.random() * 0.8,
-      width: 2 + Math.random() * 3,
-      length: 8 + Math.random() * 20,
-      color: `rgba(${r},${g},${b},`,
-      alpha: alpha,
-      fadeRate: 0.003 + Math.random() * 0.004,
-      wobble: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.02 + Math.random() * 0.03
-    });
+    for (let di = 0; di < dripCount; di++) {
+      // Random gore color based on piece tint but shifted toward red/dark
+      const r = Math.min(255, tint.r + Math.floor(Math.random()*80));
+      const g = Math.max(0, tint.g - Math.floor(Math.random()*40));
+      const b = Math.max(0, tint.b - Math.floor(Math.random()*30));
+      const alpha = 0.6 + Math.random() * 0.4;
+      goreDrips.push({
+        x: BOARD_X + cell.col * CELL + Math.random() * CELL,
+        y: BOARD_Y + cell.row * CELL + CELL * Math.random() * 0.5,
+        vy: 0.4 + Math.random() * 1.2,
+        width: 2 + Math.random() * 5,
+        length: 12 + Math.random() * 30,
+        color: `rgba(${r},${g},${b},`,
+        alpha: alpha,
+        fadeRate: 0.002 + Math.random() * 0.003,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.02 + Math.random() * 0.04
+      });
+    }
   }
 }
 
@@ -132,7 +136,61 @@ class AudioMgr {
     o.connect(g); g.connect(this.ctx.destination);
     o.start(); o.stop(this.ctx.currentTime + dur);
   }
-  drop() { this.play(200, 0.08, 'square', 0.3); }
+  drop() {
+    // Wet smoosh/splat sound - layered noise + low thud
+    if (this.muted) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const vol = this.volume;
+
+    // Layer 1: Noise burst (the wet "splat" texture)
+    const bufLen = ctx.sampleRate * 0.12;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      // Shaped noise - loud at start, dies fast
+      const env = Math.exp(-i / (bufLen * 0.15));
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    // Lowpass filter gives it a "wet" quality instead of harsh static
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 1200;
+    lpf.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+    const nGain = ctx.createGain();
+    nGain.gain.value = 0.35 * vol;
+    nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    noise.connect(lpf); lpf.connect(nGain); nGain.connect(ctx.destination);
+    noise.start(now); noise.stop(now + 0.15);
+
+    // Layer 2: Low thud (the "smoosh" body)
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 120;
+    osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+    const oGain = ctx.createGain();
+    oGain.gain.value = 0.3 * vol;
+    oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(oGain); oGain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.12);
+
+    // Layer 3: Quick high "squelch" 
+    const sq = ctx.createOscillator();
+    sq.type = 'sawtooth';
+    sq.frequency.value = 800;
+    sq.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+    const sqGain = ctx.createGain();
+    sqGain.gain.value = 0.12 * vol;
+    sqGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    const sqFilter = ctx.createBiquadFilter();
+    sqFilter.type = 'bandpass';
+    sqFilter.frequency.value = 600;
+    sqFilter.Q.value = 2;
+    sq.connect(sqFilter); sqFilter.connect(sqGain); sqGain.connect(ctx.destination);
+    sq.start(now); sq.stop(now + 0.08);
+  }
   clear() { this.play(600, 0.15, 'square', 0.5); setTimeout(() => this.play(800, 0.15, 'square', 0.5), 100); }
   tetris() { 
     [600,700,800,1000].forEach((f,i) => setTimeout(() => this.play(f, 0.15, 'square', 0.6), i*80));
@@ -279,8 +337,8 @@ function clearLines() {
             emoji: Math.random() > 0.6 ? SKULL_EMOJIS[Math.floor(Math.random()*SKULL_EMOJIS.length)] : null
           });
         }
-        // Extra gore drips from cleared line
-        if (Math.random() > 0.5) {
+        // MASSIVE gore drips from cleared line
+        for (let gi = 0; gi < 3; gi++) {
           goreDrips.push({
             x: px + (Math.random()-0.5) * CELL,
             y: py,
@@ -465,12 +523,12 @@ function drawTitle() {
   ctx.fillStyle = '#a855f7';
   ctx.shadowColor = '#a855f7';
   ctx.shadowBlur = 30;
-  ctx.fillText('BONE STACK', W/2, 220);
+  ctx.fillText('GUT STACKERS', W/2, 220);
   ctx.shadowBlur = 0;
 
   ctx.font = '18px Creepster';
   ctx.fillStyle = '#c084fc';
-  ctx.fillText('Stack the organs. Clear the gore.', W/2, 265);
+  ctx.fillText('Stack the guts. Feed the pile.', W/2, 265);
 
   if (bestScore > 0) {
     ctx.font = '20px Creepster';
