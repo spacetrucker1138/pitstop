@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trash Queen Tarot - THE JURN</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #0a0a0a;
+  color: #e0d5c0;
+  font-family: 'Cinzel', serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+}
+
+/* ========== SPLASH SCREEN ========== */
+#splash {
+  position: fixed; inset:0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 100;
+  background: #0a0a0a;
+}
+
+#splash img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  position: absolute; inset:0;
+  filter: brightness(0.6);
+}
+
+.splash-overlay {
+  position: relative; z-index:2;
+  text-align: center;
+  text-shadow: 0 0 30px rgba(0,0,0,0.9), 0 0 60px rgba(0,0,0,0.7);
+}
+
+.splash-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(2rem, 5vw, 4rem);
+  color: #f0c040;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5em;
+  text-shadow: 0 0 20px rgba(240,192,64,0.5), 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.splash-subtitle {
+  font-size: clamp(0.9rem, 2vw, 1.4rem);
+  color: #c8b89a;
+  margin-bottom: 2em;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.press-key {
+  font-size: clamp(1rem, 2.5vw, 1.6rem);
+  color: #f0c040;
+  animation: pulse 2s ease-in-out infinite;
+  letter-spacing: 0.2em;
+  border: 1px solid rgba(240,192,64,0.3);
+  padding: 0.6em 1.5em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.press-key:hover {
+  background: rgba(240,192,64,0.15);
+  border-color: rgba(240,192,64,0.6);
+}
+
+@keyframes pulse {
+  0%,100% { opacity:0.6; }
+  50% { opacity:1; }
+}
+
+/* ========== VIDEO OVERLAY ========== */
+#video-layer {
+  position: fixed; inset:0;
+  z-index: 90;
+  display: none;
+  background: #000;
+}
+
+#video-layer video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+/* ========== FROZEN VIDEO BG ========== */
+#frozen-bg {
+  position: fixed; inset:0;
+  z-index: 5;
+  display: none;
+}
+
+#frozen-bg canvas {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%) blur(6px) brightness(0.3);
+}
+
+/* ========== READING SCREEN ========== */
+#reading-screen {
+  position: fixed; inset:0;
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2vh 2vw;
+}
+
+.spread-label {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1.2rem, 2.5vw, 2rem);
+  color: #f0c040;
+  letter-spacing: 0.2em;
+  margin-bottom: 2vh;
+  text-shadow: 0 0 15px rgba(240,192,64,0.4);
+}
+
+.cards-row {
+  display: flex;
+  gap: clamp(1rem, 3vw, 3rem);
+  justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 2vh;
+}
+
+.card-slot {
+  perspective: 1200px;
+  width: clamp(120px, 18vw, 220px);
+}
+
+.card-label {
+  text-align: center;
+  font-size: clamp(0.65rem, 1.2vw, 0.95rem);
+  color: #a0926e;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.8vh;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  padding-bottom: 166.7%; /* 2:3 ratio */
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute; inset:0;
+  backface-visibility: hidden;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 40px rgba(0,0,0,0.3);
+  border: 2px solid rgba(240,192,64,0.2);
+}
+
+.card-face img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+.card-front {
+  transform: rotateY(180deg);
+}
+
+.card-back {
+  background: #1a1a1a;
+}
+
+/* ========== READING TEXT ========== */
+.reading-area {
+  max-width: 900px;
+  width: 90%;
+  text-align: center;
+}
+
+.card-reading {
+  display: none;
+  margin-bottom: 1.5vh;
+}
+
+.card-reading.visible {
+  display: block;
+  animation: fadeUp 0.6s ease-out;
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(15px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+.card-reading .card-name {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(0.9rem, 1.8vw, 1.4rem);
+  color: #f0c040;
+  margin-bottom: 0.3em;
+}
+
+.card-reading .card-position {
+  font-size: clamp(0.65rem, 1vw, 0.8rem);
+  color: #8a7d65;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.4em;
+}
+
+.card-reading .card-meaning {
+  font-size: clamp(0.8rem, 1.3vw, 1.05rem);
+  color: #c8b89a;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.orientation-tag {
+  font-size: clamp(0.6rem, 0.9vw, 0.75rem);
+  padding: 0.2em 0.6em;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 0.3em;
+}
+
+.orientation-tag.upright {
+  color: #7ecf8a;
+  border: 1px solid rgba(126,207,138,0.3);
+}
+
+.orientation-tag.reversed {
+  color: #cf7e7e;
+  border: 1px solid rgba(207,126,126,0.3);
+}
+
+/* ========== BUTTONS ========== */
+.action-buttons {
+  display: none;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 2vh;
+}
+
+.action-buttons.visible {
+  display: flex;
+}
+
+.btn {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.75rem, 1.2vw, 1rem);
+  padding: 0.7em 2em;
+  border: 1px solid rgba(240,192,64,0.4);
+  background: rgba(240,192,64,0.08);
+  color: #f0c040;
+  cursor: pointer;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  background: rgba(240,192,64,0.2);
+  border-color: rgba(240,192,64,0.7);
+  box-shadow: 0 0 20px rgba(240,192,64,0.2);
+}
+
+/* ========== FLIP INSTRUCTION ========== */
+.flip-hint {
+  font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+  color: #8a7d65;
+  letter-spacing: 0.15em;
+  animation: pulse 2s ease-in-out infinite;
+  margin-top: 1vh;
+}
+
+.flip-hint.hidden { display:none; }
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .cards-row { gap: 0.8rem; }
+  .card-slot { width: 28vw; }
+}
+
+/* Reversed card image */
+.card-inner.reversed-card .card-front img {
+  transform: rotate(180deg);
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <img src="/assets/tarot-game/splash.jpg" alt="Trash Queen">
+  <div class="splash-overlay">
+    <div class="splash-title">TRASH QUEEN TAROT</div>
+    <div class="splash-subtitle">A Reading from Beyond the Grave</div>
+    <div class="press-key" onclick="startReading()" id="start-btn">PRESS E FOR A READING</div>
+  </div>
+</div>
+
+<!-- VIDEO LAYER -->
+<div id="video-layer">
+  <video id="deal-video" playsinline></video>
+</div>
+
+<!-- FROZEN BG -->
+<div id="frozen-bg">
+  <canvas id="frozen-canvas"></canvas>
+</div>
+
+<!-- READING SCREEN -->
+<div id="reading-screen">
+  <div class="spread-label">PAST &bull; PRESENT &bull; FUTURE</div>
+
+  <div class="cards-row">
+    <div class="card-slot" id="slot-0">
+      <div class="card-label">Past</div>
+      <div class="card-inner" onclick="flipCard(0)">
+        <div class="card-face card-back"><img src="/assets/tarot-game/card_back.jpg" alt="Card Back"></div>
+        <div class="card-face card-front"><img id="card-img-0" src="" alt="Tarot Card"></div>
+      </div>
+    </div>
+    <div class="card-slot" id="slot-1">
+      <div class="card-label">Present</div>
+      <div class="card-inner" onclick="flipCard(1)">
+        <div class="card-face card-back"><img src="/assets/tarot-game/card_back.jpg" alt="Card Back"></div>
+        <div class="card-face card-front"><img id="card-img-1" src="" alt="Tarot Card"></div>
+      </div>
+    </div>
+    <div class="card-slot" id="slot-2">
+      <div class="card-label">Future</div>
+      <div class="card-inner" onclick="flipCard(2)">
+        <div class="card-face card-back"><img src="/assets/tarot-game/card_back.jpg" alt="Card Back"></div>
+        <div class="card-face card-front"><img id="card-img-2" src="" alt="Tarot Card"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flip-hint" id="flip-hint">CLICK A CARD TO REVEAL YOUR FATE</div>
+
+  <div class="reading-area" id="reading-area">
+    <div class="card-reading" id="reading-0"></div>
+    <div class="card-reading" id="reading-1"></div>
+    <div class="card-reading" id="reading-2"></div>
+  </div>
+
+  <div class="action-buttons" id="action-buttons">
+    <button class="btn" onclick="redraw()">NEW READING</button>
+    <button class="btn" onclick="backToStart()">BACK TO START</button>
+  </div>
+</div>
+
+<script>
+const CARD_BASE = "/assets/tarot/";
+const VIDEOS = [
+  "/assets/tarot-game/video1.mp4",
+  "/assets/tarot-game/video2.mp4",
+  "/assets/tarot-game/video3.mp4",
+  "/assets/tarot-game/video4.mp4",
+  "/assets/tarot-game/video5.mp4"
+];
+
+const DECK = {
+  "cups_01_ace_of_cups.jpg": {
+    "name": "Ace of Cups",
+    "upright": "New love, emotional renewal",
+    "reversed": "Blocked feelings, emotional loss"
+  },
+  "cups_02_two_of_cups.jpg": {
+    "name": "Two of Cups",
+    "upright": "Partnership, mutual attraction",
+    "reversed": "Disharmony, breakup"
+  },
+  "cups_03_three_of_cups.jpg": {
+    "name": "Three of Cups",
+    "upright": "Celebration, friendship",
+    "reversed": "Isolation, overindulgence"
+  },
+  "cups_04_four_of_cups.jpg": {
+    "name": "Four of Cups",
+    "upright": "Contemplation, apathy",
+    "reversed": "Awakening, new opportunity"
+  },
+  "cups_05_five_of_cups.jpg": {
+    "name": "Five of Cups",
+    "upright": "Loss, grief",
+    "reversed": "Recovery, moving on"
+  },
+  "cups_06_six_of_cups.jpg": {
+    "name": "Six of Cups",
+    "upright": "Nostalgia, reunion",
+    "reversed": "Living in past, stagnation"
+  },
+  "cups_07_seven_of_cups.jpg": {
+    "name": "Seven of Cups",
+    "upright": "Choices, illusion",
+    "reversed": "Clarity, realistic view"
+  },
+  "cups_08_eight_of_cups.jpg": {
+    "name": "Eight of Cups",
+    "upright": "Leaving behind, search",
+    "reversed": "Stagnation, fear of change"
+  },
+  "cups_09_nine_of_cups.jpg": {
+    "name": "Nine of Cups",
+    "upright": "Contentment, wishes fulfilled",
+    "reversed": "Discontent, overindulgence"
+  },
+  "cups_10_ten_of_cups.jpg": {
+    "name": "Ten of Cups",
+    "upright": "Family harmony, lasting joy",
+    "reversed": "Domestic discord, broken promises"
+  },
+  "cups_11_page_of_cups.jpg": {
+    "name": "Page of Cups",
+    "upright": "Creative invitation, intuition",
+    "reversed": "Emotional immaturity, moodiness"
+  },
+  "cups_12_knight_of_cups.jpg": {
+    "name": "Knight of Cups",
+    "upright": "Romantic quest, idealism",
+    "reversed": "Unrealistic, fickle"
+  },
+  "cups_13_queen_of_cups.jpg": {
+    "name": "Queen of Cups",
+    "upright": "Compassion, emotional insight",
+    "reversed": "Manipulation, emotional coldness"
+  },
+  "cups_14_king_of_cups.jpg": {
+    "name": "King of Cups",
+    "upright": "Emotional balance, diplomacy",
+    "reversed": "Emotional volatility, control issues"
+  },
+  "major_00_the_fool.jpg": {
+    "name": "The Fool",
+    "upright": "New beginnings, spontaneity",
+    "reversed": "Recklessness, fear of unknown"
+  },
+  "major_01_the_magician.jpg": {
+    "name": "The Magician",
+    "upright": "Skill, manifestation",
+    "reversed": "Manipulation, lack of direction"
+  },
+  "major_02_the_high_priestess.jpg": {
+    "name": "The High Priestess",
+    "upright": "Intuition, hidden knowledge",
+    "reversed": "Secrets revealed, confusion"
+  },
+  "major_03_the_empress.jpg": {
+    "name": "The Empress",
+    "upright": "Abundance, nurturing",
+    "reversed": "Creative block, dependence"
+  },
+  "major_04_the_emperor.jpg": {
+    "name": "The Emperor",
+    "upright": "Authority, structure",
+    "reversed": "Domination, rigidity"
+  },
+  "major_05_the_hierophant.jpg": {
+    "name": "The Hierophant",
+    "upright": "Tradition, spiritual guidance",
+    "reversed": "Rebellion, unconventionality"
+  },
+  "major_06_the_lovers.jpg": {
+    "name": "The Lovers",
+    "upright": "Union, values alignment",
+    "reversed": "Conflict, misalignment"
+  },
+  "major_07_the_chariot.jpg": {
+    "name": "The Chariot",
+    "upright": "Willpower, victory",
+    "reversed": "Loss of control, aggression"
+  },
+  "major_08_strength.jpg": {
+    "name": "Strength",
+    "upright": "Inner courage, compassion",
+    "reversed": "Self-doubt, harshness"
+  },
+  "major_09_the_hermit.jpg": {
+    "name": "The Hermit",
+    "upright": "Soul-searching, guidance",
+    "reversed": "Isolation, lost direction"
+  },
+  "major_10_wheel_of_fortune.jpg": {
+    "name": "Wheel of Fortune",
+    "upright": "Change, cycles",
+    "reversed": "Bad luck, resistance"
+  },
+  "major_11_justice.jpg": {
+    "name": "Justice",
+    "upright": "Fairness, cause and effect",
+    "reversed": "Injustice, imbalance"
+  },
+  "major_12_the_hanged_man.jpg": {
+    "name": "The Hanged Man",
+    "upright": "Surrender, new perspective",
+    "reversed": "Stagnation, needless sacrifice"
+  },
+  "major_13_death.jpg": {
+    "name": "Death",
+    "upright": "Transformation, endings",
+    "reversed": "Resistance, fear of change"
+  },
+  "major_14_temperance.jpg": {
+    "name": "Temperance",
+    "upright": "Balance, moderation",
+    "reversed": "Excess, lack of harmony"
+  },
+  "major_15_the_devil.jpg": {
+    "name": "The Devil",
+    "upright": "Bondage, materialism",
+    "reversed": "Freedom, breaking chains"
+  },
+  "major_16_the_tower.jpg": {
+    "name": "The Tower",
+    "upright": "Sudden upheaval, revelation",
+    "reversed": "Avoided disaster, fear of change"
+  },
+  "major_17_the_star.jpg": {
+    "name": "The Star",
+    "upright": "Hope, inspiration",
+    "reversed": "Despair, lack of faith"
+  },
+  "major_18_the_moon.jpg": {
+    "name": "The Moon",
+    "upright": "Illusion, intuition",
+    "reversed": "Clarity, truth revealed"
+  },
+  "major_19_the_sun.jpg": {
+    "name": "The Sun",
+    "upright": "Joy, success",
+    "reversed": "Temporary setbacks, overconfidence"
+  },
+  "major_20_judgement.jpg": {
+    "name": "Judgement",
+    "upright": "Awakening, renewal",
+    "reversed": "Self\u2011doubt, missed opportunities"
+  },
+  "major_21_the_world.jpg": {
+    "name": "The World",
+    "upright": "Completion, fulfillment",
+    "reversed": "Incomplete cycle, delays"
+  },
+  "pent_01_ace_of_pentacles.jpg": {
+    "name": "Ace of Pentacles",
+    "upright": "New venture, prosperity",
+    "reversed": "Missed opportunity, lack"
+  },
+  "pent_02_two_of_pentacles.jpg": {
+    "name": "Two of Pentacles",
+    "upright": "Balance, adaptability",
+    "reversed": "Overwhelm, disarray"
+  },
+  "pent_03_three_of_pentacles.jpg": {
+    "name": "Three of Pentacles",
+    "upright": "Teamwork, skill development",
+    "reversed": "Lack of teamwork, poor planning"
+  },
+  "pent_04_four_of_pentacles.jpg": {
+    "name": "Four of Pentacles",
+    "upright": "Security, possession",
+    "reversed": "Greed, financial loss"
+  },
+  "pent_05_five_of_pentacles.jpg": {
+    "name": "Five of Pentacles",
+    "upright": "Hardship, feeling left out",
+    "reversed": "Recovery, assistance"
+  },
+  "pent_06_six_of_pentacles.jpg": {
+    "name": "Six of Pentacles",
+    "upright": "Generosity, balance",
+    "reversed": "Debt, selfishness"
+  },
+  "pent_07_seven_of_pentacles.jpg": {
+    "name": "Seven of Pentacles",
+    "upright": "Assessment, patience",
+    "reversed": "Frustration, lack of growth"
+  },
+  "pent_08_eight_of_pentacles.jpg": {
+    "name": "Eight of Pentacles",
+    "upright": "Apprenticeship, diligence",
+    "reversed": "Lack of focus, poor work ethic"
+  },
+  "pent_09_nine_of_pentacles.jpg": {
+    "name": "Nine of Pentacles",
+    "upright": "Self\u2011sufficiency, luxury",
+    "reversed": "Dependence, overindulgence"
+  },
+  "pent_10_ten_of_pentacles.jpg": {
+    "name": "Ten of Pentacles",
+    "upright": "Wealth, family legacy",
+    "reversed": "Financial loss, family discord"
+  },
+  "pent_11_page_of_pentacles.jpg": {
+    "name": "Page of Pentacles",
+    "upright": "Opportunity, study",
+    "reversed": "Lack of progress, procrastination"
+  },
+  "pent_12_knight_of_pentacles.jpg": {
+    "name": "Knight of Pentacles",
+    "upright": "Steady effort, responsibility",
+    "reversed": "Stubbornness, delays"
+  },
+  "pent_13_queen_of_pentacles.jpg": {
+    "name": "Queen of Pentacles",
+    "upright": "Nurturing, practical abundance",
+    "reversed": "Neglect, financial insecurity"
+  },
+  "pent_14_king_of_pentacles.jpg": {
+    "name": "King of Pentacles",
+    "upright": "Wealth, leadership",
+    "reversed": "Greed, poor management"
+  },
+  "swords_01_ace_of_swords.jpg": {
+    "name": "Ace of Swords",
+    "upright": "Mental clarity, breakthrough",
+    "reversed": "Confusion, misinformation"
+  },
+  "swords_02_two_of_swords.jpg": {
+    "name": "Two of Swords",
+    "upright": "Stalemate, indecision",
+    "reversed": "Decision made, clarity"
+  },
+  "swords_03_three_of_swords.jpg": {
+    "name": "Three of Swords",
+    "upright": "Heartbreak, sorrow",
+    "reversed": "Healing, forgiveness"
+  },
+  "swords_04_four_of_swords.jpg": {
+    "name": "Four of Swords",
+    "upright": "Rest, recovery",
+    "reversed": "Restlessness, burnout"
+  },
+  "swords_05_five_of_swords.jpg": {
+    "name": "Five of Swords",
+    "upright": "Conflict, tension",
+    "reversed": "Resolution, compromise"
+  },
+  "swords_06_six_of_swords.jpg": {
+    "name": "Six of Swords",
+    "upright": "Transition, moving forward",
+    "reversed": "Stagnation, unresolved issues"
+  },
+  "swords_07_seven_of_swords.jpg": {
+    "name": "Seven of Swords",
+    "upright": "Strategy, stealth",
+    "reversed": "Caught, deception exposed"
+  },
+  "swords_08_eight_of_swords.jpg": {
+    "name": "Eight of Swords",
+    "upright": "Restriction, self\u2011imposed limits",
+    "reversed": "Release, empowerment"
+  },
+  "swords_09_nine_of_swords.jpg": {
+    "name": "Nine of Swords",
+    "upright": "Anxiety, nightmares",
+    "reversed": "Hope, mental relief"
+  },
+  "swords_10_ten_of_swords.jpg": {
+    "name": "Ten of Swords",
+    "upright": "Ruin, painful ending",
+    "reversed": "Survival, recovery"
+  },
+  "swords_11_page_of_swords.jpg": {
+    "name": "Page of Swords",
+    "upright": "Curiosity, mental agility",
+    "reversed": "Gossip, scattered thoughts"
+  },
+  "swords_12_knight_of_swords.jpg": {
+    "name": "Knight of Swords",
+    "upright": "Action, swift change",
+    "reversed": "Impulsiveness, recklessness"
+  },
+  "swords_13_queen_of_swords.jpg": {
+    "name": "Queen of Swords",
+    "upright": "Clear thinking, independence",
+    "reversed": "Coldness, bitterness"
+  },
+  "swords_14_king_of_swords.jpg": {
+    "name": "King of Swords",
+    "upright": "Authority, intellectual power",
+    "reversed": "Manipulation, abuse of power"
+  },
+  "wands_01_ace_of_wands.jpg": {
+    "name": "Ace of Wands",
+    "upright": "Creative spark, inspiration",
+    "reversed": "Lack of direction, delays"
+  },
+  "wands_02_two_of_wands.jpg": {
+    "name": "Two of Wands",
+    "upright": "Planning, future outlook",
+    "reversed": "Indecision, fear of unknown"
+  },
+  "wands_03_three_of_wands.jpg": {
+    "name": "Three of Wands",
+    "upright": "Expansion, foresight",
+    "reversed": "Obstacles, limited vision"
+  },
+  "wands_04_four_of_wands.jpg": {
+    "name": "Four of Wands",
+    "upright": "Celebration, stability",
+    "reversed": "Instability, disrupted harmony"
+  },
+  "wands_05_five_of_wands.jpg": {
+    "name": "Five of Wands",
+    "upright": "Competition, conflict",
+    "reversed": "Resolution, cooperation"
+  },
+  "wands_06_six_of_wands.jpg": {
+    "name": "Six of Wands",
+    "upright": "Victory, public recognition",
+    "reversed": "Ego, false success"
+  },
+  "wands_07_seven_of_wands.jpg": {
+    "name": "Seven of Wands",
+    "upright": "Defence, perseverance",
+    "reversed": "Overwhelmed, giving up"
+  },
+  "wands_08_eight_of_wands.jpg": {
+    "name": "Eight of Wands",
+    "upright": "Speed, swift action",
+    "reversed": "Delays, miscommunication"
+  },
+  "wands_09_nine_of_wands.jpg": {
+    "name": "Nine of Wands",
+    "upright": "Resilience, caution",
+    "reversed": "Exhaustion, giving in"
+  },
+  "wands_10_ten_of_wands.jpg": {
+    "name": "Ten of Wands",
+    "upright": "Burden, responsibility",
+    "reversed": "Release, delegation"
+  },
+  "wands_11_page_of_wands.jpg": {
+    "name": "Page of Wands",
+    "upright": "Enthusiasm, discovery",
+    "reversed": "Lack of direction, impatience"
+  },
+  "wands_12_knight_of_wands.jpg": {
+    "name": "Knight of Wands",
+    "upright": "Adventure, impulsive energy",
+    "reversed": "Rashness, scattered focus"
+  },
+  "wands_13_queen_of_wands.jpg": {
+    "name": "Queen of Wands",
+    "upright": "Confidence, warmth",
+    "reversed": "Domineering, jealousy"
+  },
+  "wands_14_king_of_wands.jpg": {
+    "name": "King of Wands",
+    "upright": "Leadership, vision",
+    "reversed": "Arrogance, impulsive rule"
+  }
+};
+
+const POSITIONS = ["Past", "Present", "Future"];
+
+let currentCards = [];
+let flippedCount = 0;
+let isFirstReading = true;
+let lastVideoIndex = -1;
+
+// Preload videos
+VIDEOS.forEach(src => {
+  const v = document.createElement('video');
+  v.preload = 'auto';
+  v.src = src;
+});
+
+// Keyboard listener
+document.addEventListener('keydown', e => {
+  if (e.key === 'e' || e.key === 'E') {
+    if (document.getElementById('splash').style.display !== 'none') {
+      startReading();
+    }
+  }
+});
+
+function startReading() {
+  document.getElementById('splash').style.display = 'none';
+
+  if (isFirstReading) {
+    playVideo(() => {
+      showCards();
+    });
+  } else {
+    showCards();
+  }
+}
+
+function playVideo(callback) {
+  const layer = document.getElementById('video-layer');
+  const video = document.getElementById('deal-video');
+
+  // Pick random video (avoid repeating last one)
+  let idx;
+  do { idx = Math.floor(Math.random() * VIDEOS.length); } while (idx === lastVideoIndex && VIDEOS.length > 1);
+  lastVideoIndex = idx;
+
+  video.src = VIDEOS[idx];
+  layer.style.display = 'block';
+
+  video.play().catch(() => {
+    // Autoplay blocked — skip video
+    layer.style.display = 'none';
+    callback();
+  });
+
+  video.onended = () => {
+    // Capture last frame
+    const canvas = document.getElementById('frozen-canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    document.getElementById('frozen-bg').style.display = 'block';
+    layer.style.display = 'none';
+
+    setTimeout(callback, 400);
+  };
+}
+
+function drawCards() {
+  const keys = Object.keys(DECK);
+  const drawn = [];
+  while (drawn.length < 3) {
+    const pick = keys[Math.floor(Math.random() * keys.length)];
+    if (!drawn.find(d => d.file === pick)) {
+      const isReversed = Math.random() < 0.35; // 35% chance reversed
+      drawn.push({ file: pick, reversed: isReversed });
+    }
+  }
+  return drawn;
+}
+
+function showCards() {
+  currentCards = drawCards();
+  flippedCount = 0;
+
+  // Reset cards
+  for (let i = 0; i < 3; i++) {
+    const inner = document.querySelector(`#slot-${i} .card-inner`);
+    inner.classList.remove('flipped', 'reversed-card');
+    document.getElementById(`card-img-${i}`).src = CARD_BASE + currentCards[i].file;
+    if (currentCards[i].reversed) {
+      inner.classList.add('reversed-card');
+    }
+    document.getElementById(`reading-${i}`).className = 'card-reading';
+    document.getElementById(`reading-${i}`).innerHTML = '';
+  }
+
+  document.getElementById('flip-hint').classList.remove('hidden');
+  document.getElementById('action-buttons').classList.remove('visible');
+  document.getElementById('reading-screen').style.display = 'flex';
+
+  // Stagger card appearance
+  document.querySelectorAll('.card-slot').forEach((slot, i) => {
+    slot.style.opacity = '0';
+    slot.style.transform = 'translateY(30px)';
+    setTimeout(() => {
+      slot.style.transition = 'all 0.5s ease-out';
+      slot.style.opacity = '1';
+      slot.style.transform = 'translateY(0)';
+    }, 200 + i * 300);
+  });
+}
+
+function flipCard(index) {
+  const inner = document.querySelector(`#slot-${index} .card-inner`);
+  if (inner.classList.contains('flipped')) return;
+
+  inner.classList.add('flipped');
+  flippedCount++;
+
+  // Show reading after flip
+  setTimeout(() => {
+    const card = currentCards[index];
+    const data = DECK[card.file];
+    const pos = POSITIONS[index];
+    const orientation = card.reversed ? 'reversed' : 'upright';
+    const meaning = card.reversed ? data.reversed : data.upright;
+    const orientLabel = card.reversed ? 'Reversed' : 'Upright';
+
+    const el = document.getElementById(`reading-${index}`);
+    el.innerHTML = `
+      <div class="card-position">${pos}</div>
+      <div class="card-name">${data.name}</div>
+      <span class="orientation-tag ${orientation}">${orientLabel}</span>
+      <div class="card-meaning">${meaning}</div>
+    `;
+    el.classList.add('visible');
+
+    if (flippedCount === 3) {
+      document.getElementById('flip-hint').classList.add('hidden');
+      setTimeout(() => {
+        document.getElementById('action-buttons').classList.add('visible');
+      }, 600);
+    }
+  }, 500);
+}
+
+function redraw() {
+  isFirstReading = false;
+  showCards();
+}
+
+function backToStart() {
+  isFirstReading = true;
+  document.getElementById('reading-screen').style.display = 'none';
+  document.getElementById('frozen-bg').style.display = 'none';
+  document.getElementById('splash').style.display = '';
+}
+</script>
+</body>
+</html>
