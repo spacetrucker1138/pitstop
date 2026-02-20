@@ -112,8 +112,10 @@ body {
   display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2vh 2vw;
+  justify-content: flex-start;
+  padding: 3vh 2vw 4vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .spread-label {
@@ -870,7 +872,7 @@ function playVideo(callback) {
   layer.style.display = 'block';
 
   video.play().catch(() => {
-    // Autoplay blocked â skip video
+    // Autoplay blocked Ã¢ÂÂ skip video
     layer.style.display = 'none';
     callback();
   });
@@ -965,10 +967,15 @@ function flipCard(index) {
       document.getElementById('flip-hint').classList.add('hidden');
       setTimeout(() => {
         generateComboReading();
-        setTimeout(() => {
-          document.getElementById('action-buttons').classList.add('visible');
-        }, 400);
       }, 600);
+      setTimeout(() => {
+        document.getElementById('action-buttons').classList.add('visible');
+        // Scroll to bottom so buttons are visible
+        document.getElementById('reading-screen').scrollTo({
+          top: document.getElementById('reading-screen').scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 1200);
     }
   }, 500);
 }
@@ -987,13 +994,13 @@ function backToStart() {
 
 // === COMBINATION READING LOGIC ===
 const COMBO_TEMPLATES = [
-  "Your past of {past} flows into a present defined by {present}. The future whispers of {future} — the bones have spoken.",
+  "Your past of {past} flows into a present defined by {present}. The future whispers of {future} â the bones have spoken.",
   "From {past} in your past, through {present} shaping your now, the cards reveal {future} awaiting you. The dead see all.",
   "The spirits show {past} behind you, {present} surrounding you now, and {future} on the horizon. Heed the Trash Queen's warning.",
   "{past} haunts your steps, while {present} grips your present moment. But ahead? {future}. The grave gives no second readings.",
   "What was: {past}. What is: {present}. What will be: {future}. The skull cards never lie.",
-  "The bones rattle with the echo of {past}. Your present breathes {present}. The future screams {future}. Take it or leave it — the dead don't care.",
-  "From the shadows of {past}, through the fire of {present}, into the unknown of {future}. The Trash Queen has spoken — now live with it.",
+  "The bones rattle with the echo of {past}. Your present breathes {present}. The future screams {future}. Take it or leave it â the dead don't care.",
+  "From the shadows of {past}, through the fire of {present}, into the unknown of {future}. The Trash Queen has spoken â now live with it.",
   "Your journey: {past} shaped you, {present} tests you, {future} awaits you. The cards are never wrong. The dead have all the time in the world to be right."
 ];
 
@@ -1013,7 +1020,7 @@ function generateComboReading() {
 
   const el = document.getElementById('combo-reading');
   el.innerHTML = `
-    <div class="combo-title">☠ THE TRASH QUEEN SPEAKS ☠</div>
+    <div class="combo-title">â  THE TRASH QUEEN SPEAKS â </div>
     <div class="combo-text">${summary}</div>
   `;
   el.classList.add('visible');
