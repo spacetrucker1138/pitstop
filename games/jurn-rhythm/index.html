@@ -128,6 +128,7 @@
   #hit-feedback.great { color: #0f0; text-shadow: 0 0 20px #0f0; }
   #hit-feedback.good { color: #ff0; text-shadow: 0 0 15px #ff0; }
   #hit-feedback.miss { color: #f00; text-shadow: 0 0 15px #f00; }
+  #hit-feedback.bonus\! { color: #ffa500; text-shadow: 0 0 15px #ffa500; }
 
   /* Rock meter */
   #rock-meter-container {
@@ -385,16 +386,17 @@
     <h2>RHYTHM ATTACK</h2>
     <div class="song-title">&#9835; GET READY FOR GET HAPPY &#9835;</div>
     <div class="instructions">
-      <span>S</span> Drums &nbsp;|&nbsp;
-      <span>D</span> Guitar &nbsp;|&nbsp;
-      <span>F</span> Vocals<br>
-      <span style="color:#888;font-size:8px">(Beginner: 3 keys &nbsp;•&nbsp; Easy/Hard: add </span><span style="font-size:8px">A</span><span style="color:#888;font-size:8px"> Bass)</span><br><br>
+      <span>A</span> Bass (Taz) &nbsp;|&nbsp;
+      <span>S</span> Drums (Bonecrush) &nbsp;|&nbsp;
+      <span>D</span> Guitar (Riff-Rot) &nbsp;|&nbsp;
+      <span>F</span> Vocals (Vox)<br>
+      <span style="color:#ffa500;font-size:8px">Beginner: A lane is FREE — miss it, no penalty</span><br><br>
       Hit the keys when notes reach the strike zone
     </div>
     <div class="difficulty-select">
       <div>
         <button class="diff-btn diff-beginner" id="btn-beginner">BEGINNER</button>
-        <div class="diff-desc">3 keys · S D F</div>
+        <div class="diff-desc">A lane = free miss</div>
       </div>
       <div>
         <button class="diff-btn diff-easy" id="btn-easy">EASY</button>
@@ -775,13 +777,12 @@ class JURNRhythmGame {
     this.W = this.canvas.width;
     this.H = this.canvas.height;
 
-    const activeLanes = this.activeLaneCount || CONFIG.LANE_COUNT;
-    const totalLaneWidth = Math.min(activeLanes === 3 ? 300 : 400, this.W * (activeLanes === 3 ? 0.35 : 0.45));
-    const laneWidth = totalLaneWidth / activeLanes;
+    const totalLaneWidth = Math.min(400, this.W * 0.45);
+    const laneWidth = totalLaneWidth / CONFIG.LANE_COUNT;
     const startX = (this.W - totalLaneWidth) / 2;
 
     this.lanes = [];
-    for (let i = 0; i < activeLanes; i++) {
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       this.lanes.push({
         x: startX + laneWidth * i + laneWidth / 2,
         width: laneWidth,
@@ -816,8 +817,7 @@ class JURNRhythmGame {
 
     window.addEventListener('keydown', (e) => {
       if (this.state !== 'playing') return;
-      const keys = this.activeLaneKeys || CONFIG.LANE_KEYS;
-      const lane = keys.indexOf(e.key.toLowerCase());
+      const lane = CONFIG.LANE_KEYS.indexOf(e.key.toLowerCase());
       if (lane === -1) return;
       e.preventDefault();
       if (!this.keysDown[lane]) {
@@ -828,8 +828,7 @@ class JURNRhythmGame {
     });
 
     window.addEventListener('keyup', (e) => {
-      const keys = this.activeLaneKeys || CONFIG.LANE_KEYS;
-      const lane = keys.indexOf(e.key.toLowerCase());
+      const lane = CONFIG.LANE_KEYS.indexOf(e.key.toLowerCase());
       if (lane === -1) return;
       this.keysDown[lane] = false;
     });
@@ -854,21 +853,15 @@ class JURNRhythmGame {
     this.activeNotes = [];
     this.nextNoteIndex = 0;
 
-    // Configure lane count for difficulty
-    if (difficulty === 'beginner') {
-      this.activeLaneCount = 3;
-      this.activeLaneKeys = ['s', 'd', 'f'];
-      this.activeLaneNames = ['CRUSH', 'RIFF', 'VOX'];
-      this.activeLaneColors = ['#0ff', '#0f0', '#ff0'];
-      this.activeLaneGlow = ['rgba(0,255,255,', 'rgba(0,255,0,', 'rgba(255,255,0,'];
-    } else {
-      this.activeLaneCount = 4;
-      this.activeLaneKeys = CONFIG.LANE_KEYS;
-      this.activeLaneNames = CONFIG.LANE_NAMES;
-      this.activeLaneColors = CONFIG.LANE_COLORS;
-      this.activeLaneGlow = CONFIG.LANE_GLOW;
-    }
-    this.resize(); // Recalculate lane geometry for new count
+    // Configure difficulty modifiers
+    // Beginner: all 4 lanes visible, but lane 0 (A/Bass) is a bonus lane — misses don't count
+    this.bonusLane = (difficulty === 'beginner') ? 0 : -1;
+    this.activeLaneCount = 4;
+    this.activeLaneKeys = CONFIG.LANE_KEYS;
+    this.activeLaneNames = CONFIG.LANE_NAMES;
+    this.activeLaneColors = CONFIG.LANE_COLORS;
+    this.activeLaneGlow = CONFIG.LANE_GLOW;
+    this.resize();
 
     // Reset state
     this.score = 0;
@@ -960,19 +953,26 @@ class JURNRhythmGame {
         rating = 'GOOD'; points = CONFIG.GOOD_SCORE; this.stats.good++;
       }
 
-      this.combo++;
-      if (this.combo > this.maxCombo) this.maxCombo = this.combo;
-      this.updateMultiplier();
-      this.score += points * this.multiplier;
+      const isBonus = (lane === this.bonusLane && this.bonusLane >= 0);
+      if (!isBonus) {
+        this.combo++;
+        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+        this.updateMultiplier();
+      }
+      this.score += isBonus ? Math.floor(points * 0.5) : points * this.multiplier;
       this.rockMeter = Math.min(CONFIG.ROCK_METER_MAX, this.rockMeter + CONFIG.ROCK_HIT_GAIN);
 
-      this.showHitFeedback(rating, lane);
+      this.showHitFeedback(isBonus ? 'BONUS!' : rating, lane);
       this.spawnHitParticles(lane, rating);
     }
   }
 
   onMiss(note) {
     note.missed = true;
+    // Bonus lane (beginner) — note fades out, no penalty, no feedback
+    if (note.lane === this.bonusLane && this.bonusLane >= 0) {
+      return;
+    }
     this.stats.miss++;
     this.combo = 0;
     this.multiplier = 1;
@@ -1013,7 +1013,9 @@ class JURNRhythmGame {
   showHitFeedback(rating, lane) {
     const fb = document.getElementById('hit-feedback');
     fb.textContent = rating;
-    fb.className = rating.toLowerCase();
+    fb.className = rating === 'BONUS!' ? 'good' : rating.toLowerCase();
+    if (rating === 'BONUS!') fb.style.color = '#ffa500';
+    else fb.style.color = '';
     fb.style.opacity = '1';
     fb.style.left = this.lanes[lane].x + 'px';
     fb.style.top = (this.strikeY - 60) + 'px';
@@ -1106,7 +1108,7 @@ class JURNRhythmGame {
     });
 
     // Key flash + miss flash decay
-    for (let i = 0; i < this.lanes.length; i++) {
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       if (this.keyFlash[i] !== undefined) this.keyFlash[i] *= 0.85;
       if (this.missFlash[i] !== undefined) this.missFlash[i] *= 0.80;
     }
@@ -1152,7 +1154,7 @@ class JURNRhythmGame {
     }
 
     // Lane backgrounds
-    for (let i = 0; i < this.lanes.length; i++) {
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       const lane = this.lanes[i];
 
       // Alternating lane shade
@@ -1178,7 +1180,7 @@ class JURNRhythmGame {
     }
 
     // Miss flash — red lane overlay
-    for (let i = 0; i < this.lanes.length; i++) {
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       if (this.missFlash[i] > 0.05) {
         const lane = this.lanes[i];
         const mgrad = ctx.createLinearGradient(lane.left, this.strikeY, lane.left, this.strikeY - 300);
@@ -1214,7 +1216,7 @@ class JURNRhythmGame {
     ctx.fillRect(this.laneLeft, this.strikeY - 3, this.laneRight - this.laneLeft, 6);
 
     // Receptors
-    for (let i = 0; i < this.lanes.length; i++) {
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       const lane = this.lanes[i];
       const pressed = this.keysDown[i];
 
@@ -1239,6 +1241,12 @@ class JURNRhythmGame {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = pressed ? (this.activeLaneColors || CONFIG.LANE_COLORS)[i] : 'rgba(255,255,255,0.25)';
       ctx.fillText(((this.activeLaneKeys || CONFIG.LANE_KEYS)[i] || '').toUpperCase(), lane.x, this.strikeY);
+      // Bonus lane badge
+      if (i === this.bonusLane && this.bonusLane >= 0) {
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillStyle = 'rgba(255,165,0,0.7)';
+        ctx.fillText('FREE', lane.x, this.strikeY + 18);
+      }
     }
 
     // Notes
@@ -1311,7 +1319,7 @@ class JURNRhythmGame {
     ctx.font = '11px "Permanent Marker"';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    for (let i = 0; i < this.lanes.length; i++) {
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       ctx.fillStyle = (this.activeLaneColors || CONFIG.LANE_COLORS)[i];
       ctx.globalAlpha = 0.4;
       ctx.fillText((this.activeLaneNames || CONFIG.LANE_NAMES)[i], this.lanes[i].x, this.strikeY + 32);
