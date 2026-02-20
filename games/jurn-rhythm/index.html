@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JURN - Get Ready for Get Happy</title>
+<title>JURN - Rhythm Attack</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Press+Start+2P&display=swap');
 
@@ -88,6 +88,15 @@
     text-shadow: 0 0 10px #ff0;
   }
 
+  #difficulty-label {
+    position: absolute;
+    top: 20px; left: 50px;
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
   /* Song progress bar */
   #progress-bar-container {
     position: absolute;
@@ -112,7 +121,6 @@
     transform: translate(-50%, -50%);
     font-size: 24px;
     opacity: 0;
-    transition: opacity 0.1s;
     pointer-events: none;
     z-index: 10;
   }
@@ -143,29 +151,6 @@
     border-radius: 0 0 10px 10px;
     transition: height 0.3s ease;
   }
-  #rock-meter-label {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%) rotate(-90deg);
-    transform-origin: left center;
-    font-size: 8px;
-    color: #666;
-    letter-spacing: 3px;
-    white-space: nowrap;
-  }
-
-  /* Lane labels at bottom */
-  .lane-label {
-    position: absolute;
-    bottom: 45px;
-    font-size: 14px;
-    font-family: 'Permanent Marker', cursive;
-    letter-spacing: 1px;
-    opacity: 0.6;
-    text-align: center;
-    width: 80px;
-  }
 
   /* Start screen */
   #start-screen {
@@ -178,7 +163,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 15px;
   }
   #start-screen h1 {
     font-family: 'Permanent Marker', cursive;
@@ -197,33 +182,55 @@
     font-family: 'Press Start 2P', monospace;
     font-size: 12px;
     color: #ff0;
-    margin-top: 20px;
+    margin-top: 10px;
   }
   #start-screen .instructions {
     font-size: 10px;
     color: #888;
     line-height: 2;
     text-align: center;
-    margin-top: 30px;
+    margin-top: 15px;
   }
   #start-screen .instructions span { color: #0ff; }
-  #start-screen .start-btn {
-    margin-top: 30px;
+
+  .difficulty-select {
+    display: flex;
+    gap: 20px;
+    margin-top: 25px;
+  }
+  .diff-btn {
     font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
-    color: #000;
-    background: #0ff;
-    border: none;
-    padding: 15px 40px;
+    font-size: 12px;
+    border: 2px solid;
+    padding: 15px 30px;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 2px;
-    animation: pulse 1.5s ease-in-out infinite;
+    background: transparent;
+    transition: all 0.2s;
     pointer-events: auto;
   }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 20px #0ff; }
-    50% { box-shadow: 0 0 40px #0ff, 0 0 60px #0ff; }
+  .diff-btn:hover {
+    transform: scale(1.05);
+  }
+  .diff-easy {
+    color: #0f0;
+    border-color: #0f0;
+    text-shadow: 0 0 10px #0f0;
+  }
+  .diff-easy:hover { background: rgba(0,255,0,0.15); box-shadow: 0 0 30px rgba(0,255,0,0.3); }
+  .diff-hard {
+    color: #f00;
+    border-color: #f00;
+    text-shadow: 0 0 10px #f00;
+  }
+  .diff-hard:hover { background: rgba(255,0,0,0.15); box-shadow: 0 0 30px rgba(255,0,0,0.3); }
+
+  .diff-desc {
+    font-size: 8px;
+    color: #666;
+    margin-top: 5px;
+    text-align: center;
   }
 
   /* Results screen */
@@ -237,7 +244,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 15px;
+    gap: 12px;
   }
   #results-screen h1 {
     font-family: 'Permanent Marker', cursive;
@@ -246,7 +253,7 @@
     text-shadow: 0 0 30px #0ff;
   }
   #results-screen .stat {
-    font-size: 12px;
+    font-size: 11px;
     color: #ccc;
     line-height: 2.5;
   }
@@ -254,7 +261,7 @@
   #results-screen .grade {
     font-size: 72px;
     font-family: 'Permanent Marker', cursive;
-    margin: 10px 0;
+    margin: 5px 0;
   }
   .grade-s { color: #0ff; text-shadow: 0 0 40px #0ff, 0 0 80px #0ff; }
   .grade-a { color: #0f0; text-shadow: 0 0 30px #0f0; }
@@ -262,17 +269,20 @@
   .grade-c { color: #f80; text-shadow: 0 0 20px #f80; }
   .grade-f { color: #f00; text-shadow: 0 0 20px #f00; }
 
-  /* Key press flash */
-  .key-flash {
-    position: absolute;
-    bottom: 0;
-    height: 100%;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 1;
+  #results-screen .start-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    color: #000;
+    background: #0ff;
+    border: none;
+    padding: 12px 30px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    margin-top: 15px;
+    pointer-events: auto;
   }
 
-  /* Particle container */
+  /* Particles container */
   #particles {
     position: absolute;
     top: 0; left: 0;
@@ -280,18 +290,63 @@
     z-index: 4;
     pointer-events: none;
   }
+
+  /* Loading overlay */
+  #loading-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 200;
+    background: #000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  #loading-overlay .loading-text {
+    font-size: 14px;
+    color: #0ff;
+    animation: loadPulse 1s ease-in-out infinite;
+  }
+  @keyframes loadPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  #loading-bar-outer {
+    width: 300px; height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+  }
+  #loading-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, #0ff, #f0f);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* Countdown */
+  #countdown {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Permanent Marker', cursive;
+    font-size: 120px;
+    color: #0ff;
+    text-shadow: 0 0 60px #0ff;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
 <div id="game-container">
-  <!-- Video backdrop -->
   <video id="video-backdrop" autoplay loop muted playsinline></video>
   <div id="video-overlay"></div>
-
-  <!-- Game canvas -->
   <canvas id="game-canvas"></canvas>
 
-  <!-- HUD -->
   <div id="hud">
     <div id="progress-bar-container"><div id="progress-bar"></div></div>
     <div id="score-display">
@@ -303,28 +358,42 @@
       <div class="combo-label">COMBO</div>
     </div>
     <div id="multiplier-display" id="multiplier-value"></div>
-    <div id="rock-meter-container">
-      <div id="rock-meter"></div>
-    </div>
+    <div id="difficulty-label"></div>
+    <div id="rock-meter-container"><div id="rock-meter"></div></div>
     <div id="hit-feedback"></div>
   </div>
 
-  <!-- Particles -->
+  <div id="countdown"></div>
   <div id="particles"></div>
+
+  <!-- Loading screen -->
+  <div id="loading-overlay">
+    <div class="loading-text">LOADING TRACK...</div>
+    <div id="loading-bar-outer"><div id="loading-bar-inner"></div></div>
+  </div>
 
   <!-- Start screen -->
   <div id="start-screen">
     <h1>JURN</h1>
     <h2>RHYTHM ATTACK</h2>
-    <div class="song-title">♫ GET READY FOR GET HAPPY ♫</div>
+    <div class="song-title">&#9835; GET READY FOR GET HAPPY &#9835;</div>
     <div class="instructions">
-      <span>A</span> Bass (Taz) &nbsp; | &nbsp;
-      <span>S</span> Drums (Bonecrush) &nbsp; | &nbsp;
-      <span>D</span> Guitar (Riff-Rot) &nbsp; | &nbsp;
+      <span>A</span> Bass (Taz) &nbsp;|&nbsp;
+      <span>S</span> Drums (Bonecrush) &nbsp;|&nbsp;
+      <span>D</span> Guitar (Riff-Rot) &nbsp;|&nbsp;
       <span>F</span> Vocals (Vox)<br><br>
       Hit the keys when notes reach the strike zone
     </div>
-    <button class="start-btn" id="start-btn">PRESS TO ROCK</button>
+    <div class="difficulty-select">
+      <div>
+        <button class="diff-btn diff-easy" id="btn-easy">EASY</button>
+        <div class="diff-desc">Chill vibes</div>
+      </div>
+      <div>
+        <button class="diff-btn diff-hard" id="btn-hard">HARD</button>
+        <div class="diff-desc">Mosh pit</div>
+      </div>
+    </div>
   </div>
 
   <!-- Results screen -->
@@ -338,32 +407,34 @@
     <div class="stat">GOOD: <span class="val" id="result-good"></span></div>
     <div class="stat">MISS: <span class="val" id="result-miss"></span></div>
     <div class="stat">ACCURACY: <span class="val" id="result-accuracy"></span></div>
-    <button class="start-btn" id="restart-btn" style="margin-top:20px">PLAY AGAIN</button>
+    <button class="start-btn" id="restart-btn" style="margin-top:15px">PLAY AGAIN</button>
   </div>
 </div>
 
 <script>
-// ===== CONFIGURATION =====
+// ============================================================
+// CONFIGURATION
+// ============================================================
 const CONFIG = {
   BPM: 155,
-  SONG_DURATION: 180, // seconds
-  SCROLL_SPEED: 6, // pixels per frame (adjustable)
+  SONG_DURATION: 180,
+  SCROLL_SPEED: 6,
   LANE_COUNT: 4,
   LANE_KEYS: ['a', 's', 'd', 'f'],
-  LANE_COLORS: ['#f0f', '#0ff', '#0f0', '#ff0'], // Bass, Drums, Guitar, Vocals
-  LANE_GLOW: ['rgba(255,0,255,0.3)', 'rgba(0,255,255,0.3)', 'rgba(0,255,0,0.3)', 'rgba(255,255,0,0.3)'],
+  LANE_COLORS: ['#f0f', '#0ff', '#0f0', '#ff0'],
+  LANE_GLOW: ['rgba(255,0,255,', 'rgba(0,255,255,', 'rgba(0,255,0,', 'rgba(255,255,0,'],
   LANE_NAMES: ['TAZ', 'CRUSH', 'RIFF', 'VOX'],
-  HIT_Y: 0.88, // strike zone Y position (% of canvas height)
+  HIT_Y: 0.88,
   NOTE_RADIUS: 22,
   // Timing windows (ms)
-  PERFECT_WINDOW: 45,
-  GREAT_WINDOW: 90,
-  GOOD_WINDOW: 140,
+  PERFECT_WINDOW: 50,
+  GREAT_WINDOW: 100,
+  GOOD_WINDOW: 150,
   // Scoring
   PERFECT_SCORE: 300,
   GREAT_SCORE: 200,
   GOOD_SCORE: 100,
-  // Multiplier thresholds
+  // Multiplier
   MULT_THRESHOLDS: [10, 30, 60, 100],
   MAX_MULTIPLIER: 5,
   // Rock meter
@@ -371,184 +442,227 @@ const CONFIG = {
   ROCK_METER_START: 50,
   ROCK_HIT_GAIN: 2,
   ROCK_MISS_PENALTY: 8,
+  // Audio
+  AUDIO_URL: 'audio/combined.mp3',
 };
 
-// ===== SONG STRUCTURE =====
-// Song structure for "Get Ready for Get Happy" at 155 BPM, F Major
-const SONG_STRUCTURE = {
+// ============================================================
+// SONG STRUCTURE @ 155 BPM
+// ============================================================
+const SONG = {
   bpm: 155,
-  beatsPerMeasure: 4,
-  msPerBeat: 60000 / 155, // ~387ms
+  msPerBeat: 60000 / 155,
   sections: [
-    { name: 'intro',       startMs: 0,     endMs: 13000,  type: 'instrumental' },
-    { name: 'verse1',      startMs: 13000, endMs: 34000,  type: 'verse' },
-    { name: 'chorus1',     startMs: 34000, endMs: 58000,  type: 'chorus' },
-    { name: 'postChorus1', startMs: 58000, endMs: 83000,  type: 'post_chorus' },
-    { name: 'break',       startMs: 83000, endMs: 91000,  type: 'instrumental' },
-    { name: 'verse2',      startMs: 91000, endMs: 116000, type: 'verse' },
-    { name: 'chorus2',     startMs: 116000,endMs: 130000, type: 'chorus' },
-    { name: 'postChorus2', startMs: 130000,endMs: 150000, type: 'post_chorus' },
-    { name: 'outro',       startMs: 150000,endMs: 180000, type: 'outro' },
+    { name: 'intro',       startMs: 0,      endMs: 13000,  type: 'instrumental' },
+    { name: 'verse1',      startMs: 13000,  endMs: 34000,  type: 'verse' },
+    { name: 'chorus1',     startMs: 34000,  endMs: 58000,  type: 'chorus' },
+    { name: 'postChorus1', startMs: 58000,  endMs: 83000,  type: 'post_chorus' },
+    { name: 'break',       startMs: 83000,  endMs: 91000,  type: 'instrumental' },
+    { name: 'verse2',      startMs: 91000,  endMs: 116000, type: 'verse' },
+    { name: 'chorus2',     startMs: 116000, endMs: 130000, type: 'chorus' },
+    { name: 'postChorus2', startMs: 130000, endMs: 150000, type: 'post_chorus' },
+    { name: 'outro',       startMs: 150000, endMs: 180000, type: 'outro' },
   ]
 };
 
-// ===== BEATMAP GENERATOR =====
-// Generates a procedural beatmap based on song structure and BPM.
-// This creates a playable chart — later Bobby can replace with hand-charted beatmap.
-function generateBeatmap() {
+// ============================================================
+// BEATMAP GENERATOR — Two difficulty levels
+// ============================================================
+function generateBeatmap(difficulty) {
   const notes = [];
-  const msPerBeat = SONG_STRUCTURE.msPerBeat;
-  const msPerHalf = msPerBeat / 2;
-  const msPerQuarter = msPerBeat / 4;
+  const b = SONG.msPerBeat;
+  const h = b / 2;
 
-  for (const section of SONG_STRUCTURE.sections) {
-    let t = section.startMs;
-    const end = section.endMs;
+  for (const sec of SONG.sections) {
+    let t = sec.startMs;
+    const end = sec.endMs;
 
-    switch (section.type) {
-      case 'instrumental':
-        // Intro/break: drums + guitar on beat, bass on offbeats
-        while (t < end) {
-          // Beat 1: drums + guitar
-          notes.push({ time: t, lane: 1 }); // drums
-          notes.push({ time: t, lane: 2 }); // guitar
-          // Beat 1.5: bass
-          notes.push({ time: t + msPerHalf, lane: 0 }); // bass
-          // Beat 2: drums
-          notes.push({ time: t + msPerBeat, lane: 1 });
-          // Beat 2.5: guitar
-          notes.push({ time: t + msPerBeat + msPerHalf, lane: 2 });
-          // Beat 3: drums + bass
-          notes.push({ time: t + msPerBeat * 2, lane: 1 });
-          notes.push({ time: t + msPerBeat * 2, lane: 0 });
-          // Beat 4: guitar
-          notes.push({ time: t + msPerBeat * 3, lane: 2 });
-          // Beat 4.5: drums
-          notes.push({ time: t + msPerBeat * 3 + msPerHalf, lane: 1 });
-          t += msPerBeat * 4; // advance one measure
-        }
-        break;
-
-      case 'verse':
-        // Verse: vocals lead, sparse guitar/bass support, steady drums
-        while (t < end) {
-          // Vocals on beats 1 and 3
-          notes.push({ time: t, lane: 3 }); // vocals
-          notes.push({ time: t + msPerBeat * 2, lane: 3 }); // vocals
-          // Drums steady on every beat
-          notes.push({ time: t, lane: 1 });
-          notes.push({ time: t + msPerBeat, lane: 1 });
-          notes.push({ time: t + msPerBeat * 2, lane: 1 });
-          notes.push({ time: t + msPerBeat * 3, lane: 1 });
-          // Bass on beat 1 and 3
-          notes.push({ time: t + msPerHalf, lane: 0 });
-          notes.push({ time: t + msPerBeat * 2 + msPerHalf, lane: 0 });
-          // Guitar accent on beat 2 and 4
-          notes.push({ time: t + msPerBeat, lane: 2 });
-          notes.push({ time: t + msPerBeat * 3, lane: 2 });
-          t += msPerBeat * 4;
-        }
-        break;
-
-      case 'chorus':
-        // Chorus: all lanes active, dense patterns, power chords
-        while (t < end) {
-          // All four on beat 1
-          notes.push({ time: t, lane: 0 });
-          notes.push({ time: t, lane: 1 });
-          notes.push({ time: t, lane: 2 });
-          notes.push({ time: t, lane: 3 });
-          // Guitar + drums eighth notes
-          notes.push({ time: t + msPerHalf, lane: 1 });
-          notes.push({ time: t + msPerHalf, lane: 2 });
-          // Beat 2: vocals + bass
-          notes.push({ time: t + msPerBeat, lane: 3 });
-          notes.push({ time: t + msPerBeat, lane: 0 });
-          notes.push({ time: t + msPerBeat, lane: 1 });
-          // Offbeat guitar
-          notes.push({ time: t + msPerBeat + msPerHalf, lane: 2 });
-          // Beat 3: power hit
-          notes.push({ time: t + msPerBeat * 2, lane: 0 });
-          notes.push({ time: t + msPerBeat * 2, lane: 1 });
-          notes.push({ time: t + msPerBeat * 2, lane: 2 });
-          // Vocal flourish
-          notes.push({ time: t + msPerBeat * 2 + msPerHalf, lane: 3 });
-          // Beat 4: drums + guitar rapid
-          notes.push({ time: t + msPerBeat * 3, lane: 1 });
-          notes.push({ time: t + msPerBeat * 3, lane: 2 });
-          notes.push({ time: t + msPerBeat * 3 + msPerHalf, lane: 0 });
-          notes.push({ time: t + msPerBeat * 3 + msPerHalf, lane: 1 });
-          t += msPerBeat * 4;
-        }
-        break;
-
-      case 'post_chorus':
-        // Post-chorus: driving energy, syncopated
-        while (t < end) {
-          // Syncopated bass and guitar
-          notes.push({ time: t, lane: 0 });
-          notes.push({ time: t, lane: 2 });
-          notes.push({ time: t + msPerHalf, lane: 1 });
-          notes.push({ time: t + msPerBeat, lane: 3 });
-          notes.push({ time: t + msPerBeat, lane: 1 });
-          notes.push({ time: t + msPerBeat + msPerHalf, lane: 0 });
-          notes.push({ time: t + msPerBeat + msPerHalf, lane: 2 });
-          notes.push({ time: t + msPerBeat * 2, lane: 1 });
-          notes.push({ time: t + msPerBeat * 2 + msPerHalf, lane: 3 });
-          notes.push({ time: t + msPerBeat * 3, lane: 0 });
-          notes.push({ time: t + msPerBeat * 3, lane: 1 });
-          notes.push({ time: t + msPerBeat * 3, lane: 2 });
-          notes.push({ time: t + msPerBeat * 3 + msPerHalf, lane: 1 });
-          t += msPerBeat * 4;
-        }
-        break;
-
-      case 'outro':
-        // Outro: building intensity, then final hit
-        while (t < end - 3000) {
-          // Dense all-lane patterns
-          notes.push({ time: t, lane: 0 });
-          notes.push({ time: t, lane: 1 });
-          notes.push({ time: t + msPerHalf, lane: 2 });
-          notes.push({ time: t + msPerHalf, lane: 3 });
-          notes.push({ time: t + msPerBeat, lane: 0 });
-          notes.push({ time: t + msPerBeat, lane: 1 });
-          notes.push({ time: t + msPerBeat + msPerHalf, lane: 2 });
-          notes.push({ time: t + msPerBeat + msPerHalf, lane: 3 });
-          notes.push({ time: t + msPerBeat * 2, lane: 0 });
-          notes.push({ time: t + msPerBeat * 2, lane: 1 });
-          notes.push({ time: t + msPerBeat * 2, lane: 2 });
-          notes.push({ time: t + msPerBeat * 2, lane: 3 });
-          notes.push({ time: t + msPerBeat * 3, lane: 1 });
-          notes.push({ time: t + msPerBeat * 3 + msPerHalf, lane: 0 });
-          notes.push({ time: t + msPerBeat * 3 + msPerHalf, lane: 2 });
-          t += msPerBeat * 4;
-        }
-        // Final chord — all lanes
-        notes.push({ time: end - 2000, lane: 0 });
-        notes.push({ time: end - 2000, lane: 1 });
-        notes.push({ time: end - 2000, lane: 2 });
-        notes.push({ time: end - 2000, lane: 3 });
-        break;
+    if (difficulty === 'easy') {
+      // ---- EASY: ~40-50% fewer notes, mostly single hits on strong beats ----
+      switch (sec.type) {
+        case 'instrumental':
+          while (t < end) {
+            notes.push({ time: t, lane: 1 });          // drums beat 1
+            notes.push({ time: t + b, lane: 2 });      // guitar beat 2
+            notes.push({ time: t + b*2, lane: 0 });    // bass beat 3
+            notes.push({ time: t + b*3, lane: 1 });    // drums beat 4
+            t += b * 4;
+          }
+          break;
+        case 'verse':
+          while (t < end) {
+            notes.push({ time: t, lane: 3 });           // vocals beat 1
+            notes.push({ time: t + b, lane: 1 });       // drums beat 2
+            notes.push({ time: t + b*2, lane: 3 });     // vocals beat 3
+            notes.push({ time: t + b*2, lane: 2 });     // guitar beat 3
+            notes.push({ time: t + b*3, lane: 1 });     // drums beat 4
+            t += b * 4;
+          }
+          break;
+        case 'chorus':
+          while (t < end) {
+            // Chorus: still feels energetic but manageable
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b, lane: 3 });
+            notes.push({ time: t + b*2, lane: 0 });
+            notes.push({ time: t + b*2, lane: 2 });
+            notes.push({ time: t + b*3, lane: 1 });
+            notes.push({ time: t + b*3, lane: 3 });
+            t += b * 4;
+          }
+          break;
+        case 'post_chorus':
+          while (t < end) {
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b*2, lane: 2 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*3, lane: 1 });
+            t += b * 4;
+          }
+          break;
+        case 'outro':
+          while (t < end - 3000) {
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t + b, lane: 2 });
+            notes.push({ time: t + b, lane: 3 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*3, lane: 0 });
+            notes.push({ time: t + b*3, lane: 2 });
+            t += b * 4;
+          }
+          // Final chord
+          notes.push({ time: end - 2000, lane: 0 });
+          notes.push({ time: end - 2000, lane: 1 });
+          notes.push({ time: end - 2000, lane: 2 });
+          notes.push({ time: end - 2000, lane: 3 });
+          break;
+      }
+    } else {
+      // ---- HARD: Dense patterns, eighth notes, multi-lane hits ----
+      switch (sec.type) {
+        case 'instrumental':
+          while (t < end) {
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t + h, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b + h, lane: 2 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2, lane: 0 });
+            notes.push({ time: t + b*3, lane: 2 });
+            notes.push({ time: t + b*3 + h, lane: 1 });
+            t += b * 4;
+          }
+          break;
+        case 'verse':
+          while (t < end) {
+            notes.push({ time: t, lane: 3 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t + h, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b, lane: 2 });
+            notes.push({ time: t + b + h, lane: 3 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*2 + h, lane: 0 });
+            notes.push({ time: t + b*3, lane: 1 });
+            notes.push({ time: t + b*3, lane: 2 });
+            t += b * 4;
+          }
+          break;
+        case 'chorus':
+          while (t < end) {
+            // Dense chorus — every lane active, eighth note subdivisions
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t, lane: 3 });
+            notes.push({ time: t + h, lane: 1 });
+            notes.push({ time: t + h, lane: 2 });
+            notes.push({ time: t + b, lane: 3 });
+            notes.push({ time: t + b, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b + h, lane: 2 });
+            notes.push({ time: t + b*2, lane: 0 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2, lane: 2 });
+            notes.push({ time: t + b*2 + h, lane: 3 });
+            notes.push({ time: t + b*3, lane: 1 });
+            notes.push({ time: t + b*3, lane: 2 });
+            notes.push({ time: t + b*3 + h, lane: 0 });
+            notes.push({ time: t + b*3 + h, lane: 1 });
+            t += b * 4;
+          }
+          break;
+        case 'post_chorus':
+          while (t < end) {
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t + h, lane: 1 });
+            notes.push({ time: t + b, lane: 3 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b + h, lane: 0 });
+            notes.push({ time: t + b + h, lane: 2 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2 + h, lane: 3 });
+            notes.push({ time: t + b*3, lane: 0 });
+            notes.push({ time: t + b*3, lane: 1 });
+            notes.push({ time: t + b*3, lane: 2 });
+            notes.push({ time: t + b*3 + h, lane: 1 });
+            t += b * 4;
+          }
+          break;
+        case 'outro':
+          while (t < end - 3000) {
+            // Dense all-lane assault
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t + h, lane: 2 });
+            notes.push({ time: t + h, lane: 3 });
+            notes.push({ time: t + b, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b + h, lane: 2 });
+            notes.push({ time: t + b + h, lane: 3 });
+            notes.push({ time: t + b*2, lane: 0 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2, lane: 2 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*3, lane: 1 });
+            notes.push({ time: t + b*3 + h, lane: 0 });
+            notes.push({ time: t + b*3 + h, lane: 2 });
+            t += b * 4;
+          }
+          notes.push({ time: end - 2000, lane: 0 });
+          notes.push({ time: end - 2000, lane: 1 });
+          notes.push({ time: end - 2000, lane: 2 });
+          notes.push({ time: end - 2000, lane: 3 });
+          break;
+      }
     }
   }
 
-  // Sort by time
   notes.sort((a, b) => a.time - b.time);
   return notes;
 }
 
-// ===== GAME ENGINE =====
+// ============================================================
+// GAME ENGINE
+// ============================================================
 class JURNRhythmGame {
   constructor() {
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.video = document.getElementById('video-backdrop');
     this.audio = null;
-    this.audioCtx = null;
+    this.audioLoaded = false;
+    this.difficulty = 'easy';
 
     // State
-    this.state = 'start'; // start, playing, paused, results
+    this.state = 'start';
     this.score = 0;
     this.combo = 0;
     this.maxCombo = 0;
@@ -559,25 +673,25 @@ class JURNRhythmGame {
 
     // Notes
     this.beatmap = [];
-    this.activeNotes = []; // notes currently on screen
+    this.activeNotes = [];
     this.nextNoteIndex = 0;
 
     // Input
     this.keysDown = {};
-    this.keyFlash = [0, 0, 0, 0]; // flash intensity per lane
+    this.keyFlash = [0, 0, 0, 0];
 
     // Timing
     this.songStartTime = 0;
-    this.songPosition = 0; // ms
     this.lastFrameTime = 0;
+    this.countdownActive = false;
 
     // Visual
     this.particles = [];
-    this.hitEffects = [];
-    this.screenShake = 0;
+    this.hitFeedbackTimer = 0;
 
     this.resize();
     this.bindEvents();
+    this.preloadAudio();
   }
 
   resize() {
@@ -586,7 +700,6 @@ class JURNRhythmGame {
     this.W = this.canvas.width;
     this.H = this.canvas.height;
 
-    // Lane geometry
     const totalLaneWidth = Math.min(400, this.W * 0.45);
     const laneWidth = totalLaneWidth / CONFIG.LANE_COUNT;
     const startX = (this.W - totalLaneWidth) / 2;
@@ -602,6 +715,24 @@ class JURNRhythmGame {
     this.laneLeft = startX;
     this.laneRight = startX + totalLaneWidth;
     this.strikeY = this.H * CONFIG.HIT_Y;
+  }
+
+  preloadAudio() {
+    this.audio = new Audio();
+    this.audio.crossOrigin = 'anonymous';
+    this.audio.preload = 'auto';
+    this.audio.src = CONFIG.AUDIO_URL;
+
+    this.audio.addEventListener('canplaythrough', () => {
+      this.audioLoaded = true;
+      console.log('Audio loaded and ready');
+    });
+    this.audio.addEventListener('error', (e) => {
+      console.log('Audio not found — running in silent mode. Place combined.mp3 in audio/ folder.');
+      this.audioLoaded = false;
+    });
+    // Trigger load
+    this.audio.load();
   }
 
   bindEvents() {
@@ -625,18 +756,21 @@ class JURNRhythmGame {
       this.keysDown[lane] = false;
     });
 
-    document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+    document.getElementById('btn-easy').addEventListener('click', () => this.startGame('easy'));
+    document.getElementById('btn-hard').addEventListener('click', () => this.startGame('hard'));
     document.getElementById('restart-btn').addEventListener('click', () => {
       document.getElementById('results-screen').style.display = 'none';
       document.getElementById('start-screen').style.display = 'flex';
     });
   }
 
-  async startGame() {
+  async startGame(difficulty) {
+    this.difficulty = difficulty;
     document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('difficulty-label').textContent = difficulty.toUpperCase();
 
-    // Generate beatmap
-    this.beatmap = generateBeatmap();
+    // Generate beatmap for selected difficulty
+    this.beatmap = generateBeatmap(difficulty);
     this.totalNotes = this.beatmap.length;
     this.activeNotes = [];
     this.nextNoteIndex = 0;
@@ -649,38 +783,55 @@ class JURNRhythmGame {
     this.rockMeter = CONFIG.ROCK_METER_START;
     this.stats = { perfect: 0, great: 0, good: 0, miss: 0 };
     this.particles = [];
-    this.hitEffects = [];
-
-    // Load audio
-    // Use the audio element approach for simplicity
-    if (!this.audio) {
-      this.audio = new Audio();
-      this.audio.crossOrigin = 'anonymous';
-      // The song URL will be set when assets are loaded
-      // For now we use a placeholder approach - the game works visually without audio
-    }
+    this.keysDown = {};
+    this.keyFlash = [0, 0, 0, 0];
 
     // Try to play video
-    try {
-      this.video.play();
-    } catch(e) {}
+    try { this.video.play(); } catch(e) {}
+
+    // Countdown
+    await this.doCountdown();
+
+    // Start audio
+    if (this.audioLoaded) {
+      this.audio.currentTime = 0;
+      this.audio.volume = 0.7;
+      try { await this.audio.play(); } catch(e) { console.log('Audio play blocked'); }
+    }
 
     // Start game loop
     this.state = 'playing';
-    this.songStartTime = performance.now() + 2000; // 2 second lead-in
+    this.songStartTime = performance.now();
     this.lastFrameTime = performance.now();
     this.gameLoop();
+  }
+
+  async doCountdown() {
+    const el = document.getElementById('countdown');
+    const counts = ['3', '2', '1', 'GO!'];
+    for (let i = 0; i < counts.length; i++) {
+      el.textContent = counts[i];
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%, -50%) scale(1.5)';
+      el.style.transition = 'none';
+      await new Promise(r => setTimeout(r, 50));
+      el.style.transition = 'all 0.5s ease-out';
+      el.style.transform = 'translate(-50%, -50%) scale(1)';
+      el.style.opacity = '0.8';
+      await new Promise(r => setTimeout(r, 500));
+      el.style.opacity = '0';
+      await new Promise(r => setTimeout(r, i < 3 ? 200 : 100));
+    }
   }
 
   getSongTime() {
     return performance.now() - this.songStartTime;
   }
 
-  // How far ahead (in ms) to spawn notes before they reach the strike zone
   get lookAheadMs() {
     const pixelsToTravel = this.strikeY;
     const framesNeeded = pixelsToTravel / CONFIG.SCROLL_SPEED;
-    return framesNeeded * (1000 / 60); // assuming 60fps
+    return framesNeeded * (1000 / 60);
   }
 
   checkHit(lane) {
@@ -699,20 +850,15 @@ class JURNRhythmGame {
 
     if (bestNote && bestDelta <= CONFIG.GOOD_WINDOW) {
       bestNote.hit = true;
+      bestNote.hitTime = performance.now();
       let rating, points;
 
       if (bestDelta <= CONFIG.PERFECT_WINDOW) {
-        rating = 'PERFECT';
-        points = CONFIG.PERFECT_SCORE;
-        this.stats.perfect++;
+        rating = 'PERFECT'; points = CONFIG.PERFECT_SCORE; this.stats.perfect++;
       } else if (bestDelta <= CONFIG.GREAT_WINDOW) {
-        rating = 'GREAT';
-        points = CONFIG.GREAT_SCORE;
-        this.stats.great++;
+        rating = 'GREAT'; points = CONFIG.GREAT_SCORE; this.stats.great++;
       } else {
-        rating = 'GOOD';
-        points = CONFIG.GOOD_SCORE;
-        this.stats.good++;
+        rating = 'GOOD'; points = CONFIG.GOOD_SCORE; this.stats.good++;
       }
 
       this.combo++;
@@ -722,8 +868,7 @@ class JURNRhythmGame {
       this.rockMeter = Math.min(CONFIG.ROCK_METER_MAX, this.rockMeter + CONFIG.ROCK_HIT_GAIN);
 
       this.showHitFeedback(rating, lane);
-      this.spawnHitParticles(lane);
-      this.hitEffects.push({ lane, time: performance.now(), type: rating });
+      this.spawnHitParticles(lane, rating);
     }
   }
 
@@ -734,12 +879,6 @@ class JURNRhythmGame {
     this.multiplier = 1;
     this.rockMeter = Math.max(0, this.rockMeter - CONFIG.ROCK_MISS_PENALTY);
     this.showHitFeedback('MISS', note.lane);
-
-    // Video desaturation effect on miss
-    if (this.rockMeter < 30) {
-      this.video.style.filter = 'grayscale(70%) brightness(0.5)';
-      this.video.style.opacity = '0.2';
-    }
   }
 
   updateMultiplier() {
@@ -753,69 +892,71 @@ class JURNRhythmGame {
   showHitFeedback(rating, lane) {
     const fb = document.getElementById('hit-feedback');
     fb.textContent = rating;
-    fb.className = '';
-    fb.classList.add(rating.toLowerCase());
+    fb.className = rating.toLowerCase();
     fb.style.opacity = '1';
     fb.style.left = this.lanes[lane].x + 'px';
     fb.style.top = (this.strikeY - 60) + 'px';
-    fb.style.transform = 'translate(-50%, -50%)';
-    setTimeout(() => { fb.style.opacity = '0'; }, 400);
+    fb.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    fb.style.transition = 'none';
+
+    requestAnimationFrame(() => {
+      fb.style.transition = 'all 0.4s ease-out';
+      fb.style.transform = 'translate(-50%, -80%) scale(1)';
+      fb.style.opacity = '0';
+    });
   }
 
-  spawnHitParticles(lane) {
+  spawnHitParticles(lane, rating) {
     const x = this.lanes[lane].x;
     const y = this.strikeY;
     const color = CONFIG.LANE_COLORS[lane];
-    for (let i = 0; i < 12; i++) {
+    const count = rating === 'PERFECT' ? 18 : rating === 'GREAT' ? 12 : 8;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+      const speed = 2 + Math.random() * 5;
       this.particles.push({
         x, y,
-        vx: (Math.random() - 0.5) * 8,
-        vy: -Math.random() * 6 - 2,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
         life: 1,
-        decay: 0.02 + Math.random() * 0.02,
+        decay: 0.015 + Math.random() * 0.02,
         size: 2 + Math.random() * 4,
         color,
       });
     }
   }
 
-  // ===== RENDERING =====
+  // ============================================================
+  // GAME LOOP
+  // ============================================================
   gameLoop() {
     if (this.state !== 'playing') return;
 
     const now = performance.now();
-    const dt = now - this.lastFrameTime;
     this.lastFrameTime = now;
-
     const songTime = this.getSongTime();
 
-    // Check if song is over
-    if (songTime > CONFIG.SONG_DURATION * 1000 + 3000) {
+    // End check
+    if (songTime > CONFIG.SONG_DURATION * 1000 + 2000) {
       this.endGame();
       return;
     }
 
-    // Spawn notes that are within look-ahead window
+    // Spawn notes within look-ahead
     while (this.nextNoteIndex < this.beatmap.length) {
       const note = this.beatmap[this.nextNoteIndex];
       if (note.time <= songTime + this.lookAheadMs) {
-        this.activeNotes.push({
-          ...note,
-          hit: false,
-          missed: false,
-          y: 0, // will be calculated
-        });
+        this.activeNotes.push({ ...note, hit: false, missed: false, hitTime: 0, y: 0 });
         this.nextNoteIndex++;
       } else break;
     }
 
-    // Update active notes positions
+    // Update note positions
     for (const note of this.activeNotes) {
       const timeUntilHit = note.time - songTime;
       const progressRatio = 1 - (timeUntilHit / this.lookAheadMs);
       note.y = progressRatio * this.strikeY;
 
-      // Check for miss (note passed strike zone)
       if (!note.hit && !note.missed && songTime - note.time > CONFIG.GOOD_WINDOW) {
         this.onMiss(note);
       }
@@ -823,7 +964,7 @@ class JURNRhythmGame {
 
     // Remove dead notes
     this.activeNotes = this.activeNotes.filter(n => {
-      if (n.hit) return n.y < this.strikeY + 100;
+      if (n.hit) return (now - n.hitTime) < 300;
       if (n.missed) return n.y < this.H + 50;
       return true;
     });
@@ -832,75 +973,66 @@ class JURNRhythmGame {
     this.particles = this.particles.filter(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.15;
+      p.vy += 0.12;
       p.life -= p.decay;
       return p.life > 0;
     });
 
-    // Update key flash decay
-    for (let i = 0; i < 4; i++) {
-      this.keyFlash[i] *= 0.85;
-    }
+    // Key flash decay
+    for (let i = 0; i < 4; i++) this.keyFlash[i] *= 0.85;
 
-    // Update video effects based on rock meter
+    // Video effects based on rock meter
     if (this.rockMeter > 70) {
-      this.video.style.filter = 'saturate(1.3) brightness(1.1)';
+      this.video.style.filter = 'saturate(1.4) brightness(1.15)';
       this.video.style.opacity = '0.5';
     } else if (this.rockMeter > 40) {
       this.video.style.filter = 'none';
       this.video.style.opacity = '0.4';
-    } else {
+    } else if (this.rockMeter > 15) {
       this.video.style.filter = 'grayscale(50%) brightness(0.6)';
       this.video.style.opacity = '0.25';
+    } else {
+      this.video.style.filter = 'grayscale(80%) brightness(0.3) sepia(30%)';
+      this.video.style.opacity = '0.15';
     }
-
-    // Screen shake decay
-    this.screenShake *= 0.9;
 
     this.render(songTime);
     this.updateHUD(songTime);
-
     requestAnimationFrame(() => this.gameLoop());
   }
 
+  // ============================================================
+  // RENDERING
+  // ============================================================
   render(songTime) {
     const ctx = this.ctx;
     const W = this.W;
     const H = this.H;
-
     ctx.clearRect(0, 0, W, H);
 
-    // Apply screen shake
-    ctx.save();
-    if (this.screenShake > 0.5) {
-      ctx.translate(
-        (Math.random() - 0.5) * this.screenShake * 2,
-        (Math.random() - 0.5) * this.screenShake * 2
-      );
-    }
-
-    // Draw lane backgrounds
+    // Lane backgrounds
     for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       const lane = this.lanes[i];
-      // Lane stripe
-      ctx.fillStyle = `rgba(255,255,255,0.03)`;
+
+      // Alternating lane shade
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)';
       ctx.fillRect(lane.left, 0, lane.width, H);
 
       // Lane dividers
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(lane.left, 0);
       ctx.lineTo(lane.left, H);
       ctx.stroke();
 
-      // Key press flash
+      // Key press glow
       if (this.keyFlash[i] > 0.05) {
-        const grad = ctx.createLinearGradient(lane.left, this.strikeY, lane.left, this.strikeY - 200);
-        grad.addColorStop(0, CONFIG.LANE_GLOW[i].replace('0.3', (this.keyFlash[i] * 0.5).toFixed(2)));
+        const grad = ctx.createLinearGradient(lane.left, this.strikeY, lane.left, this.strikeY - 250);
+        grad.addColorStop(0, CONFIG.LANE_GLOW[i] + (this.keyFlash[i] * 0.4).toFixed(2) + ')');
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
-        ctx.fillRect(lane.left, this.strikeY - 200, lane.width, 200);
+        ctx.fillRect(lane.left, this.strikeY - 250, lane.width, 250);
       }
     }
 
@@ -914,110 +1046,128 @@ class JURNRhythmGame {
     ctx.lineTo(this.laneRight, H);
     ctx.stroke();
 
-    // Strike zone line
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(this.laneLeft, this.strikeY);
-    ctx.lineTo(this.laneRight, this.strikeY);
-    ctx.stroke();
+    // Strike zone
+    const szGrad = ctx.createLinearGradient(this.laneLeft, this.strikeY - 3, this.laneLeft, this.strikeY + 3);
+    szGrad.addColorStop(0, 'rgba(255,255,255,0.0)');
+    szGrad.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+    szGrad.addColorStop(1, 'rgba(255,255,255,0.0)');
+    ctx.fillStyle = szGrad;
+    ctx.fillRect(this.laneLeft, this.strikeY - 3, this.laneRight - this.laneLeft, 6);
 
-    // Strike zone receptors (circles at bottom of each lane)
+    // Receptors
     for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       const lane = this.lanes[i];
-      const isPressed = this.keysDown[i];
+      const pressed = this.keysDown[i];
 
       // Outer ring
       ctx.beginPath();
       ctx.arc(lane.x, this.strikeY, CONFIG.NOTE_RADIUS + 4, 0, Math.PI * 2);
-      ctx.strokeStyle = isPressed ? CONFIG.LANE_COLORS[i] : 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = isPressed ? 3 : 1.5;
+      ctx.strokeStyle = pressed ? CONFIG.LANE_COLORS[i] : 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = pressed ? 3 : 1.5;
       ctx.stroke();
 
       // Inner glow when pressed
-      if (isPressed) {
+      if (pressed) {
         ctx.beginPath();
-        ctx.arc(lane.x, this.strikeY, CONFIG.NOTE_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = CONFIG.LANE_GLOW[i];
+        ctx.arc(lane.x, this.strikeY, CONFIG.NOTE_RADIUS + 2, 0, Math.PI * 2);
+        ctx.fillStyle = CONFIG.LANE_GLOW[i] + '0.25)';
         ctx.fill();
       }
 
       // Key label
       ctx.font = '14px "Press Start 2P"';
       ctx.textAlign = 'center';
-      ctx.fillStyle = isPressed ? CONFIG.LANE_COLORS[i] : 'rgba(255,255,255,0.3)';
-      ctx.fillText(CONFIG.LANE_KEYS[i].toUpperCase(), lane.x, this.strikeY + 5);
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = pressed ? CONFIG.LANE_COLORS[i] : 'rgba(255,255,255,0.25)';
+      ctx.fillText(CONFIG.LANE_KEYS[i].toUpperCase(), lane.x, this.strikeY);
     }
 
-    // Draw notes
+    // Notes
     for (const note of this.activeNotes) {
-      if (note.hit) continue; // Don't draw hit notes
-
       const lane = this.lanes[note.lane];
       const color = CONFIG.LANE_COLORS[note.lane];
-      const alpha = note.missed ? 0.3 : 1;
 
-      // Note glow
+      if (note.hit) {
+        // Hit note — expanding ring animation
+        const elapsed = performance.now() - note.hitTime;
+        const progress = elapsed / 300;
+        const radius = CONFIG.NOTE_RADIUS + progress * 30;
+        const alpha = 1 - progress;
+        ctx.beginPath();
+        ctx.arc(lane.x, this.strikeY, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      const alpha = note.missed ? 0.25 : 1;
+
+      // Glow
       if (!note.missed) {
         ctx.beginPath();
-        ctx.arc(lane.x, note.y, CONFIG.NOTE_RADIUS + 8, 0, Math.PI * 2);
-        const glowGrad = ctx.createRadialGradient(lane.x, note.y, 0, lane.x, note.y, CONFIG.NOTE_RADIUS + 8);
-        glowGrad.addColorStop(0, color.replace(')', `,${0.4 * alpha})`).replace('rgb', 'rgba'));
-        glowGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = glowGrad;
+        ctx.arc(lane.x, note.y, CONFIG.NOTE_RADIUS + 10, 0, Math.PI * 2);
+        const glow = ctx.createRadialGradient(lane.x, note.y, 0, lane.x, note.y, CONFIG.NOTE_RADIUS + 10);
+        glow.addColorStop(0, CONFIG.LANE_GLOW[note.lane] + '0.35)');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
         ctx.fill();
       }
 
       // Note body
       ctx.beginPath();
       ctx.arc(lane.x, note.y, CONFIG.NOTE_RADIUS, 0, Math.PI * 2);
-      ctx.fillStyle = note.missed ? `rgba(100,100,100,0.4)` : color;
+      ctx.fillStyle = note.missed ? 'rgba(80,80,80,0.3)' : color;
       ctx.globalAlpha = alpha;
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // Note border
-      ctx.strokeStyle = note.missed ? 'rgba(255,0,0,0.3)' : 'rgba(255,255,255,0.6)';
+      // Border
+      ctx.strokeStyle = note.missed ? 'rgba(255,0,0,0.2)' : 'rgba(255,255,255,0.5)';
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Inner highlight
+      // Inner shine
       if (!note.missed) {
         ctx.beginPath();
-        ctx.arc(lane.x - 4, note.y - 4, CONFIG.NOTE_RADIUS * 0.4, 0, Math.PI * 2);
+        ctx.arc(lane.x - 5, note.y - 5, CONFIG.NOTE_RADIUS * 0.35, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
         ctx.fill();
       }
     }
 
-    // Draw particles
+    // Particles
     for (const p of this.particles) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
       ctx.fillStyle = p.color;
-      ctx.globalAlpha = p.life;
+      ctx.globalAlpha = p.life * 0.8;
       ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    // Lane labels at bottom
-    ctx.font = '11px "Permanent Marker"';
-    ctx.textAlign = 'center';
-    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
-      ctx.fillStyle = CONFIG.LANE_COLORS[i];
-      ctx.globalAlpha = 0.5;
-      ctx.fillText(CONFIG.LANE_NAMES[i], this.lanes[i].x, this.strikeY + 40);
     }
     ctx.globalAlpha = 1;
 
-    // Beat pulse overlay (subtle flash on each beat)
-    const beatPhase = (songTime % SONG_STRUCTURE.msPerBeat) / SONG_STRUCTURE.msPerBeat;
-    if (beatPhase < 0.1 && this.combo > 10) {
-      ctx.fillStyle = `rgba(0,255,255,${0.03 * (1 - beatPhase / 0.1)})`;
-      ctx.fillRect(0, 0, W, H);
+    // Lane names at bottom
+    ctx.font = '11px "Permanent Marker"';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
+      ctx.fillStyle = CONFIG.LANE_COLORS[i];
+      ctx.globalAlpha = 0.4;
+      ctx.fillText(CONFIG.LANE_NAMES[i], this.lanes[i].x, this.strikeY + 32);
     }
+    ctx.globalAlpha = 1;
 
-    ctx.restore();
+    // Beat pulse (subtle screen flash on each beat at high combo)
+    if (this.combo > 20) {
+      const beatPhase = (songTime % SONG.msPerBeat) / SONG.msPerBeat;
+      if (beatPhase < 0.08) {
+        const intensity = 0.04 * (1 - beatPhase / 0.08) * Math.min(this.combo / 50, 1);
+        ctx.fillStyle = `rgba(0,255,255,${intensity})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
   }
 
   updateHUD(songTime) {
@@ -1032,17 +1182,13 @@ class JURNRhythmGame {
     }
 
     document.getElementById('multiplier-display').textContent =
-      this.multiplier > 1 ? `${this.multiplier}x` : '';
+      this.multiplier > 1 ? this.multiplier + 'x' : '';
 
-    // Progress bar
     const progress = Math.max(0, Math.min(100, (songTime / (CONFIG.SONG_DURATION * 1000)) * 100));
     document.getElementById('progress-bar').style.width = progress + '%';
 
-    // Rock meter
-    document.getElementById('rock-meter').style.height = this.rockMeter + '%';
-
-    // Rock meter color
     const rm = document.getElementById('rock-meter');
+    rm.style.height = this.rockMeter + '%';
     if (this.rockMeter > 70) rm.style.background = 'linear-gradient(0deg, #0f0, #0ff)';
     else if (this.rockMeter > 40) rm.style.background = 'linear-gradient(0deg, #ff0, #0f0)';
     else rm.style.background = 'linear-gradient(0deg, #f00, #ff0)';
@@ -1050,15 +1196,14 @@ class JURNRhythmGame {
 
   endGame() {
     this.state = 'results';
+    if (this.audio) { this.audio.pause(); this.audio.currentTime = 0; }
 
-    // Calculate accuracy
     const totalHits = this.stats.perfect + this.stats.great + this.stats.good;
     const totalJudged = totalHits + this.stats.miss;
     const accuracy = totalJudged > 0
       ? ((this.stats.perfect * 100 + this.stats.great * 80 + this.stats.good * 50) / (totalJudged * 100) * 100)
       : 0;
 
-    // Grade
     let grade, gradeClass;
     if (accuracy >= 95) { grade = 'S'; gradeClass = 'grade-s'; }
     else if (accuracy >= 85) { grade = 'A'; gradeClass = 'grade-a'; }
@@ -1066,8 +1211,7 @@ class JURNRhythmGame {
     else if (accuracy >= 50) { grade = 'C'; gradeClass = 'grade-c'; }
     else { grade = 'F'; gradeClass = 'grade-f'; }
 
-    const rs = document.getElementById('results-screen');
-    rs.style.display = 'flex';
+    document.getElementById('results-screen').style.display = 'flex';
     document.getElementById('result-grade').textContent = grade;
     document.getElementById('result-grade').className = 'grade ' + gradeClass;
     document.getElementById('result-score').textContent = this.score.toLocaleString();
@@ -1077,12 +1221,10 @@ class JURNRhythmGame {
     document.getElementById('result-good').textContent = this.stats.good;
     document.getElementById('result-miss').textContent = this.stats.miss;
     document.getElementById('result-accuracy').textContent = accuracy.toFixed(1) + '%';
-
-    if (this.audio) this.audio.pause();
   }
 }
 
-// ===== INIT =====
+// Init
 const game = new JURNRhythmGame();
 </script>
 </body>
