@@ -478,6 +478,9 @@ const SONG = {
   ]
 };
 
+// Tag each section with its occurrence index (for video alternation)
+{ const _c = {}; for (const s of SONG.sections) { s.index = (_c[s.type]||0); _c[s.type] = (_c[s.type]||0)+1; } }
+
 // ============================================================
 // BEATMAP GENERATOR — Two difficulty levels
 // ============================================================
@@ -722,6 +725,102 @@ function generateBeatmap(difficulty) {
   return notes;
 }
 
+// ----------------------------------------------------------------
+// VideoBackdrop — manages dual-buffered video crossfade
+// ----------------------------------------------------------------
+class VideoBackdrop {
+  constructor() {
+    this.vidA = document.getElementById('vid-a');
+    this.vidB = document.getElementById('vid-b');
+    this.active = this.vidA;
+    this.next   = this.vidB;
+    this.currentSrc = null;
+
+    this.clips = {
+      taz:       'videos/taz.mp4',
+      bonecrush: 'videos/bonecrush.mp4',
+      rif:       'videos/rif.mp4',
+      vox:       'videos/vox.mp4',
+      fullband:  'videos/fullband.mp4',
+      fullband1: 'videos/fullBand1.mp4',
+      fullband2: 'videos/fullBand2.mp4',
+    };
+    this.laneClip    = ['taz', 'bonecrush', 'rif', 'vox'];
+    this.fullBandPool = ['fullband', 'fullband1', 'fullband2'];
+    this.fullBandIdx  = 0;
+  }
+
+  _nextFullBand() {
+    const k = this.fullBandPool[this.fullBandIdx % this.fullBandPool.length];
+    this.fullBandIdx++;
+    return k;
+  }
+
+  crossfadeTo(clipKey) {
+    const src = this.clips[clipKey];
+    if (!src || src === this.currentSrc) return;
+    this.currentSrc = src;
+
+    this.next.src = src;
+    this.next.currentTime = 0;
+    this.next.play().catch(() => {});
+
+    this.next.classList.add('active-vid');
+    this.active.classList.remove('active-vid');
+
+    const old = this.active;
+    this.active = this.next;
+    this.next   = old;
+
+    setTimeout(() => {
+      if (!old.classList.contains('active-vid')) {
+        old.pause();
+        old.src = '';
+      }
+    }, 600);
+  }
+
+  setRockFilter(rockPct) {
+    let filter;
+    if (rockPct > 0.6) {
+      filter = `saturate(1.3) brightness(0.9)`;
+    } else if (rockPct > 0.3) {
+      const t = (rockPct - 0.3) / 0.3;
+      const sat = (0.4 + t * 0.9).toFixed(2);
+      const bri = (0.65 + t * 0.25).toFixed(2);
+      filter = `saturate(${sat}) brightness(${bri})`;
+    } else {
+      const t = rockPct / 0.3;
+      const sat = (0.1 + t * 0.3).toFixed(2);
+      const bri = (0.4 + t * 0.25).toFixed(2);
+      const gray = (1 - t * 0.8).toFixed(2);
+      filter = `saturate(${sat}) brightness(${bri}) grayscale(${gray})`;
+    }
+    this.active.style.filter = filter;
+  }
+
+  showBand(variant) {
+    if (variant === 'chorus') this.crossfadeTo('fullband2');
+    else if (variant === 'outro') this.crossfadeTo('fullband1');
+    else this.crossfadeTo(this._nextFullBand());
+  }
+
+  showLane(laneIdx) {
+    const key = this.laneClip[laneIdx];
+    if (key) this.crossfadeTo(key);
+  }
+
+  stop() {
+    this.active.pause();
+    this.next.pause();
+    this.active.src = '';
+    this.next.src   = '';
+    this.currentSrc = null;
+    this.active.classList.add('active-vid');
+    this.next.classList.remove('active-vid');
+  }
+}
+
 // ============================================================
 // GAME ENGINE
 // ============================================================
@@ -729,6 +828,7 @@ class JURNRhythmGame {
   constructor() {
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
+    this.backdrop = new VideoBackdrop();
     this.video = document.getElementById('video-backdrop');
     this.audio = null;
     this.audioLoaded = false;
@@ -924,6 +1024,51 @@ class JURNRhythmGame {
     const pixelsToTravel = this.strikeY;
     const framesNeeded = pixelsToTravel / CONFIG.SCROLL_SPEED;
     return framesNeeded * (1000 / 60);
+  }
+
+  _updateVideoSection() {
+    if (!this.backdrop || !this.audio || this.audio.paused) return;
+    const t = this.gameTime;
+    const sec = SONG.sections.find(s => t >= s.startMs && t < s.endMs);
+    if (!sec) return;
+
+    // Determine which video should be playing
+    const key = sec.type + '_' + sec.index;
+    if (key === this.lastVideoSection) {
+      // Same section — just update filter
+      this.backdrop.setRockFilter(this.rockMeter / CONFIG.ROCK_METER_MAX);
+      return;
+    }
+    this.lastVideoSection = key;
+
+    // Switch video based on section type
+    switch (sec.type) {
+      case 'intro':
+        this.backdrop.showBand('default');
+        break;
+      case 'verse':
+        // Alternate between fullband clips across verses
+        this.backdrop.showBand('default');
+        break;
+      case 'chorus':
+        this.backdrop.showBand('chorus');
+        break;
+      case 'post_chorus':
+        // Post-chorus: spotlight a character per occurrence
+        const spotlightLane = (sec.index || 0) % 4;
+        this.backdrop.showLane(spotlightLane);
+        break;
+      case 'break':
+        this.backdrop.showLane(1); // Bonecrush drum break
+        break;
+      case 'outro':
+        this.backdrop.showBand('outro');
+        break;
+      default:
+        this.backdrop.showBand('default');
+    }
+
+    this.backdrop.setRockFilter(this.rockMeter / CONFIG.ROCK_METER_MAX);
   }
 
   checkHit(lane) {
