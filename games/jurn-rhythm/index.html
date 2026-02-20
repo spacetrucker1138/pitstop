@@ -679,6 +679,10 @@ class JURNRhythmGame {
     // Input
     this.keysDown = {};
     this.keyFlash = [0, 0, 0, 0];
+    this.missFlash = [0, 0, 0, 0];
+    this.screenShake = 0;
+    this.missFlash = [0, 0, 0, 0];
+    this.screenShake = 0;
 
     // Timing
     this.songStartTime = 0;
@@ -785,6 +789,10 @@ class JURNRhythmGame {
     this.particles = [];
     this.keysDown = {};
     this.keyFlash = [0, 0, 0, 0];
+    this.missFlash = [0, 0, 0, 0];
+    this.screenShake = 0;
+    this.missFlash = [0, 0, 0, 0];
+    this.screenShake = 0;
 
     // Try to play video
     try { this.video.play(); } catch(e) {}
@@ -878,7 +886,29 @@ class JURNRhythmGame {
     this.combo = 0;
     this.multiplier = 1;
     this.rockMeter = Math.max(0, this.rockMeter - CONFIG.ROCK_MISS_PENALTY);
+    // Visual: red lane flash, screen shake, miss particles
+    this.missFlash[note.lane] = 1;
+    this.screenShake = 8;
+    this.spawnMissParticles(note.lane, note.y);
     this.showHitFeedback('MISS', note.lane);
+  }
+
+  spawnMissParticles(lane, y) {
+    const x = this.lanes[lane].x;
+    const hitY = Math.min(y, this.strikeY);
+    // Burst of red X shards downward
+    for (let i = 0; i < 10; i++) {
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 30,
+        y: hitY,
+        vx: (Math.random() - 0.5) * 5,
+        vy: Math.random() * 4 + 1,
+        life: 1,
+        decay: 0.04 + Math.random() * 0.03,
+        size: 3 + Math.random() * 4,
+        color: '#f00',
+      });
+    }
   }
 
   updateMultiplier() {
@@ -896,12 +926,18 @@ class JURNRhythmGame {
     fb.style.opacity = '1';
     fb.style.left = this.lanes[lane].x + 'px';
     fb.style.top = (this.strikeY - 60) + 'px';
-    fb.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    // Miss gets a bigger, shakier entrance
+    const isMiss = rating === 'MISS';
+    fb.style.transform = isMiss
+      ? 'translate(-50%, -50%) scale(1.6)'
+      : 'translate(-50%, -50%) scale(1.2)';
     fb.style.transition = 'none';
 
     requestAnimationFrame(() => {
-      fb.style.transition = 'all 0.4s ease-out';
-      fb.style.transform = 'translate(-50%, -80%) scale(1)';
+      fb.style.transition = isMiss ? 'all 0.5s ease-out' : 'all 0.4s ease-out';
+      fb.style.transform = isMiss
+        ? 'translate(-50%, -30%) scale(0.9)'
+        : 'translate(-50%, -80%) scale(1)';
       fb.style.opacity = '0';
     });
   }
@@ -978,8 +1014,13 @@ class JURNRhythmGame {
       return p.life > 0;
     });
 
-    // Key flash decay
-    for (let i = 0; i < 4; i++) this.keyFlash[i] *= 0.85;
+    // Key flash + miss flash decay
+    for (let i = 0; i < 4; i++) {
+      this.keyFlash[i] *= 0.85;
+      this.missFlash[i] *= 0.80;
+    }
+    // Screen shake decay
+    this.screenShake *= 0.82;
 
     // Video effects based on rock meter
     if (this.rockMeter > 70) {
@@ -1010,6 +1051,15 @@ class JURNRhythmGame {
     const H = this.H;
     ctx.clearRect(0, 0, W, H);
 
+    // Screen shake
+    ctx.save();
+    if (this.screenShake > 0.5) {
+      ctx.translate(
+        (Math.random() - 0.5) * this.screenShake,
+        (Math.random() - 0.5) * this.screenShake
+      );
+    }
+
     // Lane backgrounds
     for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
       const lane = this.lanes[i];
@@ -1033,6 +1083,24 @@ class JURNRhythmGame {
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
         ctx.fillRect(lane.left, this.strikeY - 250, lane.width, 250);
+      }
+    }
+
+    // Miss flash — red lane overlay
+    for (let i = 0; i < CONFIG.LANE_COUNT; i++) {
+      if (this.missFlash[i] > 0.05) {
+        const lane = this.lanes[i];
+        const mgrad = ctx.createLinearGradient(lane.left, this.strikeY, lane.left, this.strikeY - 300);
+        mgrad.addColorStop(0, 'rgba(255,0,0,' + (this.missFlash[i] * 0.55).toFixed(2) + ')');
+        mgrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = mgrad;
+        ctx.fillRect(lane.left, this.strikeY - 300, lane.width, 300);
+        // Red border on the receptor
+        ctx.beginPath();
+        ctx.arc(lane.x, this.strikeY, CONFIG.NOTE_RADIUS + 8, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,0,0,' + this.missFlash[i].toFixed(2) + ')';
+        ctx.lineWidth = 3;
+        ctx.stroke();
       }
     }
 
@@ -1158,6 +1226,8 @@ class JURNRhythmGame {
       ctx.fillText(CONFIG.LANE_NAMES[i], this.lanes[i].x, this.strikeY + 32);
     }
     ctx.globalAlpha = 1;
+
+    ctx.restore();
 
     // Beat pulse (subtle screen flash on each beat at high combo)
     if (this.combo > 20) {
