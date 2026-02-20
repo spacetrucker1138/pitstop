@@ -599,7 +599,9 @@ function startDraw(e) {
 }
 
 function draw(e) {
-  if (!isDrawing || !currentStroke) return;
+  if (!isDrawing) return;
+  if (currentTool === 'eraser') { eraseAtPoint(e); return; }
+  if (!currentStroke) return;
   e.preventDefault();
   const pos = getPos(e);
   currentStroke.points.push({ x: pos.x, y: pos.y });
@@ -707,6 +709,19 @@ function listenForStrokes() {
     } else {
       drawStroke(stroke);
     }
+  });
+
+  // Listen for stroke removals (eraser from any user)
+  db.ref('wall/strokes').on('child_removed', function(snap) {
+    var removed = snap.val();
+    if (!removed) return;
+    for (var i = strokes.length - 1; i >= 0; i--) {
+      if (strokes[i].timestamp === removed.timestamp && strokes[i].userId === removed.userId) {
+        strokes.splice(i, 1);
+        break;
+      }
+    }
+    redrawAll();
   });
 
   // Presence system
@@ -968,14 +983,28 @@ document.getElementById('btn-eraser').addEventListener('click', function() {
 
 function eraseAtPoint(e) {
   var pos = getPos(e);
-  var er = (brushSize * 2) / Math.max(canvas.width, canvas.height);
+  var er = Math.max(0.04, (brushSize * 5) / Math.max(canvas.width, canvas.height));
   var sRef = db.ref('wall/strokes');
   sRef.once('value', function(snap) {
     var all = snap.val();
     if (!all) return;
+    var didRemove = false;
     Object.keys(all).forEach(function(k) {
-      if (strokeHit(all[k], pos, er)) sRef.child(k).remove();
+      if (strokeHit(all[k], pos, er)) {
+        sRef.child(k).remove();
+        // Remove from local strokes array by matching timestamp
+        var ts = all[k].timestamp;
+        var uid = all[k].userId;
+        for (var i = strokes.length - 1; i >= 0; i--) {
+          if (strokes[i].timestamp === ts && strokes[i].userId === uid) {
+            strokes.splice(i, 1);
+            didRemove = true;
+            break;
+          }
+        }
+      }
     });
+    if (didRemove) redrawAll();
   });
 }
 
