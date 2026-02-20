@@ -748,6 +748,15 @@ class VideoBackdrop {
     this.laneClip    = ['taz', 'bonecrush', 'rif', 'vox'];
     this.fullBandPool = ['fullband', 'fullband1', 'fullband2'];
     this.fullBandIdx  = 0;
+
+    // Preload all clips so the browser buffers them before first play
+    const preloadKeys = ['fullband', 'fullband1', 'fullband2', 'taz', 'bonecrush', 'rif', 'vox'];
+    preloadKeys.forEach(k => {
+      const v = document.createElement('video');
+      v.src = this.clips[k];
+      v.muted = true;
+      v.preload = 'auto';
+    });
   }
 
   _nextFullBand() {
@@ -978,8 +987,9 @@ class JURNRhythmGame {
     this.missFlash = [0, 0, 0, 0];
     this.screenShake = 0;
 
-    // Try to play video
-    try { this.video.play(); } catch(e) {}
+    // Start video backdrop (must be within click gesture for autoplay to work)
+    this.backdrop.showBand('default');
+    this.lastVideoSection = null;
 
     // Countdown
     await this.doCountdown();
@@ -1027,8 +1037,8 @@ class JURNRhythmGame {
   }
 
   _updateVideoSection() {
-    if (!this.backdrop || !this.audio || this.audio.paused) return;
-    const t = this.gameTime;
+    if (!this.backdrop) return;
+    const t = this.gameTime || this.getSongTime();
     const sec = SONG.sections.find(s => t >= s.startMs && t < s.endMs);
     if (!sec) return;
 
@@ -1260,20 +1270,8 @@ class JURNRhythmGame {
     // Screen shake decay
     this.screenShake *= 0.82;
 
-    // Video effects based on rock meter
-    if (this.rockMeter > 70) {
-      this.video.style.filter = 'saturate(1.4) brightness(1.15)';
-      this.video.style.opacity = '0.5';
-    } else if (this.rockMeter > 40) {
-      this.video.style.filter = 'none';
-      this.video.style.opacity = '0.4';
-    } else if (this.rockMeter > 15) {
-      this.video.style.filter = 'grayscale(50%) brightness(0.6)';
-      this.video.style.opacity = '0.25';
-    } else {
-      this.video.style.filter = 'grayscale(80%) brightness(0.3) sepia(30%)';
-      this.video.style.opacity = '0.15';
-    }
+    // Update video backdrop (section switch + rock meter filter)
+    this._updateVideoSection();
 
     this.render(songTime);
     this.updateHUD(songTime);
