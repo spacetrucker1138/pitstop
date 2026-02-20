@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Pit Stop Wall - thejurn.com</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Permanent+Marker&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0a0a0a;
+    overflow: hidden;
+    font-family: 'Permanent Marker', cursive;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  /* Background wall image - fills entire viewport */
+  #wall-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  /* Dark overlay for readability */
+  #overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.25);
+    z-index: 1;
+  }
+
+  /* Drawing canvas - sits on top */
+  #drawCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 2;
+    cursor: crosshair;
+  }
+
+  /* Toolbar */
+  #toolbar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,0,0,0.85);
+    border: 1px solid rgba(106,13,173,0.5);
+    border-radius: 12px;
+    padding: 10px 16px;
+    box-shadow: 0 0 20px rgba(106,13,173,0.3);
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 95vw;
+  }
+
+  .color-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .color-btn:hover, .color-btn.active {
+    border-color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  .tool-btn {
+    padding: 6px 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    color: #ccc;
+    font-family: 'Permanent Marker', cursive;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tool-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .tool-btn.active {
+    background: rgba(106,13,173,0.4);
+    border-color: #9933ff;
+    color: #cc99ff;
+  }
+
+  .size-slider {
+    width: 80px;
+    accent-color: #9933ff;
+    cursor: pointer;
+  }
+
+  .separator {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+
+  /* Title header */
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    text-align: center;
+    padding: 12px 20px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    pointer-events: none;
+  }
+  #header h1 {
+    font-family: 'Creepster', cursive;
+    font-size: 28px;
+    color: #cc66ff;
+    text-shadow: 0 0 20px rgba(153,51,255,0.6), 2px 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 3px;
+  }
+  #header .subtitle {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 12px;
+    color: #8866aa;
+    margin-top: 2px;
+  }
+
+  /* Online count */
+  #online-count {
+    position: fixed;
+    top: 15px; right: 20px;
+    z-index: 10;
+    font-size: 12px;
+    color: #66cc66;
+    font-family: monospace;
+    pointer-events: none;
+  }
+  #online-count .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #44cc44;
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Status messages */
+  #status {
+    position: fixed;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    font-size: 14px;
+    color: #ffcc66;
+    font-family: 'Permanent Marker', cursive;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  }
+  #status.show { opacity: 1; }
+
+  /* JURN credit */
+  #credit {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    font-family: 'Creepster', cursive;
+    font-size: 12px;
+    color: rgba(100,70,130,0.5);
+    pointer-events: none;
+  }
+
+  /* Back link */
+  #back-link {
+    position: fixed;
+    top: 15px; left: 20px;
+    z-index: 10;
+    font-family: 'Creepster', cursive;
+    font-size: 14px;
+    color: #8866aa;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  #back-link:hover { color: #cc66ff; }
+
+  /* Loading screen */
+  #loading {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 100;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s;
+  }
+  #loading.hide { opacity: 0; pointer-events: none; }
+  #loading h1 {
+    font-family: 'Creepster', cursive;
+    font-size: 36px;
+    color: #cc66ff;
+    text-shadow: 0 0 30px rgba(153,51,255,0.5);
+    margin-bottom: 15px;
+  }
+  #loading p {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 14px;
+    color: #8866aa;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(106,13,173,0.3);
+    border-top-color: #9933ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-top: 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Mobile adjustments */
+  @media (max-width: 600px) {
+    #header h1 { font-size: 20px; }
+    #toolbar { padding: 8px 10px; gap: 5px; bottom: 10px; }
+    .color-btn { width: 24px; height: 24px; }
+    .tool-btn { font-size: 11px; padding: 4px 8px; }
+    .size-slider { width: 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading">
+  <h1>THE PIT STOP WALL</h1>
+  <p>Loading the wall...</p>
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- Background wall image -->
+<img id="wall-bg" src="bathroomwall.jpg" alt="wall">
+<div id="overlay"></div>
+
+<!-- Drawing canvas -->
+<canvas id="drawCanvas"></canvas>
+
+<!-- Header -->
+<div id="header">
+  <h1>THE PIT STOP WALL</h1>
+  <div class="subtitle">Leave your mark. Everyone can see it. ☠</div>
+</div>
+
+<!-- Back to site -->
+<a id="back-link" href="/">← Back to The Pit Stop</a>
+
+<!-- Online users -->
+<div id="online-count"><span class="dot"></span><span id="count-num">1</span> online</div>
+
+<!-- Status -->
+<div id="status"></div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <!-- Colors -->
+  <div class="color-btn active" style="background:#ffffff;" data-color="#ffffff" title="White"></div>
+  <div class="color-btn" style="background:#ff3333;" data-color="#ff3333" title="Red"></div>
+  <div class="color-btn" style="background:#ff6600;" data-color="#ff6600" title="Orange"></div>
+  <div class="color-btn" style="background:#ffcc00;" data-color="#ffcc00" title="Yellow"></div>
+  <div class="color-btn" style="background:#33ff33;" data-color="#33ff33" title="Green"></div>
+  <div class="color-btn" style="background:#3399ff;" data-color="#3399ff" title="Blue"></div>
+  <div class="color-btn" style="background:#cc66ff;" data-color="#cc66ff" title="Purple"></div>
+  <div class="color-btn" style="background:#ff66cc;" data-color="#ff66cc" title="Pink"></div>
+  <div class="color-btn" style="background:#000000; border-color:rgba(255,255,255,0.4);" data-color="#000000" title="Black"></div>
+
+  <div class="separator"></div>
+
+  <!-- Brush size -->
+  <span style="color:#888;font-size:11px;font-family:monospace;">Size</span>
+  <input type="range" class="size-slider" id="brushSize" min="1" max="30" value="4">
+
+  <div class="separator"></div>
+
+  <!-- Tools -->
+  <button class="tool-btn active" id="btn-draw" title="Draw">✏️ Draw</button>
+  <button class="tool-btn" id="btn-spray" title="Spray paint">🎨 Spray</button>
+  <button class="tool-btn" id="btn-text" title="Type text on wall">💬 Text</button>
+
+  <div class="separator"></div>
+
+  <button class="tool-btn" id="btn-undo" title="Undo last stroke">↩️ Undo</button>
+  <button class="tool-btn" id="btn-save" title="Save screenshot">📸 Save</button>
+</div>
+
+<!-- JURN credit -->
+<div id="credit">☠ A JURN Production ☠</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+// THE PIT STOP WALL - Shared Graffiti Wall
+// A JURN Production ☠
+// ═══════════════════════════════════════════════
+
+// ── Firebase Configuration ──
+// REPLACE these values with your Firebase project config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+let db = null;
+let firebaseReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  firebaseReady = !firebaseConfig.apiKey.startsWith('YOUR_');
+} catch(e) {
+  console.warn('Firebase not configured yet - running in local mode');
+}
+
+// ── Canvas Setup ──
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  redrawAll();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ── State ──
+let currentColor = '#ffffff';
+let brushSize = 4;
+let currentTool = 'draw'; // draw, spray, text
+let isDrawing = false;
+let lastX = 0, lastY = 0;
+let strokes = []; // All strokes from Firebase
+let localStrokes = []; // Current user's strokes for undo
+let currentStroke = null;
+let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+// ── Status Message ──
+function showStatus(msg, duration=2000) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ── Drawing Functions ──
+function drawStroke(stroke) {
+  if (!stroke || !stroke.points || stroke.points.length < 2) return;
+
+  ctx.strokeStyle = stroke.color || '#ffffff';
+  ctx.lineWidth = stroke.size || 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = stroke.tool === 'spray' ? 0.4 : 0.85;
+
+  // Chalk texture effect - slightly rough edges
+  ctx.shadowColor = stroke.color || '#ffffff';
+  ctx.shadowBlur = stroke.tool === 'spray' ? 8 : 2;
+
+  ctx.beginPath();
+  ctx.moveTo(stroke.points[0].x * canvas.width, stroke.points[0].y * canvas.height);
+  for (let i = 1; i < stroke.points.length; i++) {
+    ctx.lineTo(stroke.points[i].x * canvas.width, stroke.points[i].y * canvas.height);
+  }
+  ctx.stroke();
+
+  // Spray paint: add spatter dots
+  if (stroke.tool === 'spray') {
+    ctx.globalAlpha = 0.3;
+    for (let i = 0; i < stroke.points.length; i += 2) {
+      const px = stroke.points[i].x * canvas.width;
+      const py = stroke.points[i].y * canvas.height;
+      for (let j = 0; j < 5; j++) {
+        const ox = (Math.random() - 0.5) * stroke.size * 3;
+        const oy = (Math.random() - 0.5) * stroke.size * 3;
+        ctx.fillStyle = stroke.color;
+        ctx.fillRect(px + ox, py + oy, 1 + Math.random()*2, 1 + Math.random()*2);
+      }
+    }
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function drawTextStroke(stroke) {
+  if (!stroke || !stroke.text) return;
+  const x = stroke.x * canvas.width;
+  const y = stroke.y * canvas.height;
+  const size = (stroke.size || 4) * 5 + 14;
+
+  ctx.save();
+  ctx.font = `${size}px 'Permanent Marker', cursive`;
+  ctx.fillStyle = stroke.color || '#ffffff';
+  ctx.globalAlpha = 0.9;
+  ctx.shadowColor = stroke.color || '#ffffff';
+  ctx.shadowBlur = 4;
+
+  // Slight random rotation for hand-written feel
+  const angle = (stroke.angle || 0) * 0.05;
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.fillText(stroke.text, 0, 0);
+  ctx.restore();
+}
+
+function redrawAll() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const stroke of strokes) {
+    if (stroke.type === 'text') {
+      drawTextStroke(stroke);
+    } else {
+      drawStroke(stroke);
+    }
+  }
+}
+
+// ── Input Handling ──
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  if (e.touches) {
+    return {
+      x: (e.touches[0].clientX - rect.left) / rect.width,
+      y: (e.touches[0].clientY - rect.top) / rect.height
+    };
+  }
+  return {
+    x: (e.clientX - rect.left) / rect.width,
+    y: (e.clientY - rect.top) / rect.height
+  };
+}
+
+function startDraw(e) {
+  if (currentTool === 'text') return;
+  isDrawing = true;
+  const pos = getPos(e);
+  lastX = pos.x;
+  lastY = pos.y;
+  currentStroke = {
+    color: currentColor,
+    size: brushSize,
+    tool: currentTool,
+    points: [{ x: pos.x, y: pos.y }],
+    userId: userId,
+    timestamp: Date.now()
+  };
+}
+
+function draw(e) {
+  if (!isDrawing || !currentStroke) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  currentStroke.points.push({ x: pos.x, y: pos.y });
+  // Draw just the latest segment for responsiveness
+  ctx.strokeStyle = currentColor;
+  ctx.lineWidth = brushSize;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = currentTool === 'spray' ? 0.4 : 0.85;
+  ctx.shadowColor = currentColor;
+  ctx.shadowBlur = currentTool === 'spray' ? 8 : 2;
+  ctx.beginPath();
+  ctx.moveTo(lastX * canvas.width, lastY * canvas.height);
+  ctx.lineTo(pos.x * canvas.width, pos.y * canvas.height);
+  ctx.stroke();
+
+  if (currentTool === 'spray') {
+    ctx.globalAlpha = 0.3;
+    for (let j = 0; j < 4; j++) {
+      const ox = (Math.random() - 0.5) * brushSize * 3;
+      const oy = (Math.random() - 0.5) * brushSize * 3;
+      ctx.fillStyle = currentColor;
+      ctx.fillRect(pos.x * canvas.width + ox, pos.y * canvas.height + oy, 1+Math.random()*2, 1+Math.random()*2);
+    }
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  lastX = pos.x;
+  lastY = pos.y;
+}
+
+function endDraw() {
+  if (!isDrawing || !currentStroke) { isDrawing = false; return; }
+  isDrawing = false;
+
+  if (currentStroke.points.length > 1) {
+    strokes.push(currentStroke);
+    localStrokes.push(strokes.length - 1);
+    pushStroke(currentStroke);
+  }
+  currentStroke = null;
+}
+
+// Text tool
+canvas.addEventListener('click', (e) => {
+  if (currentTool !== 'text') return;
+  const pos = getPos(e);
+  const text = prompt('Write on the wall:');
+  if (!text || !text.trim()) return;
+
+  const textStroke = {
+    type: 'text',
+    text: text.trim().substring(0, 80), // Max 80 chars
+    x: pos.x,
+    y: pos.y,
+    color: currentColor,
+    size: brushSize,
+    angle: (Math.random() - 0.5) * 2,
+    userId: userId,
+    timestamp: Date.now()
+  };
+
+  strokes.push(textStroke);
+  localStrokes.push(strokes.length - 1);
+  drawTextStroke(textStroke);
+  pushStroke(textStroke);
+  showStatus('Tagged the wall! 🤘');
+});
+
+// Mouse events
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+
+// Touch events
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); });
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+canvas.addEventListener('touchend', endDraw);
+
+// ── Firebase Sync ──
+function pushStroke(stroke) {
+  if (!firebaseReady || !db) return;
+  try {
+    db.ref('wall/strokes').push(stroke);
+  } catch(e) {
+    console.warn('Firebase push failed:', e);
+  }
+}
+
+function listenForStrokes() {
+  if (!firebaseReady || !db) return;
+
+  // Listen for new strokes from other users
+  db.ref('wall/strokes').orderByChild('timestamp').on('child_added', (snap) => {
+    const stroke = snap.val();
+    if (!stroke) return;
+    // Don't re-add our own strokes (we already have them locally)
+    if (stroke.userId === userId) return;
+
+    strokes.push(stroke);
+    if (stroke.type === 'text') {
+      drawTextStroke(stroke);
+    } else {
+      drawStroke(stroke);
+    }
+  });
+
+  // Presence system
+  const presenceRef = db.ref('wall/presence/' + userId);
+  presenceRef.set({ online: true, joinedAt: Date.now() });
+  presenceRef.onDisconnect().remove();
+
+  // Count online users
+  db.ref('wall/presence').on('value', (snap) => {
+    const count = snap.numChildren();
+    document.getElementById('count-num').textContent = count;
+  });
+}
+
+function loadExistingStrokes() {
+  if (!firebaseReady || !db) {
+    document.getElementById('loading').classList.add('hide');
+    showStatus('Local mode - Firebase not configured yet', 3000);
+    return;
+  }
+
+  db.ref('wall/strokes').orderByChild('timestamp').once('value', (snap) => {
+    const data = snap.val();
+    if (data) {
+      strokes = Object.values(data);
+      strokes.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      redrawAll();
+      showStatus(`Loaded ${strokes.length} marks on the wall`, 2000);
+    }
+    document.getElementById('loading').classList.add('hide');
+    listenForStrokes();
+  }).catch(() => {
+    document.getElementById('loading').classList.add('hide');
+    showStatus('Could not connect to Firebase', 3000);
+  });
+}
+
+// ── Toolbar Events ──
+document.querySelectorAll('.color-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentColor = btn.dataset.color;
+  });
+});
+
+document.getElementById('brushSize').addEventListener('input', (e) => {
+  brushSize = parseInt(e.target.value);
+});
+
+document.getElementById('btn-draw').addEventListener('click', () => {
+  currentTool = 'draw';
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-draw').classList.add('active');
+  canvas.style.cursor = 'crosshair';
+});
+
+document.getElementById('btn-spray').addEventListener('click', () => {
+  currentTool = 'spray';
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-spray').classList.add('active');
+  canvas.style.cursor = 'crosshair';
+});
+
+document.getElementById('btn-text').addEventListener('click', () => {
+  currentTool = 'text';
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-text').classList.add('active');
+  canvas.style.cursor = 'text';
+  showStatus('Click anywhere to write on the wall', 2000);
+});
+
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (localStrokes.length === 0) { showStatus('Nothing to undo'); return; }
+  const idx = localStrokes.pop();
+  strokes.splice(idx, 1);
+  redrawAll();
+  // Note: undo is local only - Firebase strokes persist
+  showStatus('Undone (local only)');
+});
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  // Create a merged canvas with background + drawings
+  const saveCanvas = document.createElement('canvas');
+  saveCanvas.width = canvas.width;
+  saveCanvas.height = canvas.height;
+  const saveCtx = saveCanvas.getContext('2d');
+
+  // Draw the wall background
+  const bg = document.getElementById('wall-bg');
+  saveCtx.drawImage(bg, 0, 0, saveCanvas.width, saveCanvas.height);
+
+  // Dark overlay
+  saveCtx.fillStyle = 'rgba(0,0,0,0.25)';
+  saveCtx.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
+
+  // Draw all strokes
+  saveCtx.drawImage(canvas, 0, 0);
+
+  // Watermark
+  saveCtx.font = '16px Creepster';
+  saveCtx.fillStyle = 'rgba(200,150,255,0.5)';
+  saveCtx.textAlign = 'center';
+  saveCtx.fillText('thejurn.com - The Pit Stop Wall', saveCanvas.width/2, saveCanvas.height - 15);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = 'pitstop-wall-' + Date.now() + '.png';
+  link.href = saveCanvas.toDataURL('image/png');
+  link.click();
+  showStatus('Wall saved! 📸');
+});
+
+// ── Initialize ──
+resizeCanvas();
+// Small delay to let background load
+setTimeout(() => {
+  loadExistingStrokes();
+}, 500);
+</script>
+</body>
+</html>
