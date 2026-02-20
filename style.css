@@ -809,6 +809,50 @@ footer .footer-links a:hover {
   color: #000;
 }
 
+
+/* Pit Stop Wall Section */
+.wall-section {
+  text-align: center;
+  padding: 3rem 2rem;
+  margin: 2rem auto;
+  max-width: 700px;
+}
+
+.wall-title {
+  font-family: 'Creepster', cursive;
+  font-size: 2rem;
+  color: var(--neon-purple);
+  text-shadow: 0 0 15px rgba(191, 0, 255, 0.4), 0 0 40px rgba(191, 0, 255, 0.15);
+  margin-bottom: 0.75rem;
+}
+
+.wall-desc {
+  color: var(--text-dim);
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.wall-btn {
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  font-family: 'Creepster', cursive;
+  font-size: 1.4rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--neon-purple), #8b00c2);
+  border-radius: 8px;
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(191, 0, 255, 0.3), 0 0 60px rgba(191, 0, 255, 0.1);
+}
+
+.wall-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 0 30px rgba(191, 0, 255, 0.5), 0 0 80px rgba(191, 0, 255, 0.2);
+  color: #fff;
+}
+
 /* Ko-fi Section */
 .kofi-section {
   text-align: center;
