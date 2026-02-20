@@ -885,6 +885,17 @@ footer .footer-links a:hover {
   transform: translateY(-2px);
 }
 
+
+.kofi-embed {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.kofi-embed iframe {
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(255, 94, 91, 0.15), 0 0 60px rgba(255, 94, 91, 0.05);
+}
+
 /* Ko-fi Card (Links page) */
 .kofi-card {
   border-color: #ff5e5b !important;
