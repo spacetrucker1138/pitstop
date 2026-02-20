@@ -297,7 +297,35 @@
       from { opacity: 0; transform: translateY(30px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── LEADERBOARD ── */
+    .leaderboard { margin: 15px auto; max-width: 280px; text-align: left; }
+    .leaderboard-row { display: flex; justify-content: space-between; padding: 4px 8px; font-family: 'Cinzel', serif; font-size: clamp(0.7rem, 1.5vw, 0.9rem); }
+    .leaderboard-row.gold { color: #ffd700; }
+    .leaderboard-row.silver { color: #c0c0c0; }
+    .leaderboard-row.bronze { color: #cd7f32; }
+    .leaderboard-row.normal { color: rgba(255,255,255,0.6); }
+    .leaderboard-row.highlight { color: #00ff88; font-weight: bold; }
+    .initials-entry { margin: 15px 0; }
+    .initials-entry input {
+      font-family: 'Creepster', cursive; font-size: 2rem; color: #00ff88;
+      background: transparent; border: none; border-bottom: 2px solid #00ff88;
+      text-align: center; width: 4ch; letter-spacing: 0.3em;
+      text-transform: uppercase; outline: none; caret-color: #00ff88;
+    }
+    .initials-label { color: rgba(255,255,255,0.6); font-family: 'Cinzel', serif; font-size: 0.85rem; margin-bottom: 8px; }
+    .initials-submit {
+      font-family: 'Creepster', cursive; font-size: 1.1rem; color: #00ff88;
+      background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.4);
+      padding: 6px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px;
+    }
+    .initials-submit:hover { background: rgba(0,255,136,0.25); }
+    .title-leaderboard { margin-top: 10px; }
+    .title-leaderboard-row { color: rgba(255,255,255,0.5); font-family: 'Cinzel', serif; font-size: clamp(0.6rem, 1.2vw, 0.75rem); }
+    .title-leaderboard-row.gold { color: #ffd700; }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 
 <body>
@@ -312,7 +340,7 @@
       <button class="start-btn" id="startBtn">START GAME</button>
       <button class="options-btn" id="optionsBtn">OPTIONS</button>
       <div class="title-scores">
-        BEST LEVEL: <span class="best" id="titleBestScore">1</span>
+        <div id="titleLeaderboard" class="title-leaderboard"></div>
       </div>
     </div>
   </div>
@@ -343,6 +371,12 @@
       <div class="gameover-title">GAME OVER</div>
       <div class="gameover-score" id="finalScore"></div>
       <div class="gameover-best" id="finalBest"></div>
+      <div id="initialsSection" class="initials-entry" style="display:none;">
+        <div class="initials-label">NEW HIGH SCORE! ENTER YOUR INITIALS:</div>
+        <input type="text" id="initialsInput" maxlength="3" autocomplete="off">
+        <br><button class="initials-submit" id="initialsSubmit">SUBMIT</button>
+      </div>
+      <div id="leaderboardSection" class="leaderboard" style="display:none;"></div>
       <button class="replay-btn" id="replayBtn">PLAY AGAIN</button>
     </div>
   </div>
@@ -598,18 +632,64 @@
     }
   }, { passive: false });
 
-  // ── LOCAL STORAGE ──
-  class ScoreStorage {
-    constructor() { this.key = "jurnbreakerBest"; }
-    getBest() { return parseInt(localStorage.getItem(this.key)) || 1; }
-    setBest(s) {
-      const best = Math.max(s, this.getBest());
-      localStorage.setItem(this.key, best);
-      return best;
+  // ── FIREBASE HIGH SCORES ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+    authDomain: "pitstop-wall.firebaseapp.com",
+    databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+    projectId: "pitstop-wall",
+    storageBucket: "pitstop-wall.firebasestorage.app",
+    messagingSenderId: "767668528451",
+    appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const hsRef = firebase.database().ref('highscores/jurnbreaker');
+  let cachedScores = [];
+
+  hsRef.orderByChild('level').limitToLast(10).on('value', snap => {
+    const data = snap.val();
+    cachedScores = data ? Object.values(data).sort((a, b) => b.level - a.level) : [];
+    updateTitleLeaderboard();
+  });
+
+  function updateTitleLeaderboard() {
+    const el = document.getElementById('titleLeaderboard');
+    if (!el || cachedScores.length === 0) {
+      if (el) el.innerHTML = '';
+      return;
     }
+    const top3 = cachedScores.slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+    el.innerHTML = '<div style="color:rgba(255,255,255,0.4);margin-bottom:4px;">TOP PLAYERS</div>' +
+      top3.map((s, i) => 
+        '<div class="title-leaderboard-row' + (i === 0 ? ' gold' : '') + '">' +
+        medals[i] + ' ' + (s.name||'???') + ' — Lvl ' + s.level + '</div>'
+      ).join('');
   }
 
-  const scoreStorage = new ScoreStorage();
+  function isHighScore(level) {
+    return cachedScores.length < 10 || level > (cachedScores[cachedScores.length-1]?.level || 0);
+  }
+
+  function saveHighScore(name, level) {
+    hsRef.push({ name: name, level: level, timestamp: Date.now() });
+  }
+
+  function renderLeaderboard(currentLevel) {
+    const section = document.getElementById('leaderboardSection');
+    const colors = ['gold', 'silver', 'bronze'];
+    section.innerHTML = cachedScores.slice(0, 10).map((s, i) => {
+      const cls = s.level === currentLevel && s.timestamp > Date.now() - 5000 ? 'highlight' : (colors[i] || 'normal');
+      return '<div class="leaderboard-row ' + cls + '"><span>' + (i+1) + '. ' + (s.name||'???') + '</span><span>Lvl ' + s.level + '</span></div>';
+    }).join('');
+    section.style.display = 'block';
+  }
+
+  // Compatibility shim so existing code still works
+  const scoreStorage = {
+    getBest() { return cachedScores.length > 0 ? cachedScores[0].level : 1; },
+    setBest(s) { return Math.max(s, this.getBest()); }
+  };
 
   // ── BALL CLASS ──
   const POWER = 0.3;
@@ -1097,7 +1177,7 @@
       this.vanSpeed = 1.2;
 
       // Show best score on title
-      document.getElementById('titleBestScore').textContent = this.state.bestLevel;
+      updateTitleLeaderboard();
 
       this.setupListeners();
     }
@@ -1260,13 +1340,40 @@
       canvas.style.cursor = 'default';
       audio.playGameOver();
 
-      const isNew = this.state.level > scoreStorage.getBest();
-      const best = scoreStorage.setBest(this.state.level);
+      const level = this.state.level;
+      const qualifying = isHighScore(level);
+      const best = scoreStorage.getBest();
 
-      document.getElementById('finalScore').textContent = `Level ${this.state.level}`;
-      document.getElementById('finalBest').textContent = isNew ? '🏆 NEW BEST!' : `Best: ${best}`;
-      if (isNew) document.getElementById('finalBest').classList.add('gameover-new');
+      document.getElementById('finalScore').textContent = `Level ${level}`;
+      document.getElementById('finalBest').textContent = level >= best ? '🏆 NEW BEST!' : `Best: Lvl ${best}`;
+      if (level >= best) document.getElementById('finalBest').classList.add('gameover-new');
       else document.getElementById('finalBest').classList.remove('gameover-new');
+
+      // Reset UI
+      document.getElementById('initialsSection').style.display = 'none';
+      document.getElementById('leaderboardSection').style.display = 'none';
+
+      if (qualifying) {
+        // Show initials entry
+        document.getElementById('initialsSection').style.display = 'block';
+        const input = document.getElementById('initialsInput');
+        input.value = '';
+        setTimeout(() => input.focus(), 500);
+
+        const submitFn = () => {
+          const name = input.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+          if (name.length === 0) return;
+          saveHighScore(name, level);
+          document.getElementById('initialsSection').style.display = 'none';
+          setTimeout(() => renderLeaderboard(level), 500);
+        };
+
+        document.getElementById('initialsSubmit').onclick = submitFn;
+        input.onkeydown = (e) => { if (e.key === 'Enter') submitFn(); };
+      } else {
+        // Show leaderboard directly
+        renderLeaderboard(level);
+      }
 
       setTimeout(() => {
         document.getElementById('gameOverScreen').classList.add('active');

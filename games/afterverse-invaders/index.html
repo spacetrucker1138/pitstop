@@ -49,6 +49,8 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
 }
 #logo-watermark img { width: 180px; height: auto; filter: drop-shadow(0 0 8px rgba(191,0,255,0.3)); }
 </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <video id="bg-video" autoplay muted loop playsinline style="position:fixed;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);z-index:-1;opacity:0.25;object-fit:cover;pointer-events:none;">
@@ -220,21 +222,39 @@ const NOTES = ['♩','♪','♫','♬','🎵','🎶'];
 const NOTE_COLORS = ['#39ff14','#00ff88','#7fff00','#adff2f','#00ffcc','#39ff14'];
 
 // === HIGH SCORE SYSTEM ===
-const HS_KEY = 'afterverse_invaders_highscores';
+// Firebase High Scores
+const firebaseConfig = {
+  apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+  authDomain: "pitstop-wall.firebaseapp.com",
+  databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+  projectId: "pitstop-wall",
+  storageBucket: "pitstop-wall.firebasestorage.app",
+  messagingSenderId: "767668528451",
+  appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+};
+firebase.initializeApp(firebaseConfig);
+const hsRef = firebase.database().ref('highscores/afterverse');
+
+let cachedScores = [];
+
+// Listen for real-time score updates
+hsRef.orderByChild('score').limitToLast(10).on('value', snap => {
+  const data = snap.val();
+  if (data) {
+    cachedScores = Object.values(data).sort((a, b) => b.score - a.score);
+  } else {
+    cachedScores = [];
+  }
+});
+
 function getHighScores() {
-  try { return JSON.parse(localStorage.getItem(HS_KEY)) || []; } catch(e) { return []; }
+  return cachedScores;
 }
 function saveHighScore(name, sc) {
-  let scores = getHighScores();
-  scores.push({ name: name.toUpperCase().slice(0,3), score: sc, date: new Date().toISOString().slice(0,10) });
-  scores.sort((a,b) => b.score - a.score);
-  scores = scores.slice(0, 10);
-  localStorage.setItem(HS_KEY, JSON.stringify(scores));
-  return scores;
+  hsRef.push({ name: name, score: sc, timestamp: Date.now() });
 }
 function isHighScore(sc) {
-  const scores = getHighScores();
-  return scores.length < 10 || sc > (scores[scores.length-1]?.score || 0);
+  return cachedScores.length < 10 || sc > (cachedScores[cachedScores.length-1]?.score || 0);
 }
 
 // === GAME STATE ===

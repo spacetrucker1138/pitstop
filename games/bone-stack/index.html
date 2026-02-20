@@ -10,6 +10,8 @@
 body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
 canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; touch-action: none; background: transparent; }
 </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <video id="bg-video" autoplay muted loop playsinline style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;opacity:0.3;object-fit:contain;pointer-events:none;">
@@ -256,7 +258,36 @@ let particles = [];
 let countdownNum = 3, countdownTimer = 0;
 
 // Load best
-try { bestScore = parseInt(localStorage.getItem('bonestack_best')) || 0; } catch(e) {}
+// Firebase High Scores
+const firebaseConfig = {
+  apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+  authDomain: "pitstop-wall.firebaseapp.com",
+  databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+  projectId: "pitstop-wall",
+  storageBucket: "pitstop-wall.firebasestorage.app",
+  messagingSenderId: "767668528451",
+  appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+};
+firebase.initializeApp(firebaseConfig);
+const hsRef = firebase.database().ref('highscores/gutstackers');
+let cachedScores = [];
+
+hsRef.orderByChild('score').limitToLast(10).on('value', snap => {
+  const data = snap.val();
+  cachedScores = data ? Object.values(data).sort((a, b) => b.score - a.score) : [];
+  bestScore = cachedScores.length > 0 ? cachedScores[0].score : 0;
+});
+
+function fbIsHighScore(sc) {
+  return sc > 0 && (cachedScores.length < 10 || sc > (cachedScores[cachedScores.length-1]?.score || 0));
+}
+function fbSaveHighScore(name, sc) {
+  hsRef.push({ name: name, score: sc, level: level, timestamp: Date.now() });
+}
+
+let hsInitials = '';
+let hsCursorBlink = 0;
+let hsCurrentScore = 0
 
 function createBoard() {
   board = [];
@@ -277,9 +308,16 @@ function spawnPiece() {
   pieceX = Math.floor((COLS - piece.shape[0].length) / 2);
   pieceY = 0;
   if (collides(piece.shape, pieceX, pieceY)) {
-    state = 'gameover';
     audio.gameOver();
-    if (score > bestScore) { bestScore = score; try { localStorage.setItem('bonestack_best', bestScore); } catch(e) {} }
+    hsCurrentScore = score;
+    if (fbIsHighScore(score)) {
+      state = 'highscore_entry';
+      hsInitials = '';
+      hsCursorBlink = 0;
+    } else {
+      state = 'gameover';
+    }
+    if (score > bestScore) { bestScore = score; }
   }
 }
 
@@ -404,6 +442,20 @@ let keyTimer = {};
 document.addEventListener('keydown', e => {
   if (e.key === 'm' || e.key === 'M') { audio.muted = !audio.muted; return; }
   if (state === 'title' && (e.key === 'e' || e.key === 'E' || e.key === ' ')) { startGame(); return; }
+  if (state === 'highscore_entry') {
+    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key) && hsInitials.length < 3) {
+      hsInitials += e.key.toUpperCase();
+    }
+    if (e.key === 'Backspace' && hsInitials.length > 0) {
+      hsInitials = hsInitials.slice(0, -1);
+    }
+    if (e.key === 'Enter' && hsInitials.length > 0) {
+      fbSaveHighScore(hsInitials, hsCurrentScore);
+      state = 'highscore_display';
+    }
+    return;
+  }
+  if (state === 'highscore_display' && (e.key === 'e' || e.key === 'E' || e.key === ' ')) { state = 'title'; return; }
   if (state === 'gameover' && (e.key === 'e' || e.key === 'E' || e.key === ' ')) { state = 'title'; return; }
   if (state === 'playing' && (e.key === 'p' || e.key === 'P' || e.key === 'Escape')) { state = 'paused'; return; }
   if (state === 'paused' && (e.key === 'p' || e.key === 'P' || e.key === 'Escape')) { state = 'playing'; return; }
@@ -428,7 +480,7 @@ canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   audio.resume();
   if (state === 'title') { startGame(); return; }
-  if (state === 'gameover') { state = 'title'; return; }
+  if (state === 'gameover' || state === 'highscore_display') { state = 'title'; return; }
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
   touchMoved = false;
@@ -456,7 +508,7 @@ canvas.addEventListener('touchend', e => {
 canvas.addEventListener('click', () => {
   audio.resume();
   if (state === 'title') startGame();
-  if (state === 'gameover') state = 'title';
+  if (state === 'gameover' || state === 'highscore_display') state = 'title';
 });
 
 function startGame() {
@@ -539,7 +591,18 @@ function drawTitle() {
   ctx.fillStyle = '#c084fc';
   ctx.fillText('Stack the guts. Feed the pile.', W/2, 265);
 
-  if (bestScore > 0) {
+  if (cachedScores.length > 0) {
+    const medals = ['🥇', '🥈', '🥉'];
+    ctx.font = '16px Creepster';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('TOP PLAYERS', W/2, 300);
+    const top3 = cachedScores.slice(0, 3);
+    for (let i = 0; i < top3.length; i++) {
+      ctx.fillStyle = i === 0 ? '#ffd700' : (i === 1 ? '#c0c0c0' : '#cd7f32');
+      ctx.font = '15px Creepster';
+      ctx.fillText(medals[i] + ' ' + (top3[i].name||'???') + ' — ' + top3[i].score.toLocaleString(), W/2, 325 + i * 24);
+    }
+  } else if (bestScore > 0) {
     ctx.font = '20px Creepster';
     ctx.fillStyle = '#eab308';
     ctx.fillText('🏆 Best: ' + bestScore, W/2, 310);
@@ -561,6 +624,85 @@ function drawTitle() {
   ctx.font = '14px Creepster';
   ctx.fillStyle = 'rgba(168,85,247,0.6)';
   ctx.fillText('☠ A JURN Production ☠', W/2, H - 25);
+
+  drawMuteIndicator();
+}
+
+
+function drawHighScoreEntry() {
+  ctx.fillStyle = 'rgba(10,10,10,0.88)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.font = '42px Creepster';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#eab308';
+  ctx.shadowColor = '#eab308';
+  ctx.shadowBlur = 20;
+  ctx.fillText('HIGH SCORE!', W/2, 160);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '24px Creepster';
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('Score: ' + hsCurrentScore, W/2, 210);
+
+  ctx.font = '18px Creepster';
+  ctx.fillStyle = '#c084fc';
+  ctx.fillText('Enter your initials:', W/2, 270);
+
+  // Draw initials boxes
+  hsCursorBlink += 0.05;
+  const displayStr = hsInitials.padEnd(3, '_');
+  ctx.font = '40px Creepster';
+  for (let i = 0; i < 3; i++) {
+    const ch = displayStr[i];
+    const isActive = i === hsInitials.length && ch === '_';
+    const x = W/2 - 60 + i * 50;
+    ctx.fillStyle = isActive ? (Math.sin(hsCursorBlink*6) > 0 ? '#00ff88' : '#0a0a0a') : '#00ff88';
+    ctx.fillText(ch, x, 340);
+  }
+
+  ctx.font = '16px Creepster';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText('Press ENTER to submit', W/2, 400);
+
+  drawMuteIndicator();
+}
+
+function drawHighScoreDisplay() {
+  ctx.fillStyle = 'rgba(10,10,10,0.92)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.font = '36px Creepster';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#a855f7';
+  ctx.shadowColor = '#a855f7';
+  ctx.shadowBlur = 20;
+  ctx.fillText('LEADERBOARD', W/2, 100);
+  ctx.shadowBlur = 0;
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const colors = ['#ffd700', '#c0c0c0', '#cd7f32'];
+  const top = cachedScores.slice(0, 10);
+  for (let i = 0; i < top.length; i++) {
+    const s = top[i];
+    const y = 155 + i * 36;
+    const isNew = s.score === hsCurrentScore && s.timestamp > Date.now() - 5000;
+    ctx.font = '18px Creepster';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = isNew ? '#00ff88' : (colors[i] || 'rgba(255,255,255,0.6)');
+    const medal = medals[i] || (i+1) + '.';
+    ctx.fillText(medal + ' ' + (s.name||'???'), W/2 - 110, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(s.score.toLocaleString(), W/2 + 110, y);
+  }
+
+  const t = Date.now()/1000;
+  ctx.globalAlpha = Math.sin(t*3)*0.3+0.7;
+  ctx.font = '20px Creepster';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#c084fc';
+  ctx.fillText('Press E or Tap to Continue', W/2, 540);
+  ctx.globalAlpha = 1;
 
   drawMuteIndicator();
 }
