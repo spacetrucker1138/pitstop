@@ -275,6 +275,29 @@
 <!-- Status -->
 <div id="status"></div>
 
+<!-- Calculator Easter Egg -->
+<img id="calc-floor" src="calculator.png" alt="">
+<div id="calc-overlay">
+  <div id="calc-popup">
+    <img src="calculator_zoom.png" alt="">
+    <div id="calc-screen">_</div>
+    <div id="calc-keypad">
+      <button class="calc-key" data-val="7">7</button>
+      <button class="calc-key" data-val="8">8</button>
+      <button class="calc-key" data-val="9">9</button>
+      <button class="calc-key key-clear" data-val="C">C</button>
+      <button class="calc-key" data-val="4">4</button>
+      <button class="calc-key" data-val="5">5</button>
+      <button class="calc-key" data-val="6">6</button>
+      <button class="calc-key" data-val="0">0</button>
+      <button class="calc-key" data-val="1">1</button>
+      <button class="calc-key" data-val="2">2</button>
+      <button class="calc-key" data-val="3">3</button>
+      <button class="calc-key key-enter" data-val="OK">OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toolbar -->
 <div id="toolbar">
   <!-- Colors -->
@@ -300,6 +323,7 @@
   <button class="tool-btn active" id="btn-draw" title="Draw">✏️ Draw</button>
   <button class="tool-btn" id="btn-spray" title="Spray paint">🎨 Spray</button>
   <button class="tool-btn" id="btn-text" title="Type text on wall">💬 Text</button>
+  <button class="tool-btn" id="btn-eraser" title="Eraser">🧹 Eraser</button>
 
   <div class="separator"></div>
 
@@ -311,7 +335,125 @@
 <div id="credit">☠ A JURN Production ☠</div>
 
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+// ── Calculator Easter Egg ──
+const calcFloor = document.getElementById('calc-floor');
+const calcOverlay = document.getElementById('calc-overlay');
+const calcPopup = document.getElementById('calc-popup');
+const calcScreen = document.getElementById('calc-screen');
+let calcCode = '';
+let eraserUnlocked = false;
+if (sessionStorage.getItem('eraserUnlocked')) {
+  eraserUnlocked = true;
+  document.getElementById('btn-eraser').classList.add('unlocked');
+  calcFloor.style.display = 'none';
+}
+calcFloor.addEventListener('click', (e) => {
+  e.stopPropagation();
+  calcCode = ''; calcScreen.textContent = '_'; calcScreen.style.color = '#1a1a1a';
+  calcOverlay.classList.add('active');
+});
+calcOverlay.addEventListener('click', (e) => {
+  if (e.target === calcOverlay) calcOverlay.classList.remove('active');
+});
+document.querySelectorAll('.calc-key').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const v = btn.dataset.val;
+    if (v === 'C') { calcCode=''; calcScreen.textContent='_'; calcScreen.style.color='#1a1a1a'; return; }
+    if (v === 'OK') { checkCalcCode(); return; }
+    if (calcCode.length < 6) { calcCode += v; calcScreen.textContent = calcCode; }
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (!calcOverlay.classList.contains('active')) return;
+  e.stopPropagation(); e.preventDefault();
+  if (e.key >= '0' && e.key <= '9' && calcCode.length < 6) { calcCode += e.key; calcScreen.textContent = calcCode; }
+  else if (e.key === 'Backspace') { calcCode = calcCode.slice(0,-1); calcScreen.textContent = calcCode || '_'; }
+  else if (e.key === 'Enter') checkCalcCode();
+  else if (e.key === 'Escape') calcOverlay.classList.remove('active');
+});
+function checkCalcCode() {
+  if (calcCode === '1138') {
+    playRobotHappy();
+    calcScreen.textContent = '\u2713'; calcScreen.style.color = '#22cc44';
+    setTimeout(() => {
+      calcOverlay.classList.remove('active'); calcScreen.style.color = '#1a1a1a';
+      eraserUnlocked = true; sessionStorage.setItem('eraserUnlocked','true');
+      document.getElementById('btn-eraser').classList.add('unlocked');
+      calcFloor.style.display = 'none';
+    }, 800);
+  } else {
+    playSynthFart();
+    calcPopup.classList.add('shake');
+    calcScreen.textContent = 'NOPE'; calcScreen.style.color = '#ff3333';
+    setTimeout(() => { calcPopup.classList.remove('shake'); calcCode=''; calcScreen.textContent='_'; calcScreen.style.color='#1a1a1a'; }, 700);
+    setTimeout(() => { calcOverlay.classList.remove('active'); }, 1000);
+  }
+}
+function playRobotHappy() {
+  try {
+    const a = new (window.AudioContext||window.webkitAudioContext)();
+    [440,554,659,880,1100].forEach((f,i) => {
+      const o=a.createOscillator(),g=a.createGain(); o.type='square'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.1,a.currentTime+i*0.08);
+      g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+i*0.08+0.12);
+      o.connect(g).connect(a.destination); o.start(a.currentTime+i*0.08); o.stop(a.currentTime+i*0.08+0.12);
+    });
+    const o2=a.createOscillator(),g2=a.createGain(); o2.type='sine';
+    o2.frequency.setValueAtTime(800,a.currentTime+0.45); o2.frequency.linearRampToValueAtTime(1500,a.currentTime+0.65);
+    g2.gain.setValueAtTime(0.08,a.currentTime+0.45); g2.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.75);
+    o2.connect(g2).connect(a.destination); o2.start(a.currentTime+0.45); o2.stop(a.currentTime+0.75);
+  } catch(e){}
+}
+function playSynthFart() {
+  try {
+    const a = new (window.AudioContext||window.webkitAudioContext)();
+    const o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
+    o.type='sawtooth'; o.frequency.setValueAtTime(180,a.currentTime); o.frequency.exponentialRampToValueAtTime(45,a.currentTime+0.4);
+    f.type='lowpass'; f.frequency.setValueAtTime(500,a.currentTime); f.frequency.exponentialRampToValueAtTime(60,a.currentTime+0.4); f.Q.value=5;
+    g.gain.setValueAtTime(0.18,a.currentTime); g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.45);
+    o.connect(f).connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+0.45);
+    const s=a.createOscillator(),sg=a.createGain(); s.type='sine';
+    s.frequency.setValueAtTime(55,a.currentTime); s.frequency.exponentialRampToValueAtTime(22,a.currentTime+0.3);
+    sg.gain.setValueAtTime(0.12,a.currentTime); sg.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.35);
+    s.connect(sg).connect(a.destination); s.start(); s.stop(a.currentTime+0.35);
+  } catch(e){}
+}
+
+// ── Eraser Tool ──
+document.getElementById('btn-eraser').addEventListener('click', () => {
+  if (!eraserUnlocked) return;
+  currentTool = 'eraser';
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-eraser').classList.add('active');
+  canvas.style.cursor = 'cell';
+});
+function eraseAtPoint(e) {
+  const pos = getPos(e);
+  const er = (brushSize * 2) / Math.max(canvas.width, canvas.height);
+  const sRef = db.ref('wall/strokes');
+  sRef.once('value', (snap) => {
+    const all = snap.val(); if (!all) return;
+    Object.keys(all).forEach(k => {
+      if (strokeHit(all[k], pos, er)) sRef.child(k).remove();
+    });
+  });
+}
+function strokeHit(s, pos, r) {
+  if (s.tool === 'text') {
+    const dx=(s.x||0)-pos.x, dy=(s.y||0)-pos.y;
+    return Math.sqrt(dx*dx+dy*dy) < r*2.5;
+  }
+  if (!s.points) return false;
+  for (let i=0; i<s.points.length; i++) {
+    const dx=s.points[i].x-pos.x, dy=s.points[i].y-pos.y;
+    if (Math.sqrt(dx*dx+dy*dy)<r) return true;
+  }
+  return false;
+}
+
+</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
@@ -462,6 +604,7 @@ function getPos(e) {
 
 function startDraw(e) {
   if (currentTool === 'text') return;
+  if (currentTool === 'eraser') { isDrawing = true; eraseAtPoint(e); return; }
   isDrawing = true;
   const pos = getPos(e);
   lastX = pos.x;
