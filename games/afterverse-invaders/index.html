@@ -11,16 +11,13 @@ body {
   background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; font-family: 'Creepster', cursive; overflow: hidden;
 }
-#game-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+#game-wrapper {
+  display: inline-block;
+  transform-origin: top center;
 }
-canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 0 0 30px rgba(57,255,20,0.1), 0 0 60px rgba(0,0,0,0.5); }
 #ui {
-  position: absolute; top: 0; left: 0; right: 0; width: 616px; display: flex; justify-content: space-between; padding: 15px 20px;
+  position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 15px 20px;
   pointer-events: none; z-index: 10;
 }
 .score-label { color: #39ff14; font-size: 1.4rem; text-shadow: 0 0 10px rgba(57,255,20,0.5); letter-spacing: 2px; }
@@ -70,7 +67,8 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
     <div class="lives-label" style="color:#00e5ff;">🛡️ <span id="shieldCount">0</span></div>
   </div>
 </div>
-<div id="game-container"><canvas id="game" style="display:none;"></canvas><div id="ui" style="display:none;">
+<div id="game-wrapper"><canvas id="game" style="display:none;"></canvas></div>
+<div id="ui" style="display:none;">
   <div>
     <div class="score-label">SCORE: <span id="score">0</span></div>
     <div class="ghost-counter">👻 <span id="ghostKills">0</span>/3</div>
@@ -104,27 +102,20 @@ function resize() {
   W = BASE_W; H = BASE_H;
   canvas.width = W; canvas.height = H;
 
-  // Scale canvas to fill viewport (up to 2x)
+  // Scale to fill viewport, cap at 1.8x
   const maxW = window.innerWidth - 20;
-  const maxH = window.innerHeight - 80;
+  const maxH = window.innerHeight - 100;
   const scaleX = maxW / BASE_W;
   const scaleY = maxH / BASE_H;
-  canvasScale = Math.min(scaleX, scaleY, 2);
+  canvasScale = Math.min(scaleX, scaleY, 1.8);
 
-  canvas.style.transformOrigin = 'top center';
-  canvas.style.transform = `scale(${canvasScale})`;
-
-  // Adjust container to account for scaled size
-  const container = document.getElementById('game-container');
-  if (container) {
-    container.style.width = (BASE_W * canvasScale) + 'px';
-    container.style.height = (BASE_H * canvasScale) + 'px';
-  }
-  // Scale UI overlay to match canvas
-  const uiOverlay = document.getElementById('ui');
-  if (uiOverlay) {
-    uiOverlay.style.transformOrigin = 'top left';
-    uiOverlay.style.transform = `scale(${canvasScale})`;
+  const wrapper = document.getElementById('game-wrapper');
+  if (wrapper) {
+    wrapper.style.transform = `scale(${canvasScale})`;
+    wrapper.style.width = BASE_W + 'px';
+    wrapper.style.height = BASE_H + 'px';
+    wrapper.style.marginBottom = ((BASE_H * canvasScale) - BASE_H) + 'px';
+    wrapper.style.marginRight = ((BASE_W * canvasScale) - BASE_W) + 'px';
   }
 }
 resize();
