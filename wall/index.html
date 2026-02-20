@@ -1009,9 +1009,10 @@ function eraseAtPoint(e) {
 }
 
 function strokeHit(s, pos, r) {
-  if (s.tool === 'text') {
+  if (s.type === 'text' || s.tool === 'text') {
     var dx = (s.x || 0) - pos.x, dy = (s.y || 0) - pos.y;
-    return Math.sqrt(dx * dx + dy * dy) < r * 2.5;
+    var textR = Math.max(r * 3, 0.06);
+    return Math.sqrt(dx * dx + dy * dy) < textR;
   }
   if (!s.points) return false;
   for (var i = 0; i < s.points.length; i++) {
