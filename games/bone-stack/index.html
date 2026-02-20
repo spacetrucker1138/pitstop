@@ -789,6 +789,14 @@ function render() {
   }
 
   if (state === 'title') { drawTitle(); return; }
+  if (state === 'highscore_entry') {
+    drawHighScoreEntry();
+    return;
+  }
+  if (state === 'highscore_display') {
+    drawHighScoreDisplay();
+    return;
+  }
   if (state === 'gameover') {
     // Draw board behind overlay
     drawBoard();
