@@ -11,9 +11,16 @@ body {
   background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; font-family: 'Creepster', cursive; overflow: hidden;
 }
+#game-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 0 0 30px rgba(57,255,20,0.1), 0 0 60px rgba(0,0,0,0.5); }
 #ui {
-  position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 15px 20px;
+  position: absolute; top: 0; left: 0; right: 0; width: 616px; display: flex; justify-content: space-between; padding: 15px 20px;
   pointer-events: none; z-index: 10;
 }
 .score-label { color: #39ff14; font-size: 1.4rem; text-shadow: 0 0 10px rgba(57,255,20,0.5); letter-spacing: 2px; }
@@ -57,17 +64,17 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
   <source src="animatedbackground.mp4" type="video/mp4">
 </video>
 <div id="loading">Loading the tour van...</div>
-<div id="ui" style="display:none;">
-  <div>
-    <div class="score-label">SCORE: <span id="score">0</span></div>
-    <div class="ghost-counter">👻 <span id="ghostKills">0</span>/3</div>
-  </div>
+
   <div style="display:flex;gap:12px;align-items:center;">
     <div class="lives-label">LIVES: <span id="lives">3</span></div>
     <div class="lives-label" style="color:#00e5ff;">🛡️ <span id="shieldCount">0</span></div>
   </div>
 </div>
-<canvas id="game" style="display:none;"></canvas>
+<div id="game-container"><canvas id="game" style="display:none;"></canvas><div id="ui" style="display:none;">
+  <div>
+    <div class="score-label">SCORE: <span id="score">0</span></div>
+    <div class="ghost-counter">👻 <span id="ghostKills">0</span>/3</div>
+  </div></div>
 <div id="mobile-controls">
   <div class="m-row">
     <div class="m-btn" id="m-left">◀</div>
@@ -89,13 +96,39 @@ const shieldCountEl = document.getElementById('shieldCount');
 const loadingEl = document.getElementById('loading');
 const uiEl = document.getElementById('ui');
 
-let W, H;
+const BASE_W = 616, BASE_H = 704;
+let W = BASE_W, H = BASE_H;
+let canvasScale = 1;
+
 function resize() {
-  W = Math.min(window.innerWidth - 20, 616);
-  H = Math.min(window.innerHeight - 80, 704);
+  W = BASE_W; H = BASE_H;
   canvas.width = W; canvas.height = H;
+
+  // Scale canvas to fill viewport (up to 2x)
+  const maxW = window.innerWidth - 20;
+  const maxH = window.innerHeight - 80;
+  const scaleX = maxW / BASE_W;
+  const scaleY = maxH / BASE_H;
+  canvasScale = Math.min(scaleX, scaleY, 2);
+
+  canvas.style.transformOrigin = 'top center';
+  canvas.style.transform = `scale(${canvasScale})`;
+
+  // Adjust container to account for scaled size
+  const container = document.getElementById('game-container');
+  if (container) {
+    container.style.width = (BASE_W * canvasScale) + 'px';
+    container.style.height = (BASE_H * canvasScale) + 'px';
+  }
+  // Scale UI overlay to match canvas
+  const uiOverlay = document.getElementById('ui');
+  if (uiOverlay) {
+    uiOverlay.style.transformOrigin = 'top left';
+    uiOverlay.style.transform = `scale(${canvasScale})`;
+  }
 }
 resize();
+window.addEventListener('resize', resize);
 
 // === AUDIO ===
 // Boss entrance — synth fart barrage (no MP3 dependency)
