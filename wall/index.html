@@ -242,6 +242,103 @@
     .tool-btn { font-size: 11px; padding: 4px 8px; }
     .size-slider { width: 60px; }
   }
+
+  /* Calculator easter egg — hidden under the sinks */
+  #calc-floor {
+    position: fixed;
+    bottom: 90px;
+    left: 35px;
+    width: 40px;
+    z-index: 5;
+    cursor: pointer;
+    transform: rotate(-15deg);
+    filter: brightness(0.4) drop-shadow(1px 2px 2px rgba(0,0,0,0.9));
+    transition: transform 0.2s, opacity 0.2s, filter 0.2s;
+    opacity: 0.45;
+  }
+  #calc-floor:hover {
+    transform: rotate(-10deg) scale(1.15);
+    opacity: 0.75;
+    filter: brightness(0.6) drop-shadow(0 0 6px rgba(106,13,173,0.3));
+  }
+  #calc-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  #calc-overlay.active { display: flex; }
+  #calc-popup {
+    position: relative;
+    width: 260px;
+    height: 390px;
+  }
+  #calc-popup img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 30px rgba(106,13,173,0.5));
+  }
+  #calc-screen {
+    position: absolute;
+    top: 36px; left: 55px;
+    width: 150px; height: 34px;
+    background: rgba(145,165,120,0.92);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 26px;
+    font-weight: bold;
+    color: #1a1a1a;
+    letter-spacing: 3px;
+    overflow: hidden;
+  }
+  #calc-keypad {
+    position: absolute;
+    top: 88px; left: 42px;
+    width: 178px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+  }
+  .calc-key {
+    width: 38px; height: 30px;
+    border: none; border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px; font-weight: bold;
+    cursor: pointer;
+    background: rgba(30,30,30,0.01);
+    color: transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .calc-key:hover {
+    background: rgba(60,60,60,0.5);
+    color: rgba(200,200,200,0.8);
+  }
+  .calc-key.key-enter { color: transparent; }
+  .calc-key.key-enter:hover { background: rgba(50,120,50,0.5); color: rgba(140,255,140,0.8); }
+  .calc-key.key-clear { color: transparent; }
+  .calc-key.key-clear:hover { background: rgba(140,40,40,0.5); color: rgba(255,140,140,0.8); }
+  #calc-popup.shake { animation: calcShake 0.5s; }
+  @keyframes calcShake {
+    0%,100% { transform: translateX(0); }
+    10%,50%,90% { transform: translateX(-8px); }
+    30%,70% { transform: translateX(8px); }
+  }
+  #btn-eraser {
+    display: none !important;
+  }
+  #btn-eraser.unlocked {
+    display: inline-flex !important;
+  }
+
 </style>
 </head>
 <body>
@@ -335,125 +432,7 @@
 <div id="credit">☠ A JURN Production ☠</div>
 
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
-// ── Calculator Easter Egg ──
-const calcFloor = document.getElementById('calc-floor');
-const calcOverlay = document.getElementById('calc-overlay');
-const calcPopup = document.getElementById('calc-popup');
-const calcScreen = document.getElementById('calc-screen');
-let calcCode = '';
-let eraserUnlocked = false;
-if (sessionStorage.getItem('eraserUnlocked')) {
-  eraserUnlocked = true;
-  document.getElementById('btn-eraser').classList.add('unlocked');
-  calcFloor.style.display = 'none';
-}
-calcFloor.addEventListener('click', (e) => {
-  e.stopPropagation();
-  calcCode = ''; calcScreen.textContent = '_'; calcScreen.style.color = '#1a1a1a';
-  calcOverlay.classList.add('active');
-});
-calcOverlay.addEventListener('click', (e) => {
-  if (e.target === calcOverlay) calcOverlay.classList.remove('active');
-});
-document.querySelectorAll('.calc-key').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const v = btn.dataset.val;
-    if (v === 'C') { calcCode=''; calcScreen.textContent='_'; calcScreen.style.color='#1a1a1a'; return; }
-    if (v === 'OK') { checkCalcCode(); return; }
-    if (calcCode.length < 6) { calcCode += v; calcScreen.textContent = calcCode; }
-  });
-});
-document.addEventListener('keydown', (e) => {
-  if (!calcOverlay.classList.contains('active')) return;
-  e.stopPropagation(); e.preventDefault();
-  if (e.key >= '0' && e.key <= '9' && calcCode.length < 6) { calcCode += e.key; calcScreen.textContent = calcCode; }
-  else if (e.key === 'Backspace') { calcCode = calcCode.slice(0,-1); calcScreen.textContent = calcCode || '_'; }
-  else if (e.key === 'Enter') checkCalcCode();
-  else if (e.key === 'Escape') calcOverlay.classList.remove('active');
-});
-function checkCalcCode() {
-  if (calcCode === '1138') {
-    playRobotHappy();
-    calcScreen.textContent = '\u2713'; calcScreen.style.color = '#22cc44';
-    setTimeout(() => {
-      calcOverlay.classList.remove('active'); calcScreen.style.color = '#1a1a1a';
-      eraserUnlocked = true; sessionStorage.setItem('eraserUnlocked','true');
-      document.getElementById('btn-eraser').classList.add('unlocked');
-      calcFloor.style.display = 'none';
-    }, 800);
-  } else {
-    playSynthFart();
-    calcPopup.classList.add('shake');
-    calcScreen.textContent = 'NOPE'; calcScreen.style.color = '#ff3333';
-    setTimeout(() => { calcPopup.classList.remove('shake'); calcCode=''; calcScreen.textContent='_'; calcScreen.style.color='#1a1a1a'; }, 700);
-    setTimeout(() => { calcOverlay.classList.remove('active'); }, 1000);
-  }
-}
-function playRobotHappy() {
-  try {
-    const a = new (window.AudioContext||window.webkitAudioContext)();
-    [440,554,659,880,1100].forEach((f,i) => {
-      const o=a.createOscillator(),g=a.createGain(); o.type='square'; o.frequency.value=f;
-      g.gain.setValueAtTime(0.1,a.currentTime+i*0.08);
-      g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+i*0.08+0.12);
-      o.connect(g).connect(a.destination); o.start(a.currentTime+i*0.08); o.stop(a.currentTime+i*0.08+0.12);
-    });
-    const o2=a.createOscillator(),g2=a.createGain(); o2.type='sine';
-    o2.frequency.setValueAtTime(800,a.currentTime+0.45); o2.frequency.linearRampToValueAtTime(1500,a.currentTime+0.65);
-    g2.gain.setValueAtTime(0.08,a.currentTime+0.45); g2.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.75);
-    o2.connect(g2).connect(a.destination); o2.start(a.currentTime+0.45); o2.stop(a.currentTime+0.75);
-  } catch(e){}
-}
-function playSynthFart() {
-  try {
-    const a = new (window.AudioContext||window.webkitAudioContext)();
-    const o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
-    o.type='sawtooth'; o.frequency.setValueAtTime(180,a.currentTime); o.frequency.exponentialRampToValueAtTime(45,a.currentTime+0.4);
-    f.type='lowpass'; f.frequency.setValueAtTime(500,a.currentTime); f.frequency.exponentialRampToValueAtTime(60,a.currentTime+0.4); f.Q.value=5;
-    g.gain.setValueAtTime(0.18,a.currentTime); g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.45);
-    o.connect(f).connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+0.45);
-    const s=a.createOscillator(),sg=a.createGain(); s.type='sine';
-    s.frequency.setValueAtTime(55,a.currentTime); s.frequency.exponentialRampToValueAtTime(22,a.currentTime+0.3);
-    sg.gain.setValueAtTime(0.12,a.currentTime); sg.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.35);
-    s.connect(sg).connect(a.destination); s.start(); s.stop(a.currentTime+0.35);
-  } catch(e){}
-}
-
-// ── Eraser Tool ──
-document.getElementById('btn-eraser').addEventListener('click', () => {
-  if (!eraserUnlocked) return;
-  currentTool = 'eraser';
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-eraser').classList.add('active');
-  canvas.style.cursor = 'cell';
-});
-function eraseAtPoint(e) {
-  const pos = getPos(e);
-  const er = (brushSize * 2) / Math.max(canvas.width, canvas.height);
-  const sRef = db.ref('wall/strokes');
-  sRef.once('value', (snap) => {
-    const all = snap.val(); if (!all) return;
-    Object.keys(all).forEach(k => {
-      if (strokeHit(all[k], pos, er)) sRef.child(k).remove();
-    });
-  });
-}
-function strokeHit(s, pos, r) {
-  if (s.tool === 'text') {
-    const dx=(s.x||0)-pos.x, dy=(s.y||0)-pos.y;
-    return Math.sqrt(dx*dx+dy*dy) < r*2.5;
-  }
-  if (!s.points) return false;
-  for (let i=0; i<s.points.length; i++) {
-    const dx=s.points[i].x-pos.x, dy=s.points[i].y-pos.y;
-    if (Math.sqrt(dx*dx+dy*dy)<r) return true;
-  }
-  return false;
-}
-
-</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
@@ -847,6 +826,172 @@ resizeCanvas();
 setTimeout(() => {
   loadExistingStrokes();
 }, 500);
+
+// ── Calculator Easter Egg ──
+(function() {
+  const calcFloor = document.getElementById('calc-floor');
+  const calcOverlay = document.getElementById('calc-overlay');
+  const calcPopup = document.getElementById('calc-popup');
+  const calcScreen = document.getElementById('calc-screen');
+  let calcCode = '';
+
+  // Check session unlock
+  if (sessionStorage.getItem('eraserUnlocked')) {
+    document.getElementById('btn-eraser').classList.add('unlocked');
+    calcFloor.style.display = 'none';
+  }
+
+  calcFloor.addEventListener('click', function(e) {
+    e.stopPropagation();
+    calcCode = '';
+    calcScreen.textContent = '_';
+    calcScreen.style.color = '#1a1a1a';
+    calcOverlay.classList.add('active');
+  });
+
+  calcOverlay.addEventListener('click', function(e) {
+    if (e.target === calcOverlay) calcOverlay.classList.remove('active');
+  });
+
+  document.querySelectorAll('.calc-key').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var v = btn.dataset.val;
+      if (v === 'C') { calcCode = ''; calcScreen.textContent = '_'; calcScreen.style.color = '#1a1a1a'; return; }
+      if (v === 'OK') { checkCode(); return; }
+      if (calcCode.length < 6) { calcCode += v; calcScreen.textContent = calcCode; }
+    });
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (!calcOverlay.classList.contains('active')) return;
+    e.stopPropagation(); e.preventDefault();
+    if (e.key >= '0' && e.key <= '9' && calcCode.length < 6) {
+      calcCode += e.key; calcScreen.textContent = calcCode;
+    } else if (e.key === 'Backspace') {
+      calcCode = calcCode.slice(0, -1); calcScreen.textContent = calcCode || '_';
+    } else if (e.key === 'Enter') {
+      checkCode();
+    } else if (e.key === 'Escape') {
+      calcOverlay.classList.remove('active');
+    }
+  });
+
+  function checkCode() {
+    if (calcCode === '1138') {
+      robotHappy();
+      calcScreen.textContent = '\u2713';
+      calcScreen.style.color = '#22cc44';
+      setTimeout(function() {
+        calcOverlay.classList.remove('active');
+        calcScreen.style.color = '#1a1a1a';
+        sessionStorage.setItem('eraserUnlocked', 'true');
+        document.getElementById('btn-eraser').classList.add('unlocked');
+        calcFloor.style.display = 'none';
+      }, 800);
+    } else {
+      synthFart();
+      calcPopup.classList.add('shake');
+      calcScreen.textContent = 'NOPE';
+      calcScreen.style.color = '#ff3333';
+      setTimeout(function() {
+        calcPopup.classList.remove('shake');
+        calcCode = '';
+        calcScreen.textContent = '_';
+        calcScreen.style.color = '#1a1a1a';
+      }, 700);
+      setTimeout(function() {
+        calcOverlay.classList.remove('active');
+      }, 1000);
+    }
+  }
+
+  function robotHappy() {
+    try {
+      var a = new (window.AudioContext || window.webkitAudioContext)();
+      var notes = [440, 554, 659, 880, 1100];
+      for (var i = 0; i < notes.length; i++) {
+        (function(freq, idx) {
+          var o = a.createOscillator(), g = a.createGain();
+          o.type = 'square'; o.frequency.value = freq;
+          g.gain.setValueAtTime(0.1, a.currentTime + idx * 0.08);
+          g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + idx * 0.08 + 0.12);
+          o.connect(g); g.connect(a.destination);
+          o.start(a.currentTime + idx * 0.08);
+          o.stop(a.currentTime + idx * 0.08 + 0.12);
+        })(notes[i], i);
+      }
+      var o2 = a.createOscillator(), g2 = a.createGain();
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(800, a.currentTime + 0.45);
+      o2.frequency.linearRampToValueAtTime(1500, a.currentTime + 0.65);
+      g2.gain.setValueAtTime(0.08, a.currentTime + 0.45);
+      g2.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.75);
+      o2.connect(g2); g2.connect(a.destination);
+      o2.start(a.currentTime + 0.45); o2.stop(a.currentTime + 0.75);
+    } catch(e) {}
+  }
+
+  function synthFart() {
+    try {
+      var a = new (window.AudioContext || window.webkitAudioContext)();
+      var o = a.createOscillator(), g = a.createGain(), f = a.createBiquadFilter();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(180, a.currentTime);
+      o.frequency.exponentialRampToValueAtTime(45, a.currentTime + 0.4);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(500, a.currentTime);
+      f.frequency.exponentialRampToValueAtTime(60, a.currentTime + 0.4); f.Q.value = 5;
+      g.gain.setValueAtTime(0.18, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.45);
+      o.connect(f); f.connect(g); g.connect(a.destination);
+      o.start(); o.stop(a.currentTime + 0.45);
+      var s = a.createOscillator(), sg = a.createGain();
+      s.type = 'sine';
+      s.frequency.setValueAtTime(55, a.currentTime);
+      s.frequency.exponentialRampToValueAtTime(22, a.currentTime + 0.3);
+      sg.gain.setValueAtTime(0.12, a.currentTime);
+      sg.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.35);
+      s.connect(sg); sg.connect(a.destination);
+      s.start(); s.stop(a.currentTime + 0.35);
+    } catch(e) {}
+  }
+})();
+
+// ── Eraser Tool ──
+document.getElementById('btn-eraser').addEventListener('click', function() {
+  if (!sessionStorage.getItem('eraserUnlocked')) return;
+  currentTool = 'eraser';
+  document.querySelectorAll('.tool-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('btn-eraser').classList.add('active');
+  canvas.style.cursor = 'cell';
+});
+
+function eraseAtPoint(e) {
+  var pos = getPos(e);
+  var er = (brushSize * 2) / Math.max(canvas.width, canvas.height);
+  var sRef = db.ref('wall/strokes');
+  sRef.once('value', function(snap) {
+    var all = snap.val();
+    if (!all) return;
+    Object.keys(all).forEach(function(k) {
+      if (strokeHit(all[k], pos, er)) sRef.child(k).remove();
+    });
+  });
+}
+
+function strokeHit(s, pos, r) {
+  if (s.tool === 'text') {
+    var dx = (s.x || 0) - pos.x, dy = (s.y || 0) - pos.y;
+    return Math.sqrt(dx * dx + dy * dy) < r * 2.5;
+  }
+  if (!s.points) return false;
+  for (var i = 0; i < s.points.length; i++) {
+    var dx2 = s.points[i].x - pos.x, dy2 = s.points[i].y - pos.y;
+    if (Math.sqrt(dx2 * dx2 + dy2 * dy2) < r) return true;
+  }
+  return false;
+}
+
 </script>
 </body>
 </html>
