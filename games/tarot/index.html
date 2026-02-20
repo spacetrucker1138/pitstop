@@ -872,7 +872,7 @@ function playVideo(callback) {
   layer.style.display = 'block';
 
   video.play().catch(() => {
-    // Autoplay blocked Ã¢ÂÂ skip video
+    // Autoplay blocked  -  skip video
     layer.style.display = 'none';
     callback();
   });
@@ -897,7 +897,7 @@ function drawCards() {
   while (drawn.length < 3) {
     const pick = keys[Math.floor(Math.random() * keys.length)];
     if (!drawn.find(d => d.file === pick)) {
-      const isReversed = Math.random() < 0.35; // 35% chance reversed
+      const isReversed = false; // All cards upright
       drawn.push({ file: pick, reversed: isReversed });
     }
   }
@@ -950,15 +950,12 @@ function flipCard(index) {
     const card = currentCards[index];
     const data = DECK[card.file];
     const pos = POSITIONS[index];
-    const orientation = card.reversed ? 'reversed' : 'upright';
-    const meaning = card.reversed ? data.reversed : data.upright;
-    const orientLabel = card.reversed ? 'Reversed' : 'Upright';
+    const meaning = data.upright;
 
     const el = document.getElementById(`reading-${index}`);
     el.innerHTML = `
       <div class="card-position">${pos}</div>
       <div class="card-name">${data.name}</div>
-      <span class="orientation-tag ${orientation}">${orientLabel}</span>
       <div class="card-meaning">${meaning}</div>
     `;
     el.classList.add('visible');
@@ -994,22 +991,40 @@ function backToStart() {
 
 // === COMBINATION READING LOGIC ===
 const COMBO_TEMPLATES = [
-  "Your past of {past} flows into a present defined by {present}. The future whispers of {future} â the bones have spoken.",
+  "Your past of {past} flows into a present defined by {present}. The future whispers of {future}. The bones have spoken.",
   "From {past} in your past, through {present} shaping your now, the cards reveal {future} awaiting you. The dead see all.",
-  "The spirits show {past} behind you, {present} surrounding you now, and {future} on the horizon. Heed the Trash Queen's warning.",
+  "The spirits show {past} behind you, {present} surrounding you now, and {future} on the horizon. Heed the Trash Queen\'s warning.",
   "{past} haunts your steps, while {present} grips your present moment. But ahead? {future}. The grave gives no second readings.",
   "What was: {past}. What is: {present}. What will be: {future}. The skull cards never lie.",
-  "The bones rattle with the echo of {past}. Your present breathes {present}. The future screams {future}. Take it or leave it â the dead don't care.",
-  "From the shadows of {past}, through the fire of {present}, into the unknown of {future}. The Trash Queen has spoken â now live with it.",
-  "Your journey: {past} shaped you, {present} tests you, {future} awaits you. The cards are never wrong. The dead have all the time in the world to be right."
-];
+  "The bones rattle with the echo of {past}. Your present breathes {present}. The future screams {future}. Take it or leave it. The dead do not care.",
+  "From the shadows of {past}, through the fire of {present}, into the unknown of {future}. The Trash Queen has spoken. Now live with it.",
+  "Your journey: {past} shaped you, {present} tests you, {future} awaits you. The cards are never wrong. The dead have all the time in the world to be right.",
+  "The cemetery wind carries echoes of {past}. Around you now, {present} tightens its grip. And what crawls toward you from the dark? {future}. Sleep well.",
+  "Once there was {past}. Now there is {present}. Soon there will be {future}. The Trash Queen yawns. She has seen worse.",
+  "Three cards. Three truths. {past} is the wound. {present} is the fever. {future} is what comes after. You asked for this.",
+  "The dead remember {past}. The living wrestle with {present}. The unborn dream of {future}. All of it is yours to carry.",
+  "Dirt and bone tell the story: {past} buried deep, {present} clawing to the surface, {future} waiting at the gate. The Trash Queen smirks.",
+  "She turns the first card: {past}. She turns the second: {present}. She turns the third and laughs: {future}. Good luck with that.",
+  "The candle flickers. {past} drifts like smoke behind you. {present} burns steady in your hands. {future} glows on the horizon. Walk toward it or run. She does not care which.",
+  "Cobwebs cling to the memory of {past}. {present} buzzes like a trapped fly. And {future}? The spider is patient.",
+  "In the Trash Queen\'s parlor, three skulls speak: the first mutters {past}, the second growls {present}, the third screams {future}. You were warned.",
+  "Your past reeks of {past}. Your present tastes of {present}. Your future smells like {future}. The senses of the dead are never wrong.",
+  "The coffin lid creaks open on {past}. Inside you find {present}. Underneath it all: {future}. Shut the lid or keep looking. Your call.",
+  "First card hits the table: {past}. Second card slaps down: {present}. Third card lands face up and grins: {future}. The Trash Queen folds her arms. Reading over.",
+  "She reads the rot in the bones: {past} infected your yesterday, {present} festers in your today, and {future} spreads into tomorrow. Medicine or poison. You decide.",
+  "The graveyard gates open on {past}. The path winds through {present}. At the far end, a headstone reads: {future}. The Trash Queen raises an eyebrow.",
+  "Three truths from six feet under: {past} is what you buried. {present} is what grew from the grave. {future} is the harvest. Reap it.",
+  "The rat bones say {past}. The crow feathers say {present}. The cracked mirror says {future}. All the omens agree.",
+  "Dust settles on {past}. Rust creeps across {present}. Something new and sharp waits in {future}. Handle it carefully.",
+  "The Trash Queen stacks the cards and nods. {past} made you who you are. {present} is testing what you are made of. {future} will show everyone the answer.",
+  "She whispers: the dead forget nothing. They remember {past}. They see {present}. They already know {future}. You are the last to find out.",
+  "Card one bleeds {past}. Card two pulses with {present}. Card three glows with {future}. The reading is done. The rest is yours."
+]
 
 function generateComboReading() {
   const cards = currentCards.map((card, i) => {
     const data = DECK[card.file];
-    const orientation = card.reversed ? 'reversed' : 'upright';
-    const meaning = card.reversed ? data.reversed : data.upright;
-    return { name: data.name, meaning: meaning.toLowerCase(), orientation };
+    return { name: data.name, meaning: data.upright.toLowerCase() };
   });
 
   const template = COMBO_TEMPLATES[Math.floor(Math.random() * COMBO_TEMPLATES.length)];
@@ -1020,7 +1035,7 @@ function generateComboReading() {
 
   const el = document.getElementById('combo-reading');
   el.innerHTML = `
-    <div class="combo-title">â  THE TRASH QUEEN SPEAKS â </div>
+    <div class="combo-title">-- THE TRASH QUEEN SPEAKS --</div>
     <div class="combo-text">${summary}</div>
   `;
   el.classList.add('visible');
