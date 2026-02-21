@@ -83,7 +83,7 @@ const HOLE_GAP_X=HOLE_W+30, HOLE_GAP_Y=HOLE_H+60;
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let state='title';
-let score=0, bestScore=0, combo=0, maxCombo=0;
+let score=0, bestScore=parseInt(localStorage.getItem('wag_highscore')||'0'), combo=0, maxCombo=0;
 let timeLeft=60, lastTick=0;
 let holes=[], particles=[], hitTexts=[];
 let spawnTimer=0, spawnInterval=90, difficulty=1;
@@ -187,7 +187,15 @@ function drawDebugBoxes() {
 canvas.addEventListener('click', e => {
   audio.resume();
   if (state==='title') { startGame(); return; }
-  if (state==='gameover') { state='title'; return; }
+  if (state==='gameover') {
+    const r2=canvas.getBoundingClientRect();
+    const cx2=(e.clientX-r2.left)*(W/r2.width), cy2=(e.clientY-r2.top)*(H/r2.height);
+    const btnW=190,btnH=46,btnY=420,btn1X=W/2-btnW-12,btn2X=W/2+12;
+    if (cx2>=btn1X&&cx2<=btn1X+btnW&&cy2>=btnY&&cy2<=btnY+btnH) { startGame(); }
+    else if (cx2>=btn2X&&cx2<=btn2X+btnW&&cy2>=btnY&&cy2<=btnY+btnH) { state='title'; }
+    else { state='title'; }
+    return;
+  }
   if (state!=='playing') return;
   const r=canvas.getBoundingClientRect();
   hitTest({x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)});
@@ -195,7 +203,15 @@ canvas.addEventListener('click', e => {
 canvas.addEventListener('touchstart', e => {
   e.preventDefault(); audio.resume();
   if (state==='title') { startGame(); return; }
-  if (state==='gameover') { state='title'; return; }
+  if (state==='gameover') {
+    const r2=canvas.getBoundingClientRect(),tt=e.touches[0];
+    const cx2=(tt.clientX-r2.left)*(W/r2.width),cy2=(tt.clientY-r2.top)*(H/r2.height);
+    const btnW=190,btnH=46,btnY=420,btn1X=W/2-btnW-12,btn2X=W/2+12;
+    if (cx2>=btn1X&&cx2<=btn1X+btnW&&cy2>=btnY&&cy2<=btnY+btnH) { startGame(); }
+    else if (cx2>=btn2X&&cx2<=btn2X+btnW&&cy2>=btnY&&cy2<=btnY+btnH) { state='title'; }
+    else { state='title'; }
+    return;
+  }
   if (state!=='playing') return;
   const t=e.touches[0], r=canvas.getBoundingClientRect();
   hitTest({x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height)});
@@ -203,7 +219,7 @@ canvas.addEventListener('touchstart', e => {
 document.addEventListener('keydown', e => {
   if (e.key==='m'||e.key==='M') { audio.muted=!audio.muted; return; }
   if (state==='title'&&(e.key==='e'||e.key==='E'||e.key===' ')) startGame();
-  if (state==='gameover'&&(e.key==='e'||e.key==='E'||e.key===' ')) state='title';
+  if (state==='gameover') { if (e.key==='r'||e.key==='R') { startGame(); } else if (e.key==='e'||e.key==='E'||e.key==='t'||e.key==='T'||e.key===' ') { state='title'; } }
 });
 
 // ── Game flow ──────────────────────────────────────────────────────────────────
@@ -411,11 +427,23 @@ function drawGameOver() {
   ctx.font='28px Creepster'; ctx.fillStyle='#e9d5ff';
   ctx.fillText('Score: '+score, W/2, 270);
   ctx.fillText('Max Combo: '+maxCombo+'x', W/2, 310);
+  if (score>bestScore&&score>0) { bestScore=score; localStorage.setItem('wag_highscore',bestScore); }
   if (score>=bestScore&&score>0) { ctx.fillStyle='#eab308'; ctx.font='24px Creepster'; ctx.fillText('🏆 NEW BEST!', W/2, 360); }
+  // Buttons
+  const btnW=190, btnH=46, btnY=420;
+  const btn1X=W/2-btnW-12, btn2X=W/2+12;
+  ctx.fillStyle='#7c3aed'; ctx.beginPath();
+  ctx.roundRect(btn1X, btnY, btnW, btnH, 8); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='22px Creepster'; ctx.textAlign='center';
+  ctx.fillText('\u25b6 PLAY AGAIN', btn1X+btnW/2, btnY+32);
+  ctx.fillStyle='#374151'; ctx.beginPath();
+  ctx.roundRect(btn2X, btnY, btnW, btnH, 8); ctx.fill();
+  ctx.fillStyle='#c084fc'; ctx.font='22px Creepster';
+  ctx.fillText('\u2b05 TITLE', btn2X+btnW/2, btnY+32);
   const t2=Date.now()/1000;
   ctx.globalAlpha=Math.sin(t2*3)*0.3+0.7;
-  ctx.font='22px Creepster'; ctx.fillStyle='#c084fc';
-  ctx.fillText('Press E or Tap to Continue', W/2, 450); ctx.globalAlpha=1;
+  ctx.font='16px Creepster'; ctx.fillStyle='rgba(192,132,252,0.7)';
+  ctx.fillText('R = Replay  \u2022  T = Title', W/2, 485); ctx.globalAlpha=1;
   drawMuteIndicator();
 }
 
