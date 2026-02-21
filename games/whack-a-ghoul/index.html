@@ -268,7 +268,7 @@ function drawHoles() {
       ctx.save();
       // Clip: monster emerges from hole, hide anything below ground level
       ctx.beginPath();
-      ctx.rect(x-15, popY-FRAME_H-10, HOLE_W+30, FRAME_H+HOLE_H/2+20);
+      ctx.rect(x-15, popY - dh - 10, HOLE_W+30, dh + HOLE_H/2 + 20);
       ctx.clip();
 
       if (hole.ghoul.isPenalty) {
@@ -287,7 +287,7 @@ function drawHoles() {
 
         ctx.shadowColor=hole.ghoul.color; ctx.shadowBlur=20;
         if (monsterSheet.complete&&monsterSheet.naturalWidth>0) {
-          ctx.drawImage(monsterSheet, sx, sy, FRAME_W, FRAME_H, x-5, y + HOLE_H/2 - dh/2 - 50*hole.popHeight, dw, dh);
+          ctx.drawImage(monsterSheet, sx, sy, FRAME_W, FRAME_H, x-5, y + HOLE_H/2 - dh*0.4 - 50*hole.popHeight, dw, dh);
         } else {
           ctx.fillStyle=hole.ghoul.color; ctx.fillRect(x+10,popY-40,HOLE_W-20,50);
         }
