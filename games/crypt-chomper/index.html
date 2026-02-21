@@ -115,6 +115,33 @@ function updateMusic() {
 }
 
 
+
+// ── Sprite sheets ─────────────────────────────────────────────────────────
+// enemies_main.png: 3 rows (equal height) – Skull(6f) | Bat(3f) | Spider(2f)
+// lava_ghost.png:   417×218 RGBA, 2 frames (fw=208)
+// green_ghost.png:  417×211 RGBA, 2 frames (fw=208)
+const spriteMain  = new Image(); spriteMain.src  = 'sprites/enemies_main.png';
+const spriteLava  = new Image(); spriteLava.src  = 'sprites/lava_ghost.png';
+const spriteGreen = new Image(); spriteGreen.src = 'sprites/green_ghost.png';
+
+// Ghost sprite configs indexed to ghosts[] order
+// Main sheet: equal-height rows. fw per row = naturalWidth / frameCount.
+const GHOST_SPRITES = [
+  { img: () => spriteMain, row: 0, fc: 6, glowColor: '#f87171' }, // Skull
+  { img: () => spriteMain, row: 1, fc: 3, glowColor: '#60a5fa' }, // Bat
+  { img: () => spriteMain, row: 2, fc: 2, glowColor: '#4ade80' }, // Spider
+  { img: () => spriteLava, row: 0, fc: 2, fw: 208, fh: 218, glowColor: '#fb923c' }, // Lava Ghost
+];
+// Ghost index 3 uses lava ghost; green ghost used for frightened state as bonus
+
+function drawSpriteAt(img, sx, sy, srcW, srcH, destX, destY, drawSize) {
+  if (!img || !img.complete || img.naturalWidth === 0) return false;
+  const scale = drawSize / Math.max(srcW, srcH);
+  const dw = srcW * scale, dh = srcH * scale;
+  ctx.drawImage(img, sx, sy, srcW, srcH, destX - dw/2, destY - dh/2, dw, dh);
+  return true;
+}
+
 // Game state
 let state = 'title';
 let map = [];
@@ -467,52 +494,96 @@ function drawMap() {
 }
 
 function drawPlayer() {
-  const x = player.col * TILE + TILE/2;
-  const y = player.row * TILE + TILE/2;
-
-  // Skull emoji with mouth animation
+  const px = player.col * TILE + TILE/2;
+  const py = player.row * TILE + TILE/2;
+  const drawSize = TILE * 1.4;
+  if (spriteMain.complete && spriteMain.naturalWidth > 0) {
+    const rowH = spriteMain.naturalHeight / 3;
+    const fw   = spriteMain.naturalWidth / 6;
+    const fIdx = Math.floor(frameCount / 8) % 6;
+    ctx.save();
+    ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 14;
+    drawSpriteAt(spriteMain, fIdx * fw, 0, fw, rowH, px, py, drawSize);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    return;
+  }
   ctx.save();
-  ctx.translate(x, y);
-  ctx.shadowColor = '#a855f7';
-  ctx.shadowBlur = 15;
+  ctx.translate(px, py);
+  ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 15;
   ctx.font = `${TILE}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('💀', 0, 0);
   ctx.shadowBlur = 0;
   ctx.restore();
 }
 
 function drawGhosts() {
-  for (const ghost of ghosts) {
-    const x = ghost.col * TILE + TILE/2;
-    const y = ghost.row * TILE + TILE/2;
+  for (let gi = 0; gi < ghosts.length; gi++) {
+    const ghost    = ghosts[gi];
+    const gx       = ghost.col * TILE + TILE/2;
+    const gy       = ghost.row * TILE + TILE/2;
+    const drawSize = TILE * 1.35;
+    let img, sx, sy, srcW, srcH, glowColor;
 
-    ctx.save();
-    ctx.translate(x, y);
-
-    if (powerTimer > 0) {
-      // Frightened — blue, flashing if almost over
-      if (powerTimer < 90 && Math.floor(frameCount/8) % 2 === 0) {
-        ctx.globalAlpha = 0.5;
-      }
-      ctx.shadowColor = '#3b82f6';
-      ctx.shadowBlur = 12;
+    const cfg = GHOST_SPRITES[gi % GHOST_SPRITES.length];
+    img = cfg.img();
+    if (!img.complete || img.naturalWidth === 0) {
+      // Fallback emoji while loading
+      ctx.save();
       ctx.font = `${TILE-2}px serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('😱', 0, 0);
-    } else {
-      ctx.shadowColor = ghost.color;
-      ctx.shadowBlur = 12;
-      ctx.font = `${TILE-2}px serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(ghost.emoji, 0, 0);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(ghost.emoji, gx, gy);
+      ctx.restore(); continue;
     }
 
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
+    // Compute frame source rect
+    if (cfg.fw !== undefined) {
+      // Fixed-size sprite (separate sheet)
+      srcW = cfg.fw; srcH = cfg.fh;
+      sy   = 0;
+    } else {
+      // Main sheet: equal-height rows
+      srcH = img.naturalHeight / 3;
+      srcW = img.naturalWidth / cfg.fc;
+      sy   = cfg.row * srcH;
+    }
+    const fIdx = Math.floor(frameCount / 16) % cfg.fc;
+    sx = fIdx * srcW;
+    glowColor = cfg.glowColor;
+
+    ctx.save();
+    if (powerTimer > 0) {
+      if (powerTimer < 90 && Math.floor(frameCount/8) % 2 === 0) ctx.globalAlpha = 0.5;
+      ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 12;
+      // Use green ghost as frightened sprite (if loaded), else tint
+      let drawnFrightened = false;
+      if (spriteGreen.complete && spriteGreen.naturalWidth > 0) {
+        const gfw = 208, gfh = 211;
+        const gfIdx = Math.floor(frameCount / 16) % 2;
+        drawnFrightened = drawSpriteAt(spriteGreen, gfIdx * gfw, 0, gfw, gfh, gx, gy, drawSize);
+        if (drawnFrightened) {
+          ctx.globalCompositeOperation = 'source-atop';
+          ctx.globalAlpha = 0.45;
+          ctx.fillStyle = '#3b82f6';
+          ctx.fillRect(gx - drawSize/2, gy - drawSize/2, drawSize, drawSize);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+        }
+      }
+      if (!drawnFrightened) {
+        ctx.font = `${TILE-2}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('😱', gx, gy);
+      }
+    } else {
+      ctx.shadowColor = glowColor; ctx.shadowBlur = 12;
+      const drawn = drawSpriteAt(img, sx, sy, srcW, srcH, gx, gy, drawSize);
+      if (!drawn) {
+        ctx.font = `${TILE-2}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(ghost.emoji, gx, gy);
+      }
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     ctx.restore();
   }
 }
