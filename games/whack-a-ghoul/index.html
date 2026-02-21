@@ -149,8 +149,8 @@ function hitTest(pos) {
   let hit=false;
   for (const hole of holes) {
     if (hole.state==='up'||hole.state==='rising') {
-      const hx=hole.x, hy=hole.y - 80 - 50*hole.popHeight;
-      if (pos.x>=hx&&pos.x<=hx+HOLE_W&&pos.y>=hy&&pos.y<=hy+HOLE_H+80) {
+      const hx=hole.x - 20, hy=hole.y - 90 - 50*hole.popHeight;
+      if (pos.x>=hx&&pos.x<=hx+HOLE_W+40&&pos.y>=hy&&pos.y<=hy+HOLE_H+110) {
         whackHole(hole); hit=true; break;
       }
     }
@@ -320,7 +320,7 @@ function drawHammer() {
   ctx.translate(mouseX, mouseY);
   ctx.rotate(angle);
   // Hotspot: tip of hammer at cursor position
-  ctx.drawImage(hammerImg, -18, -160, 64, 96);
+  ctx.drawImage(hammerImg, -40, -216, 96, 144);
   ctx.restore();
 }
 
