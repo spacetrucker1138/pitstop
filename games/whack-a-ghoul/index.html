@@ -93,6 +93,10 @@ canvas.width = W; canvas.height = H;
 const bgImg      = new Image(); bgImg.src      = 'bg_graveyard.jpg';
 const hammerImg  = new Image(); hammerImg.src  = 'hammer.png';
 const monsterSheet = new Image(); monsterSheet.src = 'monsters.png';
+const catSheet = new Image(); catSheet.src = 'cat_penalty.png';
+// Cat penalty sheet: 2 cols × 1 row, each frame 150×200px
+// Col 0 = alert/peeking (rising/idle), col 1 = squashed (hit state)
+const CAT_FRAME_W = 150, CAT_FRAME_H = 200;
 
 // Monster sheet: 2 cols × 4 rows, each frame 125×167
 // Col 0 = NORMAL (rising/idle) frame
@@ -105,7 +109,7 @@ const MONSTER_DEFS = [
   { row: 3, name: 'Lich',   points: 30, color: '#a855f7' },
 ];
 const BONUS_MONSTER = { row: 3, name: 'Lich King', points: 50, color: '#eab308', isBonus: true };
-const PENALTY_GHOUL = { row: null, name: 'Tombstone', points: -20, color: '#6b7280', isPenalty: true };
+const PENALTY_GHOUL = { row: 0, name: 'Black Cat', points: -20, color: '#6b7280', isPenalty: true };
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 class AudioMgr {
@@ -368,11 +372,19 @@ function drawHoles() {
       ctx.clip();
 
       if (hole.ghoul.isPenalty) {
-        // Tombstone penalty — emoji fallback
-        ctx.shadowColor='#6b7280'; ctx.shadowBlur=12;
-        ctx.font='48px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('\u2620', x+HOLE_W/2, popY+10);
-        ctx.shadowBlur=0;
+        // Black cat penalty sprite: col 0 = alert, col 1 = squashed (hit)
+        const catCol = hole.hitFrame ? 1 : 0;
+        const catSx  = catCol * CAT_FRAME_W;
+        const catDw  = HOLE_W + 10;
+        const catDh  = Math.round(CAT_FRAME_H * (catDw / CAT_FRAME_W));
+        ctx.shadowColor = '#9ca3af'; ctx.shadowBlur = 14;
+        if (catSheet.complete && catSheet.naturalWidth > 0) {
+          ctx.drawImage(catSheet, catSx, 0, CAT_FRAME_W, CAT_FRAME_H, x-5, y + HOLE_H/2 - catDh*0.4 - 50*hole.popHeight, catDw, catDh);
+        } else {
+          ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='#9ca3af'; ctx.fillText('\u{1F408}', x+HOLE_W/2, popY+10);
+        }
+        ctx.shadowBlur = 0;
       } else {
         // Sprite: col 0 = normal/rising, col 1 = damaged (after hit)
         const col = hole.hitFrame ? 1 : 0;
@@ -455,12 +467,12 @@ function drawTitle() {
   ctx.fillStyle='#a855f7'; ctx.shadowColor='#a855f7'; ctx.shadowBlur=30;
   ctx.fillText('WHACK-A-GHOUL', W/2, 250); ctx.shadowBlur=0;
   ctx.font='18px Creepster'; ctx.fillStyle='#c084fc';
-  ctx.fillText('Smash the ghouls. Dodge the tombstones.', W/2, 293);
+  ctx.fillText('Smash the ghouls. Dodge the black cats.', W/2, 293);
   ctx.fillText('60 seconds. Build combos for bonus points!', W/2, 318);
   if (bestScore>0) { ctx.font='20px Creepster'; ctx.fillStyle='#eab308'; const topName=wagCachedScores&&wagCachedScores[0]?wagCachedScores[0].name:''; ctx.fillText('\u{1F3C6} Best: '+(topName?topName+' \u2013 ':'')+bestScore, W/2, 368); }
   ctx.font='16px Creepster'; ctx.fillStyle='#e9d5ff';
   ctx.fillText('Click or Tap the ghouls to smash them!', W/2, 448);
-  ctx.fillText('\u{1F451} Lich King = Bonus | \u2620 = Penalty', W/2, 473);
+  ctx.fillText('\u{1F451} Lich King = Bonus | \u{1F408} Black Cat = Penalty', W/2, 473);
   ctx.fillText('M — Mute', W/2, 498);
   ctx.globalAlpha=Math.sin(t*3)*0.3+0.7;
   ctx.font='28px Creepster'; ctx.fillStyle='#f87171';
