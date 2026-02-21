@@ -122,10 +122,52 @@ class AudioMgr {
     g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dur);
     o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+dur);
   }
-  whack()        { this.play(500,0.08,'square',0.5); setTimeout(()=>this.play(300,0.06),50); }
+  whack()        {
+    if(this.muted)return;
+    // Moan/squish: low thud + wet descending groan
+    const ac=this.ctx, now=ac.currentTime, vol=this.volume;
+    // Thud layer
+    const o1=ac.createOscillator(), g1=ac.createGain();
+    o1.type='sawtooth'; o1.frequency.setValueAtTime(180,now); o1.frequency.exponentialRampToValueAtTime(60,now+0.18);
+    g1.gain.setValueAtTime(0.7*vol,now); g1.gain.exponentialRampToValueAtTime(0.001,now+0.22);
+    o1.connect(g1); g1.connect(ac.destination); o1.start(now); o1.stop(now+0.22);
+    // Groan layer
+    const o2=ac.createOscillator(), g2=ac.createGain();
+    o2.type='sawtooth'; o2.frequency.setValueAtTime(220,now+0.02); o2.frequency.exponentialRampToValueAtTime(80,now+0.28);
+    g2.gain.setValueAtTime(0.4*vol,now+0.02); g2.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    o2.connect(g2); g2.connect(ac.destination); o2.start(now+0.02); o2.stop(now+0.3);
+    // Wet squish noise burst
+    const buf=ac.createBuffer(1,ac.sampleRate*0.06,ac.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.6;
+    const ns=ac.createBufferSource(), ng=ac.createGain();
+    const nf=ac.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=400; nf.Q.value=0.8;
+    ns.buffer=buf; ng.gain.setValueAtTime(0.5*vol,now); ng.gain.exponentialRampToValueAtTime(0.001,now+0.06);
+    ns.connect(nf); nf.connect(ng); ng.connect(ac.destination); ns.start(now); ns.stop(now+0.06);
+  }
   miss()         { this.play(150,0.15,'sawtooth',0.3); }
   bonusWhack()   { this.play(800,0.1,'square',0.5); setTimeout(()=>this.play(1000,0.1),80); }
-  penaltyWhack() { this.play(100,0.3,'sawtooth',0.5); }
+  penaltyWhack() {
+    if(this.muted)return;
+    // High-pitched cartoon cat squeal + squish
+    const ac=this.ctx, now=ac.currentTime, vol=this.volume;
+    // Squeal: rising then falling high pitch
+    const o1=ac.createOscillator(), g1=ac.createGain();
+    o1.type='sine'; o1.frequency.setValueAtTime(900,now); o1.frequency.linearRampToValueAtTime(1400,now+0.06); o1.frequency.exponentialRampToValueAtTime(600,now+0.25);
+    g1.gain.setValueAtTime(0.6*vol,now); g1.gain.exponentialRampToValueAtTime(0.001,now+0.28);
+    o1.connect(g1); g1.connect(ac.destination); o1.start(now); o1.stop(now+0.28);
+    // Vibrato wobble for cartoon feel
+    const o2=ac.createOscillator(), g2=ac.createGain();
+    o2.type='triangle'; o2.frequency.setValueAtTime(1100,now+0.05); o2.frequency.exponentialRampToValueAtTime(500,now+0.3);
+    g2.gain.setValueAtTime(0.3*vol,now+0.05); g2.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    o2.connect(g2); g2.connect(ac.destination); o2.start(now+0.05); o2.stop(now+0.3);
+    // Squish thwap
+    const buf=ac.createBuffer(1,ac.sampleRate*0.04,ac.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+    const ns=ac.createBufferSource(), ng=ac.createGain();
+    const nf=ac.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=1200; nf.Q.value=1.5;
+    ns.buffer=buf; ng.gain.setValueAtTime(0.45*vol,now); ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+    ns.connect(nf); nf.connect(ng); ng.connect(ac.destination); ns.start(now); ns.stop(now+0.04);
+  }
   gameOver()     { [300,250,200,150].forEach((f,i)=>setTimeout(()=>this.play(f,0.3,'sawtooth',0.5),i*200)); }
   start()        { [330,440,550,660].forEach((f,i)=>setTimeout(()=>this.play(f,0.1,'square',0.4),i*80)); }
   tick()         { this.play(600,0.03,'triangle',0.15); }
@@ -500,7 +542,7 @@ function render() {
   particles.forEach(p=>{ ctx.globalAlpha=p.life; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); });
   ctx.globalAlpha=1;
 
-  hitTexts.forEach(t=>{ ctx.globalAlpha=t.life; ctx.font='24px Creepster'; ctx.textAlign='center'; ctx.fillStyle=t.color; ctx.shadowColor=t.color; ctx.shadowBlur=10; ctx.fillText(t.text,t.x,t.y); ctx.shadowBlur=0; });
+  hitTexts.forEach(t=>{ ctx.globalAlpha=Math.max(0.85,t.life); ctx.font='bold 38px Creepster'; ctx.textAlign='center'; ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,0.85)'; ctx.shadowColor=t.color; ctx.shadowBlur=18; ctx.strokeText(t.text,t.x,t.y); ctx.fillStyle=t.color; ctx.fillText(t.text,t.x,t.y); ctx.shadowBlur=0; });
   ctx.globalAlpha=1;
 
   if (state==='countdown') {
