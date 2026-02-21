@@ -158,6 +158,32 @@ function hitTest(pos) {
   if (!hit&&state==='playing') { combo=0; audio.miss(); hammerSwing=8; }
 }
 
+// ── Debug: hit box overlay (press D to toggle) ──────────────────────────────
+let debugHitBox = false;
+document.addEventListener('keydown', e => { if (e.key==='d'||e.key==='D') debugHitBox=!debugHitBox; });
+
+function drawDebugBoxes() {
+  if (!debugHitBox) return;
+  for (const hole of holes) {
+    if (hole.state==='up'||hole.state==='rising') {
+      const hx=hole.x + HOLE_W/2 - 70, hy=hole.y + HOLE_H/2 - 130;
+      ctx.save();
+      ctx.strokeStyle='rgba(255,0,0,0.8)';
+      ctx.lineWidth=2;
+      ctx.strokeRect(hx, hy, 140, 150);
+      ctx.fillStyle='rgba(255,0,0,0.15)';
+      ctx.fillRect(hx, hy, 140, 150);
+      // hole center dot
+      ctx.fillStyle='yellow';
+      ctx.beginPath();
+      ctx.arc(hole.x+HOLE_W/2, hole.y+HOLE_H/2, 4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+
 canvas.addEventListener('click', e => {
   audio.resume();
   if (state==='title') { startGame(); return; }
@@ -419,6 +445,7 @@ function render() {
   }
 
   drawMuteIndicator();
+  drawDebugBoxes();
   drawHammer();
 }
 
