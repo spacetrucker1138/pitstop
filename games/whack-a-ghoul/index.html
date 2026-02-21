@@ -272,7 +272,7 @@ canvas.addEventListener('touchstart', e => {
 document.addEventListener('keydown', e => {
   if (e.key==='m'||e.key==='M') { audio.muted=!audio.muted; return; }
   if (state==='title'&&(e.key==='e'||e.key==='E'||e.key===' ')) startGame();
-  if (state==='gameover') { if (e.key==='r'||e.key==='R') { hideWagOverlay(); startGame(); } else if (e.key==='t'||e.key==='T') { hideWagOverlay(); state='title'; } }
+  if (state==='gameover' && document.activeElement !== document.getElementById('wagInitialsInput')) { if (e.key==='r'||e.key==='R') { hideWagOverlay(); startGame(); } else if (e.key==='t'||e.key==='T') { hideWagOverlay(); state='title'; } }
 });
 
 // ── Game flow ──────────────────────────────────────────────────────────────────
