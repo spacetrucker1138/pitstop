@@ -64,11 +64,10 @@ const HUD_Y = ROWS * TILE;
 // frames: number of animation frames
 // fw, fh: frame width/height in source image
 const SPRITE_DEFS = {
-  // skull, bat, spider: sprites not yet available — emoji fallback active
-  skull:  null,
-  bat:    null,
-  spider: null,
+  hero:   { src:'sprites/hero.png',        frames:2, fw:146, fh:127, hasAlpha:true },
+  bat:    { src:'sprites/bat.png',          frames:2, fw:280, fh:160, hasAlpha:true },
   lava:   { src:'sprites/lava_ghost.png',   frames:2, fw:208, fh:218, hasAlpha:true },
+  spider: { src:'sprites/spider.png',       frames:2, fw:381, fh:224, hasAlpha:true },
   green:  { src:'sprites/green_ghost.png',  frames:2, fw:208, fh:211, hasAlpha:true },
 };
 
@@ -76,7 +75,7 @@ const SPRITE_DEFS = {
 const spriteImages = {};    // type -> raw Image
 const spriteCanvas = {};    // type -> offscreen canvas with bg removed
 let spritesLoaded = 0;
-const TOTAL_SPRITES = Object.values(SPRITE_DEFS).filter(d => d !== null).length || 1;
+const TOTAL_SPRITES = Object.keys(SPRITE_DEFS).length;
 
 function removeBg(img, fw, fh, frames, thresh) {
   const oc = document.createElement('canvas');
@@ -96,8 +95,7 @@ function removeBg(img, fw, fh, frames, thresh) {
 }
 
 function loadSprites(onDone) {
-  const toLoad = Object.entries(SPRITE_DEFS).filter(([,def]) => def !== null);
-  if (toLoad.length === 0) { onDone(); return; }
+  const toLoad = Object.entries(SPRITE_DEFS);
   for (const [type, def] of toLoad) {
     const img = new Image();
     img.onload = () => {
@@ -211,7 +209,7 @@ function buildMap() {
 
 // Ghost type cycle — 4 ghosts, cycling through 4 of the 5 enemy types
 // Type names match SPRITE_DEFS keys
-const GHOST_TYPES = ['skull','bat','spider','lava','green'];
+const GHOST_TYPES = ['bat','lava','spider','green'];
 
 function initEntities() {
   player = { col: 14, row: 23, dir: 'left', nextDir: null, moveProgress: 0, mouthAngle: 0 };
@@ -447,14 +445,21 @@ function drawMap() {
 }
 
 function drawPlayer() {
-  const x = player.col * TILE + TILE/2;
-  const y = player.row * TILE + TILE/2;
+  const px = player.col * TILE;
+  const py = player.row * TILE;
+  const size = TILE + 6;
+  const drawX = px + (TILE - size) / 2;
+  const drawY = py + (TILE - size) / 2;
   ctx.save();
-  ctx.translate(x, y);
   ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 15;
-  ctx.font = `${TILE}px serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('\u{1F480}', 0, 0);
+  const fIdx = Math.floor(frameCount / 8) % 2;
+  const drawn = drawSprite('hero', fIdx, drawX, drawY, size, size);
+  if (!drawn) {
+    ctx.translate(px + TILE/2, py + TILE/2);
+    ctx.font = `${TILE}px serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('💀', 0, 0);
+  }
   ctx.shadowBlur = 0;
   ctx.restore();
 }
