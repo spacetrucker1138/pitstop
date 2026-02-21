@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Whack-a-Ghoul — Afterverse Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; cursor: none; touch-action: none; }
+</style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    /* └ Leaderboard overlay — */
+    #wagOverlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10,10,10,0.92);
+      z-index: 99; justify-content: center; align-items: center;
+      font-family: 'Creepster', cursive;
+    }
+    #wagOverlay.active { display: flex; }
+    #wagPanel {
+      background: rgba(30,10,50,0.97); border: 2px solid #7c3aed;
+      border-radius: 12px; padding: 28px 32px; min-width: 300px;
+      max-width: 92vw; text-align: center; color: #e9d5ff;
+    }
+    #wagPanel h2 { font-size: 2rem; color: #f87171; text-shadow: 0 0 16px #f87171; margin-bottom: 4px; }
+    #wagScoreLine { font-size: 1.3rem; margin: 8px 0 4px; }
+    #wagBestLine  { font-size: 1rem; color: #eab308; min-height: 1.4em; margin-bottom: 12px; }
+    /* initials entry */
+    #wagInitialsSection { margin: 10px 0 14px; }
+    #wagInitialsLabel { color: rgba(255,255,255,0.55); font-family: 'Cinzel', serif; font-size: 0.85rem; margin-bottom: 8px; }
+    #wagInitialsInput {
+      font-family: 'Creepster', cursive; font-size: 2.2rem; color: #c084fc;
+      background: transparent; border: none; border-bottom: 2px solid #c084fc;
+      text-align: center; width: 4ch; letter-spacing: 0.3em;
+      text-transform: uppercase; outline: none; caret-color: #c084fc;
+    }
+    #wagInitialsSubmit {
+      display: block; margin: 12px auto 0;
+      font-family: 'Creepster', cursive; font-size: 1.1rem; color: #c084fc;
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.5);
+      padding: 6px 24px; border-radius: 6px; cursor: pointer;
+    }
+    #wagInitialsSubmit:hover { background: rgba(124,58,237,0.35); }
+    /* leaderboard */
+    #wagLeaderboard { margin: 10px 0 16px; text-align: left; }
+    .wag-lb-title { text-align: center; color: rgba(255,255,255,0.4); font-family: 'Cinzel', serif; font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.08em; }
+    .wag-lb-row { display: flex; justify-content: space-between; padding: 3px 6px; font-size: 0.95rem; }
+    .wag-lb-row.gold   { color: #ffd700; }
+    .wag-lb-row.silver { color: #c0c0c0; }
+    .wag-lb-row.bronze { color: #cd7f32; }
+    .wag-lb-row.normal { color: rgba(255,255,255,0.55); }
+    .wag-lb-row.me     { color: #c084fc; font-weight: bold; }
+    /* buttons */
+    #wagButtons { display: flex; gap: 12px; justify-content: center; margin-top: 4px; }
+    .wag-btn {
+      font-family: 'Creepster', cursive; font-size: 1.1rem;
+      padding: 8px 22px; border-radius: 8px; cursor: pointer; border: none;
+    }
+    #wagPlayAgain { background: #7c3aed; color: #fff; }
+    #wagPlayAgain:hover { background: #6d28d9; }
+    #wagTitleBtn  { background: #374151; color: #c084fc; border: 1px solid #4b5563; }
+    #wagTitleBtn:hover  { background: #4b5563; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="wagOverlay">
+  <div id="wagPanel">
+    <h2>TIME&#39;S UP!</h2>
+    <div id="wagScoreLine">Score: <span id="wagFinalScore">0</span></div>
+    <div id="wagBestLine"></div>
+    <div id="wagInitialsSection" style="display:none;">
+      <div id="wagInitialsLabel">NEW HIGH SCORE -- enter your initials</div>
+      <input id="wagInitialsInput" maxlength="3" autocomplete="off" spellcheck="false" />
+      <button id="wagInitialsSubmit">SUBMIT</button>
+    </div>
+    <div id="wagLeaderboard" style="display:none;">
+      <div class="wag-lb-title">TOP SCORES</div>
+      <div id="wagLbRows"></div>
+    </div>
+    <div id="wagButtons">
+      <button class="wag-btn" id="wagPlayAgain">&#9654; PLAY AGAIN</button>
+      <button class="wag-btn" id="wagTitleBtn">&#11013; TITLE</button>
+    </div>
+  </div>
+</div>
