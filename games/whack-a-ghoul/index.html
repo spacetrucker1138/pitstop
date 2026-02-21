@@ -91,6 +91,17 @@ canvas.width = W; canvas.height = H;
 
 // ── Assets ───────────────────────────────────────────────────────────────────
 const bgImg      = new Image(); bgImg.src      = 'bg_graveyard.jpg';
+// Animated background video (looping, muted, preloaded)
+const bgVideo = document.createElement('video');
+bgVideo.src = 'wag_bg.mp4';
+bgVideo.loop = true;
+bgVideo.muted = true;
+bgVideo.playsInline = true;
+bgVideo.preload = 'auto';
+bgVideo.load();
+// Attempt autoplay — browsers allow muted autoplay; start when user first interacts too
+bgVideo.play().catch(()=>{});
+document.addEventListener('pointerdown', ()=>{ if(bgVideo.paused) bgVideo.play().catch(()=>{}); }, {once:false});
 const hammerImg  = new Image(); hammerImg.src  = 'hammer.png';
 const monsterSheet = new Image(); monsterSheet.src = 'monsters.png';
 const catSheet = new Image(); catSheet.src = 'cat_penalty.png';
@@ -374,8 +385,11 @@ function update() {
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
 function drawBackground() {
-  if (bgImg.complete&&bgImg.naturalWidth>0) {
-    ctx.drawImage(bgImg,0,0,W,H);
+  // Prefer animated video; fall back to static jpg, then solid colour
+  if (bgVideo.readyState >= 2) {
+    ctx.drawImage(bgVideo, 0, 0, W, H);
+  } else if (bgImg.complete && bgImg.naturalWidth > 0) {
+    ctx.drawImage(bgImg, 0, 0, W, H);
   } else {
     ctx.fillStyle='#1a0a2e'; ctx.fillRect(0,0,W,H);
   }
