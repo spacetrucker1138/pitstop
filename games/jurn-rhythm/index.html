@@ -367,50 +367,41 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
-    background: rgba(0,0,0,0.85);
+    background: #000;
+    overflow: hidden;
   }
-
+  #title-bg-video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.45;
+    filter: saturate(1.4) brightness(0.7);
+  }
   #title-art-area {
+    position: relative;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
   }
-
-  /* Placeholder — Bobby's art replaces this */
-  #title-logo-placeholder {
-    text-align: center;
+  #title-art-img {
+    max-height: 65vh;
+    max-width: 90vw;
+    object-fit: contain;
+    filter: drop-shadow(0 0 30px rgba(255, 100, 0, 0.6));
+    animation: titleFloat 3s ease-in-out infinite;
   }
-  .title-skull {
-    font-size: 80px;
-    line-height: 1;
-    filter: drop-shadow(0 0 30px #f0f);
-    animation: titlePulse 2s ease-in-out infinite;
-  }
-  .title-main {
-    font-family: 'Permanent Marker', cursive;
-    font-size: 72px;
-    color: #fff;
-    text-shadow: 0 0 40px #f0f, 0 0 80px #f0f, 4px 4px 0 #000;
-    letter-spacing: 8px;
-    margin-top: 10px;
-    animation: titlePulse 2s ease-in-out infinite;
-  }
-  .title-sub {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
-    color: #0ff;
-    text-shadow: 0 0 20px #0ff;
-    letter-spacing: 6px;
-    margin-top: 8px;
-  }
-
-  @keyframes titlePulse {
-    0%, 100% { text-shadow: 0 0 40px #f0f, 0 0 80px #f0f, 4px 4px 0 #000; }
-    50% { text-shadow: 0 0 60px #f0f, 0 0 120px #0ff, 4px 4px 0 #000; }
+  @keyframes titleFloat {
+    0%, 100% { transform: translateY(0px); filter: drop-shadow(0 0 30px rgba(255, 100, 0, 0.6)); }
+    50% { transform: translateY(-8px); filter: drop-shadow(0 0 50px rgba(255, 100, 0, 0.9)); }
   }
 
   .title-press-start {
+    position: relative;
+    z-index: 2;
     font-family: 'Press Start 2P', monospace;
     font-size: 14px;
     color: #fff;
@@ -566,13 +557,11 @@
 
   <!-- TITLE SCREEN -->
   <div id="title-screen">
+    <video id="title-bg-video" autoplay muted loop playsinline>
+      <source src="videos/title_bg.mp4" type="video/mp4">
+    </video>
     <div id="title-art-area">
-      <!-- Bobby's art goes here: replace this div with an <img> tag -->
-      <div id="title-logo-placeholder">
-        <div class="title-skull">&#9760;</div>
-        <h1 class="title-main">PIT FURY</h1>
-        <h2 class="title-sub">by JURN</h2>
-      </div>
+      <img src="images/pit_fury_title_art.jpg" alt="Pit Fury - Rock of the Undead" id="title-art-img">
     </div>
     <div class="title-press-start">PRESS ANY KEY</div>
   </div>
