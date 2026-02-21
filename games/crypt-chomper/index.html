@@ -475,12 +475,23 @@ function drawGhosts() {
     ctx.save();
 
     if (powerTimer > 0) {
-      // Frightened — blue ghost emoji fallback
-      if (powerTimer < 90 && Math.floor(frameCount/8) % 2 === 0) ctx.globalAlpha = 0.5;
-      ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 12;
-      ctx.font = `${TILE-2}px serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('\u{1F631}', ghost.col * TILE + TILE/2, ghost.row * TILE + TILE/2);
+      // Frightened — draw sprite with neon green palette overlay
+      const flashing = powerTimer < 90 && Math.floor(frameCount / 8) % 2 === 0;
+      if (flashing) ctx.globalAlpha = 0.45;
+      ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 18;
+      // Draw the ghost's own sprite
+      drawSprite(ghost.type, ghost.frameIdx, drawX, drawY, size, size);
+      // Neon green tint overlay using source-atop
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.globalAlpha = flashing ? 0.7 : 0.55;
+      ctx.fillStyle = '#39ff14';
+      ctx.fillRect(drawX, drawY, size, size);
+      // Second pass: deep teal shadow for depth
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#00ffcc';
+      ctx.fillRect(drawX, drawY, size, size);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
     } else {
       ctx.shadowColor = ghost.color; ctx.shadowBlur = 12;
       // Try sprite first, fallback to emoji
