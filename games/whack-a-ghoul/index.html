@@ -149,8 +149,8 @@ function hitTest(pos) {
   let hit=false;
   for (const hole of holes) {
     if (hole.state==='up'||hole.state==='rising') {
-      const hx=hole.x - 15, hy=hole.y - 35 - Math.round(50*hole.popHeight);
-      if (pos.x>=hx&&pos.x<=hx+HOLE_W+30&&pos.y>=hy&&pos.y<=hy+85+Math.round(50*hole.popHeight)) {
+      const hx=hole.x + HOLE_W/2 - 70, hy=hole.y + HOLE_H/2 - 130;
+      if (pos.x>=hx&&pos.x<=hx+140&&pos.y>=hy&&pos.y<=hy+150) {
         whackHole(hole); hit=true; break;
       }
     }
