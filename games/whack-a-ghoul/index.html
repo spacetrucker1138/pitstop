@@ -19,39 +19,34 @@ const ctx = canvas.getContext('2d');
 const W = 560, H = 700;
 canvas.width = W; canvas.height = H;
 
-// ── Assets ──────────────────────────────────────────────────────────────────
-const bgImg = new Image(); bgImg.src = 'bg_graveyard.jpg';
-const hammerImg = new Image(); hammerImg.src = 'hammer.png';
+// ── Assets ───────────────────────────────────────────────────────────────────
+const bgImg      = new Image(); bgImg.src      = 'bg_graveyard.jpg';
+const hammerImg  = new Image(); hammerImg.src  = 'hammer.png';
 const monsterSheet = new Image(); monsterSheet.src = 'monsters.png';
 
 // Monster sheet: 2 cols × 4 rows, each frame 125×167
+// Col 0 = NORMAL (rising/idle) frame
+// Col 1 = HIT/DAMAGED frame (switches on whack, then sinks back down)
 const FRAME_W = 125, FRAME_H = 167;
-// Row 0=Toxic Zombie, 1=Shadow Zombie, 2=Flesh Zombie, 3=Crystal Lich
-// Col 0=open mouth (attack), Col 1=idle
 const MONSTER_DEFS = [
-  { row: 0, name: 'Toxic',   points: 10, color: '#39ff14' },
-  { row: 1, name: 'Shadow',  points: 15, color: '#c084fc' },
-  { row: 2, name: 'Flesh',   points: 20, color: '#f87171' },
-  { row: 3, name: 'Lich',    points: 30, color: '#a855f7' },
+  { row: 0, name: 'Toxic',  points: 10, color: '#39ff14' },
+  { row: 1, name: 'Shadow', points: 15, color: '#c084fc' },
+  { row: 2, name: 'Flesh',  points: 20, color: '#f87171' },
+  { row: 3, name: 'Lich',   points: 30, color: '#a855f7' },
 ];
-const BONUS_MONSTER  = { row: 3, name: 'Lich King', points: 50, color: '#eab308', isBonus: true };
-const PENALTY_GHOUL  = { row: null, name: 'Tombstone', points: -20, color: '#6b7280', isPenalty: true };
+const BONUS_MONSTER = { row: 3, name: 'Lich King', points: 50, color: '#eab308', isBonus: true };
+const PENALTY_GHOUL = { row: null, name: 'Tombstone', points: -20, color: '#6b7280', isPenalty: true };
 
-// ── Audio ────────────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
 class AudioMgr {
-  constructor() {
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.muted = false; this.volume = 0.5;
-  }
-  resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
-  play(freq, dur, type='square', vol=0.3) {
+  constructor() { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); this.muted=false; this.volume=0.5; }
+  resume() { if (this.ctx.state==='suspended') this.ctx.resume(); }
+  play(freq,dur,type='square',vol=0.3) {
     if (this.muted) return;
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.value = vol * this.volume;
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
-    o.connect(g); g.connect(this.ctx.destination);
-    o.start(); o.stop(this.ctx.currentTime + dur);
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type=type; o.frequency.value=freq; g.gain.value=vol*this.volume;
+    g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dur);
+    o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+dur);
   }
   whack()        { this.play(500,0.08,'square',0.5); setTimeout(()=>this.play(300,0.06),50); }
   miss()         { this.play(150,0.15,'sawtooth',0.3); }
@@ -64,63 +59,71 @@ class AudioMgr {
 const audio = new AudioMgr();
 
 const bgMusic = new Audio('hauntedson4.mp3');
-bgMusic.loop = true; bgMusic.volume = 0.35;
+bgMusic.loop=true; bgMusic.volume=0.35;
 function updateMusic() {
   bgMusic.volume = audio.muted ? 0 : 0.35;
-  if (state === 'playing') { if (bgMusic.paused) bgMusic.play().catch(()=>{}); }
-  else { bgMusic.pause(); bgMusic.currentTime = 0; }
+  if (state==='playing') { if (bgMusic.paused) bgMusic.play().catch(()=>{}); }
+  else { bgMusic.pause(); bgMusic.currentTime=0; }
 }
 
-// ── Hammer cursor ─────────────────────────────────────────────────────────────
-let mouseX = W/2, mouseY = H/2, hammerSwing = 0;
+// ── Hammer cursor ──────────────────────────────────────────────────────────────
+let mouseX=W/2, mouseY=H/2, hammerSwing=0;
 canvas.addEventListener('mousemove', e => {
-  const r = canvas.getBoundingClientRect();
-  mouseX = (e.clientX - r.left) * (W / r.width);
-  mouseY = (e.clientY - r.top)  * (H / r.height);
+  const r=canvas.getBoundingClientRect();
+  mouseX=(e.clientX-r.left)*(W/r.width);
+  mouseY=(e.clientY-r.top)*(H/r.height);
 });
 
-// ── Grid (3×3) ───────────────────────────────────────────────────────────────
-const GRID_COLS = 3, GRID_ROWS = 3;
-const HOLE_W = 120, HOLE_H = 80;
-const GRID_START_X = (W - GRID_COLS*(HOLE_W+30)+30)/2;
-const GRID_START_Y = 220;
-const HOLE_GAP_X = HOLE_W+30, HOLE_GAP_Y = HOLE_H+60;
+// ── Grid (3×3) ─────────────────────────────────────────────────────────────────
+const GRID_COLS=3, GRID_ROWS=3;
+const HOLE_W=120, HOLE_H=80;
+const GRID_START_X=(W-GRID_COLS*(HOLE_W+30)+30)/2;
+const GRID_START_Y=260;
+const HOLE_GAP_X=HOLE_W+30, HOLE_GAP_Y=HOLE_H+60;
 
-// ── Game state ────────────────────────────────────────────────────────────────
-let state = 'title';
+// ── State ──────────────────────────────────────────────────────────────────────
+let state='title';
 let score=0, bestScore=0, combo=0, maxCombo=0;
 let timeLeft=60, lastTick=0;
 let holes=[], particles=[], hitTexts=[];
 let spawnTimer=0, spawnInterval=90, difficulty=1;
 let countdownNum=3, countdownTimer=0;
-try { bestScore = parseInt(localStorage.getItem('whackghoul_best'))||0; } catch(e){}
+try { bestScore=parseInt(localStorage.getItem('whackghoul_best'))||0; } catch(e) {}
 
 function initHoles() {
-  holes = [];
+  holes=[];
   for (let r=0;r<GRID_ROWS;r++) for (let c=0;c<GRID_COLS;c++)
-    holes.push({ x:GRID_START_X+c*HOLE_GAP_X, y:GRID_START_Y+r*HOLE_GAP_Y,
-                 ghoul:null, timer:0, popHeight:0, state:'empty', frame:0, frameTick:0 });
+    holes.push({
+      x: GRID_START_X+c*HOLE_GAP_X,
+      y: GRID_START_Y+r*HOLE_GAP_Y,
+      ghoul: null, timer: 0, popHeight: 0,
+      state: 'empty',
+      hitFrame: false   // false = normal frame (col 0), true = damaged frame (col 1)
+    });
 }
 
 function spawnGhoul() {
-  const empties = holes.filter(h=>h.state==='empty');
+  const empties=holes.filter(h=>h.state==='empty');
   if (!empties.length) return;
-  const hole = empties[Math.floor(Math.random()*empties.length)];
-  const roll = Math.random();
-  if (roll < 0.08)       { hole.ghoul=BONUS_MONSTER;  hole.timer=40+Math.floor(30/difficulty); }
-  else if (roll < 0.18)  { hole.ghoul=PENALTY_GHOUL;  hole.timer=80; }
+  const hole=empties[Math.floor(Math.random()*empties.length)];
+  const roll=Math.random();
+  if (roll<0.08)      { hole.ghoul=BONUS_MONSTER;  hole.timer=40+Math.floor(30/difficulty); }
+  else if (roll<0.18) { hole.ghoul=PENALTY_GHOUL;  hole.timer=80; }
   else {
     const idx=Math.min(Math.floor(Math.random()*(2+difficulty)),MONSTER_DEFS.length-1);
-    hole.ghoul=MONSTER_DEFS[idx]; hole.timer=60+Math.floor(40/difficulty);
+    hole.ghoul=MONSTER_DEFS[idx];
+    hole.timer=60+Math.floor(40/difficulty);
   }
-  hole.state='rising'; hole.popHeight=0; hole.frame=1; hole.frameTick=0;
+  hole.state='rising'; hole.popHeight=0; hole.hitFrame=false;
 }
 
 function whackHole(hole) {
   if (!hole.ghoul||hole.state==='falling') return;
   const ghoul=hole.ghoul;
   const cx=hole.x+HOLE_W/2, cy=hole.y-10;
-  hole.frame=0; // open-mouth frame on hit
+
+  hole.hitFrame=true;   // switch to damaged frame — stays until fully sunk
+
   if (ghoul.isPenalty) {
     score=Math.max(0,score+ghoul.points); combo=0; audio.penaltyWhack();
     hitTexts.push({x:cx,y:cy,text:ghoul.points.toString(),color:'#f87171',life:1});
@@ -133,7 +136,7 @@ function whackHole(hole) {
     spawnParticles(cx,cy,ghoul.color,8);
   }
   hole.state='falling'; hole.timer=10;
-  hammerSwing = 8; // trigger hammer animation
+  hammerSwing=8;
 }
 
 function spawnParticles(x,y,color,count) {
@@ -141,7 +144,7 @@ function spawnParticles(x,y,color,count) {
     particles.push({x,y,vx:(Math.random()-0.5)*8,vy:-Math.random()*6-2,life:1,color,size:Math.random()*4+2});
 }
 
-// ── Input ─────────────────────────────────────────────────────────────────────
+// ── Input ──────────────────────────────────────────────────────────────────────
 function hitTest(pos) {
   let hit=false;
   for (const hole of holes) {
@@ -155,7 +158,7 @@ function hitTest(pos) {
   if (!hit&&state==='playing') { combo=0; audio.miss(); hammerSwing=8; }
 }
 
-canvas.addEventListener('click', e=>{
+canvas.addEventListener('click', e => {
   audio.resume();
   if (state==='title') { startGame(); return; }
   if (state==='gameover') { state='title'; return; }
@@ -163,7 +166,7 @@ canvas.addEventListener('click', e=>{
   const r=canvas.getBoundingClientRect();
   hitTest({x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)});
 });
-canvas.addEventListener('touchstart', e=>{
+canvas.addEventListener('touchstart', e => {
   e.preventDefault(); audio.resume();
   if (state==='title') { startGame(); return; }
   if (state==='gameover') { state='title'; return; }
@@ -171,13 +174,13 @@ canvas.addEventListener('touchstart', e=>{
   const t=e.touches[0], r=canvas.getBoundingClientRect();
   hitTest({x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height)});
 });
-document.addEventListener('keydown', e=>{
+document.addEventListener('keydown', e => {
   if (e.key==='m'||e.key==='M') { audio.muted=!audio.muted; return; }
   if (state==='title'&&(e.key==='e'||e.key==='E'||e.key===' ')) startGame();
   if (state==='gameover'&&(e.key==='e'||e.key==='E'||e.key===' ')) state='title';
 });
 
-// ── Game flow ─────────────────────────────────────────────────────────────────
+// ── Game flow ──────────────────────────────────────────────────────────────────
 function startGame() {
   audio.resume(); audio.start(); initHoles();
   score=0; combo=0; maxCombo=0; timeLeft=60; lastTick=Date.now();
@@ -208,170 +211,166 @@ function update() {
   difficulty=1+(60-timeLeft)*0.04;
   spawnInterval=Math.max(20,70-(60-timeLeft));
   spawnTimer++;
-  if (spawnTimer>=spawnInterval) {
-    spawnTimer=0; spawnGhoul();
-    if (difficulty>2&&Math.random()>0.5) spawnGhoul();
-  }
+  if (spawnTimer>=spawnInterval) { spawnTimer=0; spawnGhoul(); if(difficulty>2&&Math.random()>0.5) spawnGhoul(); }
 
   for (const hole of holes) {
-    // Sprite animation
-    hole.frameTick++;
-    if (hole.frameTick>=20) { hole.frameTick=0; hole.frame=hole.frame===0?1:0; }
-
     if (hole.state==='rising') { hole.popHeight=Math.min(1,hole.popHeight+0.12); if(hole.popHeight>=1) hole.state='up'; }
     if (hole.state==='up') {
       hole.timer--;
-      if (hole.timer<=0) { hole.state='falling'; hole.timer=10; if(hole.ghoul!==PENALTY_GHOUL) combo=0; }
+      if (hole.timer<=0) { hole.state='falling'; hole.timer=12; if(hole.ghoul!==PENALTY_GHOUL) combo=0; }
     }
-    if (hole.state==='falling') { hole.popHeight=Math.max(0,hole.popHeight-0.15); if(hole.popHeight<=0){hole.state='empty';hole.ghoul=null;} }
+    if (hole.state==='falling') {
+      hole.popHeight=Math.max(0,hole.popHeight-0.13);
+      if (hole.popHeight<=0) { hole.state='empty'; hole.ghoul=null; hole.hitFrame=false; }
+    }
   }
 
   particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.life-=0.025;});
   particles=particles.filter(p=>p.life>0);
   hitTexts.forEach(t=>{t.y-=1.5;t.life-=0.02;});
   hitTexts=hitTexts.filter(t=>t.life>0);
-
   if (hammerSwing>0) hammerSwing--;
 }
 
-// ── Draw ──────────────────────────────────────────────────────────────────────
+// ── Drawing ────────────────────────────────────────────────────────────────────
 function drawBackground() {
-  if (bgImg.complete && bgImg.naturalWidth > 0) {
-    // Draw background scaled to fill canvas
-    ctx.drawImage(bgImg, 0, 0, W, H);
-    // Subtle dark overlay so HUD pops
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(0,0,W,80); // HUD strip
+  if (bgImg.complete&&bgImg.naturalWidth>0) {
+    ctx.drawImage(bgImg,0,0,W,H);
   } else {
-    // Fallback solid dark background
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#1a0a2e'; ctx.fillRect(0,0,W,H);
   }
-}
-
-function drawMonsterInHole(hole) {
-  if (!hole.ghoul||hole.popHeight<=0) return;
-  const x=hole.x, y=hole.y;
-  const popY=y-50*hole.popHeight;
-
-  ctx.save();
-  // Clip to hole area so monster rises from underground
-  ctx.beginPath();
-  ctx.rect(x-10, popY-FRAME_H, HOLE_W+20, FRAME_H+20);
-  ctx.clip();
-
-  if (hole.ghoul.isPenalty) {
-    // Tombstone — keep emoji for now
-    ctx.shadowColor='#6b7280'; ctx.shadowBlur=12;
-    ctx.font='48px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('🪦', x+HOLE_W/2, popY+10);
-    ctx.shadowBlur=0;
-  } else {
-    // Draw sprite from monster sheet
-    const row = hole.ghoul.row;
-    const col = hole.frame; // 0=open, 1=idle
-    const sx = col * FRAME_W, sy = row * FRAME_H;
-    const dw = HOLE_W - 10, dh = Math.round(FRAME_H * ((HOLE_W-10)/FRAME_W));
-    ctx.shadowColor = hole.ghoul.color;
-    ctx.shadowBlur = 18;
-    if (monsterSheet.complete && monsterSheet.naturalWidth > 0) {
-      ctx.drawImage(monsterSheet, sx, sy, FRAME_W, FRAME_H, x+5, popY-dh+20, dw, dh);
-    } else {
-      // Fallback colored rect until sheet loads
-      ctx.fillStyle = hole.ghoul.color;
-      ctx.fillRect(x+10, popY-40, HOLE_W-20, 50);
-    }
-    ctx.shadowBlur=0;
-
-    if (hole.ghoul.isBonus) {
-      ctx.globalAlpha=0.5+Math.sin(Date.now()/100)*0.3;
-      ctx.fillStyle='#eab308'; ctx.font='12px Creepster';
-      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-      ctx.fillText('★ BONUS ★', x+HOLE_W/2, popY-45);
-      ctx.globalAlpha=1;
-    }
-  }
-  ctx.restore();
+  // Thin dark strip behind HUD so text pops
+  ctx.fillStyle='rgba(0,0,0,0.45)';
+  ctx.fillRect(0,0,W,72);
 }
 
 function drawHoles() {
   for (const hole of holes) {
     const x=hole.x, y=hole.y;
-    // Dirt mound (only if bg not showing through well enough)
-    ctx.fillStyle='rgba(30,15,0,0.5)';
+
+    // Draw the hole opening into the ground
+    // Outer dirt mound shadow
+    ctx.fillStyle='rgba(10,5,0,0.65)';
     ctx.beginPath();
-    ctx.ellipse(x+HOLE_W/2, y+HOLE_H/2+10, HOLE_W/2+5, 20, 0, 0, Math.PI*2);
-    ctx.fill();
-    // Dark hole
-    ctx.fillStyle='#050202';
-    ctx.beginPath();
-    ctx.ellipse(x+HOLE_W/2, y+HOLE_H/2, HOLE_W/2-5, 15, 0, 0, Math.PI*2);
+    ctx.ellipse(x+HOLE_W/2, y+HOLE_H/2+8, HOLE_W/2+8, 22, 0, 0, Math.PI*2);
     ctx.fill();
 
-    drawMonsterInHole(hole);
+    // Black pit
+    ctx.fillStyle='#080303';
+    ctx.beginPath();
+    ctx.ellipse(x+HOLE_W/2, y+HOLE_H/2, HOLE_W/2-4, 14, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Monster popping up
+    if (hole.ghoul && hole.popHeight>0) {
+      const popY = y - 50*hole.popHeight;
+
+      ctx.save();
+      // Clip: monster emerges from hole, hide anything below ground level
+      ctx.beginPath();
+      ctx.rect(x-15, popY-FRAME_H-10, HOLE_W+30, FRAME_H+HOLE_H/2+20);
+      ctx.clip();
+
+      if (hole.ghoul.isPenalty) {
+        // Tombstone penalty — emoji fallback
+        ctx.shadowColor='#6b7280'; ctx.shadowBlur=12;
+        ctx.font='48px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('🪦', x+HOLE_W/2, popY+10);
+        ctx.shadowBlur=0;
+      } else {
+        // Sprite: col 0 = normal/rising, col 1 = damaged (after hit)
+        const col = hole.hitFrame ? 1 : 0;
+        const sx  = col * FRAME_W;
+        const sy  = hole.ghoul.row * FRAME_H;
+        const dw  = HOLE_W+10;
+        const dh  = Math.round(FRAME_H * (dw/FRAME_W));
+
+        ctx.shadowColor=hole.ghoul.color; ctx.shadowBlur=20;
+        if (monsterSheet.complete&&monsterSheet.naturalWidth>0) {
+          ctx.drawImage(monsterSheet, sx, sy, FRAME_W, FRAME_H, x-5, popY-dh+22, dw, dh);
+        } else {
+          ctx.fillStyle=hole.ghoul.color; ctx.fillRect(x+10,popY-40,HOLE_W-20,50);
+        }
+        ctx.shadowBlur=0;
+
+        // Bonus shimmer label
+        if (hole.ghoul.isBonus) {
+          ctx.globalAlpha=0.5+Math.sin(Date.now()/100)*0.3;
+          ctx.fillStyle='#eab308'; ctx.font='12px Creepster';
+          ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+          ctx.fillText('★ BONUS ★', x+HOLE_W/2, popY-50);
+          ctx.globalAlpha=1;
+        }
+      }
+      ctx.restore();
+
+      // Dirt edge over lower half of sprite so it looks embedded in ground
+      ctx.fillStyle='rgba(30,12,0,0.55)';
+      ctx.beginPath();
+      ctx.ellipse(x+HOLE_W/2, y+HOLE_H/2+2, HOLE_W/2+4, 16, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
   }
 }
 
 function drawHammer() {
-  if (!hammerImg.complete||hammerImg.naturalWidth===0) return;
-  const angle = hammerSwing > 0 ? -0.4 : 0;
+  if (!hammerImg.complete||!hammerImg.naturalWidth) return;
+  const angle = hammerSwing>0 ? -0.45 : 0;
   ctx.save();
   ctx.translate(mouseX, mouseY);
   ctx.rotate(angle);
-  // Draw hammer with hotspot at top of handle
-  ctx.drawImage(hammerImg, -20, -160, 64, 96);
+  // Hotspot: tip of hammer at cursor position
+  ctx.drawImage(hammerImg, -18, -160, 64, 96);
   ctx.restore();
 }
 
 function drawHUD() {
   ctx.font='22px Creepster'; ctx.textAlign='left';
-  ctx.fillStyle='#a855f7';
-  ctx.fillText('Score: '+score, 20, 40);
+  ctx.fillStyle='#a855f7'; ctx.fillText('Score: '+score, 20, 42);
   ctx.textAlign='center';
   if (timeLeft<=10) { ctx.fillStyle='#f87171'; ctx.shadowColor='#f87171'; ctx.shadowBlur=timeLeft<=5?15:0; }
   else ctx.fillStyle='#e9d5ff';
-  ctx.fillText('⏱ '+timeLeft+'s', W/2, 40); ctx.shadowBlur=0;
+  ctx.fillText('⏱ '+timeLeft+'s', W/2, 42); ctx.shadowBlur=0;
   ctx.textAlign='right'; ctx.fillStyle=combo>=5?'#eab308':'#c084fc';
-  ctx.fillText('Combo: '+combo+'x', W-20, 40);
-  ctx.textAlign='center'; ctx.font='14px Creepster';
-  ctx.fillStyle='rgba(168,85,247,0.5)';
+  ctx.fillText('Combo: '+combo+'x', W-20, 42);
+  ctx.textAlign='center'; ctx.font='13px Creepster';
+  ctx.fillStyle='rgba(168,85,247,0.55)';
   ctx.fillText('☠'.repeat(Math.min(Math.floor(difficulty),5)), W/2, 62);
 }
 
 function drawMuteIndicator() {
   ctx.font='12px monospace'; ctx.textAlign='right';
-  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillStyle='rgba(255,255,255,0.45)';
   ctx.fillText(audio.muted?'🔇 M — Muted':'🔊 M — Sound', W-8, H-8);
 }
 
 function drawTitle() {
   drawBackground();
-  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,H);
   const t=Date.now()/1000;
-  // Floating monster previews from sheet
-  for (let i=0;i<4;i++) {
-    if (monsterSheet.complete&&monsterSheet.naturalWidth>0) {
-      ctx.save();
-      ctx.globalAlpha=0.2;
+  // Floating sprite previews
+  if (monsterSheet.complete&&monsterSheet.naturalWidth>0) {
+    for (let i=0;i<4;i++) {
+      ctx.save(); ctx.globalAlpha=0.22;
       ctx.drawImage(monsterSheet, 0, i*FRAME_H, FRAME_W, FRAME_H,
-        W*(i+1)/5-30, 80+Math.sin(t+i*1.3)*20, 60, 80);
+        W*(i+0.6)/4.5-30, 70+Math.sin(t+i*1.3)*18, 55, 74);
       ctx.restore();
     }
   }
   ctx.font='52px Creepster'; ctx.textAlign='center';
   ctx.fillStyle='#a855f7'; ctx.shadowColor='#a855f7'; ctx.shadowBlur=30;
-  ctx.fillText('WHACK-A-GHOUL', W/2, 240); ctx.shadowBlur=0;
+  ctx.fillText('WHACK-A-GHOUL', W/2, 250); ctx.shadowBlur=0;
   ctx.font='18px Creepster'; ctx.fillStyle='#c084fc';
-  ctx.fillText('Smash the ghouls. Dodge the tombstones.', W/2, 285);
-  ctx.fillText('60 seconds. Build combos for bonus points!', W/2, 310);
-  if (bestScore>0) { ctx.font='20px Creepster'; ctx.fillStyle='#eab308'; ctx.fillText('🏆 Best: '+bestScore, W/2, 360); }
+  ctx.fillText('Smash the ghouls. Dodge the tombstones.', W/2, 293);
+  ctx.fillText('60 seconds. Build combos for bonus points!', W/2, 318);
+  if (bestScore>0) { ctx.font='20px Creepster'; ctx.fillStyle='#eab308'; ctx.fillText('🏆 Best: '+bestScore, W/2, 368); }
   ctx.font='16px Creepster'; ctx.fillStyle='#e9d5ff';
-  ctx.fillText('Click or Tap the ghouls to smash them!', W/2, 440);
-  ctx.fillText('👑 Lich King = Bonus | 🪦 = Penalty', W/2, 465);
-  ctx.fillText('M — Mute', W/2, 490);
+  ctx.fillText('Click or Tap the ghouls to smash them!', W/2, 448);
+  ctx.fillText('👑 Lich King = Bonus | 🪦 = Penalty', W/2, 473);
+  ctx.fillText('M — Mute', W/2, 498);
   ctx.globalAlpha=Math.sin(t*3)*0.3+0.7;
   ctx.font='28px Creepster'; ctx.fillStyle='#f87171';
-  ctx.fillText('Press E or Tap to Start', W/2, 560); ctx.globalAlpha=1;
+  ctx.fillText('Press E or Tap to Start', W/2, 568); ctx.globalAlpha=1;
   ctx.font='14px Creepster'; ctx.fillStyle='rgba(168,85,247,0.6)';
   ctx.fillText('☠ A JURN Production ☠', W/2, H-25);
   drawMuteIndicator();
@@ -396,22 +395,19 @@ function drawGameOver() {
 
 function render() {
   ctx.clearRect(0,0,W,H);
-  if (state==='title') { drawTitle(); return; }
-  if (state==='gameover') { drawGameOver(); return; }
+  if (state==='title')   { drawTitle();   return; }
+  if (state==='gameover'){ drawGameOver(); return; }
 
   drawBackground();
   drawHUD();
   drawHoles();
 
-  // Particles
   particles.forEach(p=>{ ctx.globalAlpha=p.life; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); });
   ctx.globalAlpha=1;
 
-  // Hit texts
   hitTexts.forEach(t=>{ ctx.globalAlpha=t.life; ctx.font='24px Creepster'; ctx.textAlign='center'; ctx.fillStyle=t.color; ctx.shadowColor=t.color; ctx.shadowBlur=10; ctx.fillText(t.text,t.x,t.y); ctx.shadowBlur=0; });
   ctx.globalAlpha=1;
 
-  // Countdown overlay
   if (state==='countdown') {
     ctx.fillStyle='rgba(10,10,10,0.6)'; ctx.fillRect(0,0,W,H);
     const colors=['#22c55e','#eab308','#f87171'];
@@ -423,7 +419,7 @@ function render() {
   }
 
   drawMuteIndicator();
-  drawHammer(); // always on top
+  drawHammer();
 }
 
 function loop() { updateMusic(); update(); render(); requestAnimationFrame(loop); }
