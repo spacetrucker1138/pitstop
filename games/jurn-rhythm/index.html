@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>JURN - Rhythm Attack</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Press+Start+2P&display=swap');
@@ -31,12 +34,9 @@
     width: 100%; height: 100%;
     object-fit: cover;
     z-index: 0;
-    opacity: 0;
-    transition: opacity 0.4s ease, filter 1.2s ease;
+    opacity: 0.4;
+    transition: filter 0.8s ease;
     filter: saturate(1.2) brightness(0.8);
-  }
-  .bg-vid.active-vid {
-    opacity: 1;
   }
 
   /* Dark overlay on top of video */
@@ -356,8 +356,7 @@
 </head>
 <body>
 <div id="game-container">
-  <video id="vid-a" class="bg-vid active-vid" muted loop playsinline></video>
-  <video id="vid-b" class="bg-vid" muted loop playsinline></video>
+  <video id="vid-main" class="bg-vid" muted loop playsinline></video>
   <div id="video-overlay"></div>
   <canvas id="game-canvas"></canvas>
 
@@ -736,10 +735,7 @@ function generateBeatmap(difficulty) {
 // ----------------------------------------------------------------
 class VideoBackdrop {
   constructor() {
-    this.vidA = document.getElementById('vid-a');
-    this.vidB = document.getElementById('vid-b');
-    this.active = this.vidA;
-    this.next   = this.vidB;
+    this.vid = document.getElementById('vid-main');
     this.currentSrc = null;
 
     this.clips = {
@@ -751,18 +747,9 @@ class VideoBackdrop {
       fullband1: 'videos/fullBand1.mp4',
       fullband2: 'videos/fullBand2.mp4',
     };
-    this.laneClip    = ['taz', 'bonecrush', 'rif', 'vox'];
+    this.laneClip     = ['taz', 'bonecrush', 'rif', 'vox'];
     this.fullBandPool = ['fullband', 'fullband1', 'fullband2'];
     this.fullBandIdx  = 0;
-
-    // Preload all clips so the browser buffers them before first play
-    const preloadKeys = ['fullband', 'fullband1', 'fullband2', 'taz', 'bonecrush', 'rif', 'vox'];
-    preloadKeys.forEach(k => {
-      const v = document.createElement('video');
-      v.src = this.clips[k];
-      v.muted = true;
-      v.preload = 'auto';
-    });
   }
 
   _nextFullBand() {
@@ -771,70 +758,47 @@ class VideoBackdrop {
     return k;
   }
 
-  crossfadeTo(clipKey) {
+  _play(clipKey) {
+    if (!this.vid) return;
     const src = this.clips[clipKey];
-    if (!src || src === this.currentSrc) return;
+    if (!src) return;
+    if (src === this.currentSrc) return;
     this.currentSrc = src;
-
-    this.next.src = src;
-    this.next.currentTime = 0;
-    this.next.play().catch(() => {});
-
-    this.next.classList.add('active-vid');
-    this.active.classList.remove('active-vid');
-
-    const old = this.active;
-    this.active = this.next;
-    this.next   = old;
-
-    setTimeout(() => {
-      if (!old.classList.contains('active-vid')) {
-        old.pause();
-        old.src = '';
-      }
-    }, 600);
-  }
-
-  setRockFilter(rockPct) {
-    let filter;
-    if (rockPct > 0.6) {
-      filter = `saturate(1.3) brightness(0.9)`;
-    } else if (rockPct > 0.3) {
-      const t = (rockPct - 0.3) / 0.3;
-      const sat = (0.4 + t * 0.9).toFixed(2);
-      const bri = (0.65 + t * 0.25).toFixed(2);
-      filter = `saturate(${sat}) brightness(${bri})`;
-    } else {
-      const t = rockPct / 0.3;
-      const sat = (0.1 + t * 0.3).toFixed(2);
-      const bri = (0.4 + t * 0.25).toFixed(2);
-      const gray = (1 - t * 0.8).toFixed(2);
-      filter = `saturate(${sat}) brightness(${bri}) grayscale(${gray})`;
-    }
-    this.active.style.filter = filter;
+    this.vid.src = src;
+    this.vid.currentTime = 0;
+    this.vid.play().catch(() => {});
   }
 
   showBand(variant) {
-    if (variant === 'chorus') this.crossfadeTo('fullband2');
-    else if (variant === 'outro') this.crossfadeTo('fullband1');
-    else this.crossfadeTo(this._nextFullBand());
+    if (variant === 'chorus')     this._play('fullband2');
+    else if (variant === 'outro') this._play('fullband1');
+    else                          this._play(this._nextFullBand());
   }
 
   showLane(laneIdx) {
     const key = this.laneClip[laneIdx];
-    if (key) this.crossfadeTo(key);
+    if (key) this._play(key);
+  }
+
+  setRockFilter(rockPct) {
+    if (!this.vid) return;
+    if (rockPct > 0.6) {
+      this.vid.style.filter = 'saturate(1.3) brightness(0.9)';
+    } else if (rockPct > 0.3) {
+      this.vid.style.filter = 'saturate(0.8) brightness(0.6)';
+    } else {
+      this.vid.style.filter = 'grayscale(70%) brightness(0.4)';
+    }
   }
 
   stop() {
-    this.active.pause();
-    this.next.pause();
-    this.active.src = '';
-    this.next.src   = '';
+    if (!this.vid) return;
+    this.vid.pause();
+    this.vid.src = '';
     this.currentSrc = null;
-    this.active.classList.add('active-vid');
-    this.next.classList.remove('active-vid');
   }
 }
+
 
 // ============================================================
 // GAME ENGINE
@@ -1544,7 +1508,9 @@ class JURNRhythmGame {
 }
 
 // Init
-const game = new JURNRhythmGame();
+document.addEventListener('DOMContentLoaded', () => {
+  window.game = new JURNRhythmGame();
+});
 </script>
 </body>
 </html>
