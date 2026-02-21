@@ -8,7 +8,11 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; cursor: none; touch-action: none; }
+canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; cursor: none; touch-action: none; position: relative; z-index: 1; }
+#bgVideoEl {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; pointer-events: none;
+}
 </style>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -60,6 +64,7 @@ canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contai
   </style>
 </head>
 <body>
+<video id="bgVideoEl" src="wag_bg.mp4" autoplay loop muted playsinline preload="auto"></video>
 <canvas id="c"></canvas>
 
 <div id="wagOverlay">
@@ -91,16 +96,8 @@ canvas.width = W; canvas.height = H;
 
 // ── Assets ───────────────────────────────────────────────────────────────────
 const bgImg      = new Image(); bgImg.src      = 'bg_graveyard.jpg';
-// Animated background video (looping, muted, preloaded)
-const bgVideo = document.createElement('video');
-bgVideo.src = 'wag_bg.mp4';
-bgVideo.loop = true;
-bgVideo.muted = true;
-bgVideo.playsInline = true;
-bgVideo.preload = 'auto';
-bgVideo.load();
-// Attempt autoplay — browsers allow muted autoplay; start when user first interacts too
-bgVideo.play().catch(()=>{});
+// Reuse the full-page background video element for canvas draw too (same source, no double-load)
+const bgVideo = document.getElementById('bgVideoEl');
 document.addEventListener('pointerdown', ()=>{ if(bgVideo.paused) bgVideo.play().catch(()=>{}); }, {once:false});
 const hammerImg  = new Image(); hammerImg.src  = 'hammer.png';
 const monsterSheet = new Image(); monsterSheet.src = 'monsters.png';
