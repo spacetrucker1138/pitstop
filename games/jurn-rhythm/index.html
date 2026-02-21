@@ -25,14 +25,18 @@
   }
 
   /* Video backdrop */
-  #video-backdrop {
+  .bg-vid {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     object-fit: cover;
     z-index: 0;
-    opacity: 0.4;
-    transition: filter 0.5s ease, opacity 0.5s ease;
+    opacity: 0;
+    transition: opacity 0.4s ease, filter 1.2s ease;
+    filter: saturate(1.2) brightness(0.8);
+  }
+  .bg-vid.active-vid {
+    opacity: 1;
   }
 
   /* Dark overlay on top of video */
@@ -40,6 +44,7 @@
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
+    pointer-events: none;
     background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.8) 100%);
     z-index: 1;
   }
@@ -351,7 +356,8 @@
 </head>
 <body>
 <div id="game-container">
-  <video id="video-backdrop" autoplay loop muted playsinline></video>
+  <video id="vid-a" class="bg-vid active-vid" muted loop playsinline></video>
+  <video id="vid-b" class="bg-vid" muted loop playsinline></video>
   <div id="video-overlay"></div>
   <canvas id="game-canvas"></canvas>
 
@@ -838,7 +844,6 @@ class JURNRhythmGame {
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.backdrop = new VideoBackdrop();
-    this.video = document.getElementById('video-backdrop');
     this.audio = null;
     this.audioLoaded = false;
     this.difficulty = 'easy';
@@ -988,7 +993,9 @@ class JURNRhythmGame {
     this.screenShake = 0;
 
     // Start video backdrop (must be within click gesture for autoplay to work)
-    this.backdrop.showBand('default');
+    try {
+      this.backdrop.showBand('default');
+    } catch(e) { console.warn('Video backdrop init failed:', e); }
     this.lastVideoSection = null;
 
     // Countdown
