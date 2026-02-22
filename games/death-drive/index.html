@@ -43,7 +43,9 @@
       z-index: 10;
     }
     #fps { display:none; }
-  </style>
+  
+  #hitbox-toggle.active { background: #ff00ff; color: #000; opacity: 1; }
+</style>
 
 <script>
 // ─── DEATH DRIVE AUDIO ENGINE ───────────────────────────────────────────
@@ -139,7 +141,14 @@ var AudioEngine = (function() {
   
 
   <div id="racer">
-    <div id="hud">
+    <button id="hitbox-toggle" onclick="window.showHitboxes=!window.showHitboxes; this.classList.toggle('active');"
+  style="position:absolute;bottom:8px;right:8px;z-index:100;
+         background:#111;color:#ff00ff;border:1px solid #ff00ff;
+         font-family:monospace;font-size:11px;padding:3px 8px;
+         cursor:pointer;opacity:0.7;border-radius:3px;letter-spacing:1px;">
+  HITBOX
+</button>
+<div id="hud">
       <span id="speed"            class="hud"><span id="speed_value" class="value">0</span> mph</span>
       <span id="current_lap_time" class="hud">Time: <span id="current_lap_time_value" class="value">0.0</span></span> 
       <span id="last_lap_time"    class="hud">Last Lap: <span id="last_lap_time_value" class="value">0.0</span></span>
@@ -653,8 +662,18 @@ var Render = {
     destY = destY + (destH * (offsetY || 0));
 
     var clipH = clipY ? Math.max(0, destY+destH-clipY) : 0;
+    var drawH = destH - clipH;
     if (clipH < destH)
-      ctx.drawImage(sprites, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, destH - clipH);
+      ctx.drawImage(sprites, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
+    if (window.showHitboxes && clipH < destH) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,0,255,0.9)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(destX + 0.5, destY + 0.5, destW - 1, drawH - 1);
+      ctx.fillStyle = 'rgba(255,0,255,0.12)';
+      ctx.fillRect(destX, destY, destW, drawH);
+      ctx.restore();
+    }
 
   },
 
@@ -671,7 +690,20 @@ var Render = {
     else
       sprite = (updown > 0) ? SPRITES.PLAYER_UPHILL_STRAIGHT : SPRITES.PLAYER_STRAIGHT;
 
+    var playerDestW = (sprite.w * scale * width/2) * (SPRITES.SCALE * roadWidth);
+    var playerDestH = (sprite.h * scale * width/2) * (SPRITES.SCALE * roadWidth);
+    var playerBoxX  = destX - playerDestW * 0.5;
+    var playerBoxY  = (destY + bounce) - playerDestH;
     Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY + bounce, -0.5, -1);
+    if (window.showHitboxes) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,255,0,0.9)';
+      ctx.lineWidth   = 2;
+      ctx.strokeRect(playerBoxX + 0.5, playerBoxY + 0.5, playerDestW - 1, playerDestH - 1);
+      ctx.fillStyle = 'rgba(0,255,0,0.12)';
+      ctx.fillRect(playerBoxX, playerBoxY, playerDestW, playerDestH);
+      ctx.restore();
+    }
   },
 
   //---------------------------------------------------------------------------
@@ -694,7 +726,9 @@ var Render = {
 // RACING GAME CONSTANTS
 //=============================================================================
 
-var KEY = {
+window.showHitboxes = false;
+
+    var KEY = {
   LEFT:  37,
   UP:    38,
   RIGHT: 39,
