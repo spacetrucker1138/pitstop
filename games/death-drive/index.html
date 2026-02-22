@@ -856,7 +856,8 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
-      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * 1.0;
+      var vanRenderScale = 1.0;                    // per-van render scale multiplier (independent of SPRITES.SCALE)
+      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * vanRenderScale;
       var speedPercent  = speed/maxSpeed;
       AudioEngine.setEngineSpeed(speedPercent);
       var dx            = dt * 2 * speedPercent; // at top speed, should be able to cross from left to right (-1 to 1) in 1 second
@@ -1106,7 +1107,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
         if (segment == playerSegment) {
           Render.player(ctx, width, height, resolution, roadWidth, sprites, speed/maxSpeed,
-                        (cameraDepth/playerZ) * 4.0,
+                        (cameraDepth/playerZ) * vanRenderScale,
                         width/2,
                         (height/2) - (cameraDepth/playerZ * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height/2),
                         speed * (keyLeft ? -1 : keyRight ? 1 : 0),
@@ -1361,7 +1362,7 @@ Game.run({
         else if (key === 'fogDensity')    { fogDensity    = val; }
         else if (key === 'roadWidth')     { roadWidth     = val; }
         else if (key === 'centrifugal')   { centrifugal   = val; }
-        else if (key === 'vanScale')      { SPRITES.SCALE = val * (1/SPRITES.PLAYER_STRAIGHT.w); }
+        else if (key === 'vanScale')      { vanRenderScale = val; playerW = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * vanRenderScale; }
       };
       resolution             = height/480;
       refreshTweakUI();
@@ -1461,9 +1462,9 @@ Game.run({
       oninput="CAM.set('roadWidth',+this.value)">
   </div>
   <div class="cam-row">
-    <label>vanScale×10 <span id="lbl-vanScale">5.5</span></label>
-    <input type="range" id="sl-vanScale" min="1" max="20" step="1" value="5"
-      oninput="CAM.setVanScale(+this.value)">
+    <label>vanScale <span id="lbl-vanScale">1.0</span></label>
+    <input type="range" id="sl-vanScale" min="0.2" max="4.0" step="0.1" value="1.0"
+      oninput="CAM.set('vanScale', +this.value)">
   </div>
   <div class="cam-row">
     <label>centrifugal <span id="lbl-centrifugal">0.30</span></label>
@@ -1483,11 +1484,7 @@ window.CAM = {
     document.getElementById('lbl-' + key).textContent = val;
     if (window.__camBridge) window.__camBridge(key, val);
   },
-  setVanScale: function(tenths) {
-    var v = (tenths / 10).toFixed(1);
-    document.getElementById('lbl-vanScale').textContent = v;
-    if (window.__camBridge) window.__camBridge('vanScale', parseFloat(v));
-  },
+  // vanScale now uses CAM.set directly (direct float, 0.2–4.0)
   copy: function() {
     var keys = ['cameraHeight','fieldOfView','drawDistance','fogDensity','roadWidth','vanScale','centrifugal'];
     var lines = keys.map(function(k) {
