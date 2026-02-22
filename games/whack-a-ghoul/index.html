@@ -64,7 +64,7 @@ canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contai
   </style>
 </head>
 <body>
-<video id="bgVideoEl" src="wag_bg.mp4" autoplay loop muted playsinline preload="auto"></video>
+<video id="bgVideoEl" src="wag_bg.mp4" loop muted playsinline preload="auto"></video>
 <canvas id="c"></canvas>
 
 <div id="wagOverlay">
@@ -98,6 +98,7 @@ canvas.width = W; canvas.height = H;
 const bgImg      = new Image(); bgImg.src      = 'bg_graveyard.jpg';
 // Reuse the full-page background video element for canvas draw too (same source, no double-load)
 const bgVideo = document.getElementById('bgVideoEl');
+bgVideo.pause(); // loop stitching temp disabled — new source pending
 document.addEventListener('pointerdown', ()=>{ if(bgVideo.paused) bgVideo.play().catch(()=>{}); }, {once:false});
 const hammerImg  = new Image(); hammerImg.src  = 'hammer.png';
 const monsterSheet = new Image(); monsterSheet.src = 'monsters.png';
