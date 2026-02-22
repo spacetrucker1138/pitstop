@@ -782,7 +782,7 @@ var SPRITES = {
   PLAYER_RIGHT:           { x: 395, y: 1495, w:  119, h:  131 }
 };
 
-SPRITES.SCALE = 0.3 * (1/SPRITES.PLAYER_STRAIGHT.w) // the reference sprite width should be 1/3rd the (half-)roadWidth
+SPRITES.SCALE = 0.55 * (1/SPRITES.PLAYER_STRAIGHT.w) // player van fills ~half the road width
 
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS     = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
@@ -856,7 +856,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
-      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * 4.0;
+      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * 1.0;
       var speedPercent  = speed/maxSpeed;
       AudioEngine.setEngineSpeed(speedPercent);
       var dx            = dt * 2 * speedPercent; // at top speed, should be able to cross from left to right (-1 to 1) in 1 second
@@ -1106,7 +1106,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
         if (segment == playerSegment) {
           Render.player(ctx, width, height, resolution, roadWidth, sprites, speed/maxSpeed,
-                        (cameraDepth/playerZ) * 4.0,
+                        (cameraDepth/playerZ) * 1.0,
                         width/2,
                         (height/2) - (cameraDepth/playerZ * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height/2),
                         speed * (keyLeft ? -1 : keyRight ? 1 : 0),
