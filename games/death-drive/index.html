@@ -342,12 +342,12 @@ var SPRITES = {
   CAR02:                  { x: 1383, y:  825, w:   80, h:   59 },
   CAR04:                  { x: 1383, y:  894, w:   80, h:   57 },
   CAR01:                  { x: 1205, y: 1018, w:   80, h:   56 },
-  PLAYER_UPHILL_LEFT:     { x:   5, y: 1582, w:  160, h:   90 },
-  PLAYER_UPHILL_STRAIGHT: { x: 170, y: 1582, w:  160, h:   90 },
-  PLAYER_UPHILL_RIGHT:    { x: 335, y: 1582, w:  160, h:   90 },
-  PLAYER_LEFT:            { x:   5, y: 1495, w:  160, h:   82 },
-  PLAYER_STRAIGHT:        { x: 170, y: 1495, w:  160, h:   82 },
-  PLAYER_RIGHT:           { x: 335, y: 1495, w:  160, h:   82 },
+  PLAYER_UPHILL_LEFT:     { x:   5, y: 1709, w:  119, h:  131 },
+  PLAYER_UPHILL_STRAIGHT: { x: 200, y: 1709, w:  119, h:  131 },
+  PLAYER_UPHILL_RIGHT:    { x: 395, y: 1709, w:  119, h:  131 },
+  PLAYER_LEFT:            { x:   5, y: 1495, w:  119, h:  131 },
+  PLAYER_STRAIGHT:        { x: 200, y: 1495, w:  119, h:  131 },
+  PLAYER_RIGHT:           { x: 395, y: 1495, w:  119, h:  131 },
   SCALE:                  1/282
 };
 
@@ -665,12 +665,13 @@ var Render = {
     var drawH = destH - clipH;
     if (clipH < destH)
       ctx.drawImage(sprites, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
-    if (window.showHitboxes && clipH < destH) {
+    if ((window.showHitboxes || window._drawingPlayerHitbox) && clipH < destH) {
+      var isPlayer = !!window._drawingPlayerHitbox;
       ctx.save();
-      ctx.strokeStyle = 'rgba(255,0,255,0.9)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = isPlayer ? 'rgba(0,255,0,0.9)' : 'rgba(255,0,255,0.9)';
+      ctx.lineWidth = isPlayer ? 2 : 1;
       ctx.strokeRect(destX + 0.5, destY + 0.5, destW - 1, drawH - 1);
-      ctx.fillStyle = 'rgba(255,0,255,0.12)';
+      ctx.fillStyle = isPlayer ? 'rgba(0,255,0,0.15)' : 'rgba(255,0,255,0.12)';
       ctx.fillRect(destX, destY, destW, drawH);
       ctx.restore();
     }
@@ -690,20 +691,9 @@ var Render = {
     else
       sprite = (updown > 0) ? SPRITES.PLAYER_UPHILL_STRAIGHT : SPRITES.PLAYER_STRAIGHT;
 
-    var playerDestW = (sprite.w * scale * width/2) * (SPRITES.SCALE * roadWidth);
-    var playerDestH = (sprite.h * scale * width/2) * (SPRITES.SCALE * roadWidth);
-    var playerBoxX  = destX - playerDestW * 0.5;
-    var playerBoxY  = (destY + bounce) - playerDestH;
+    window._drawingPlayerHitbox = window.showHitboxes;
     Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY + bounce, -0.5, -1);
-    if (window.showHitboxes) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(0,255,0,0.9)';
-      ctx.lineWidth   = 2;
-      ctx.strokeRect(playerBoxX + 0.5, playerBoxY + 0.5, playerDestW - 1, playerDestH - 1);
-      ctx.fillStyle = 'rgba(0,255,0,0.12)';
-      ctx.fillRect(playerBoxX, playerBoxY, playerDestW, playerDestH);
-      ctx.restore();
-    }
+    window._drawingPlayerHitbox = false;
   },
 
   //---------------------------------------------------------------------------
@@ -784,12 +774,12 @@ var SPRITES = {
   CAR02:                  { x: 1383, y:  825, w:   80, h:   59 },
   CAR04:                  { x: 1383, y:  894, w:   80, h:   57 },
   CAR01:                  { x: 1205, y: 1018, w:   80, h:   56 },
-  PLAYER_UPHILL_LEFT:     { x:   5, y: 1582, w:  160, h:   90 },
-  PLAYER_UPHILL_STRAIGHT: { x: 170, y: 1582, w:  160, h:   90 },
-  PLAYER_UPHILL_RIGHT:    { x: 335, y: 1582, w:  160, h:   90 },
-  PLAYER_LEFT:            { x:   5, y: 1495, w:  160, h:   82 },
-  PLAYER_STRAIGHT:        { x: 170, y: 1495, w:  160, h:   82 },
-  PLAYER_RIGHT:           { x: 335, y: 1495, w:  160, h:   82 }
+  PLAYER_UPHILL_LEFT:     { x:   5, y: 1709, w:  119, h:  131 },
+  PLAYER_UPHILL_STRAIGHT: { x: 200, y: 1709, w:  119, h:  131 },
+  PLAYER_UPHILL_RIGHT:    { x: 395, y: 1709, w:  119, h:  131 },
+  PLAYER_LEFT:            { x:   5, y: 1495, w:  119, h:  131 },
+  PLAYER_STRAIGHT:        { x: 200, y: 1495, w:  119, h:  131 },
+  PLAYER_RIGHT:           { x: 395, y: 1495, w:  119, h:  131 }
 };
 
 SPRITES.SCALE = 0.3 * (1/SPRITES.PLAYER_STRAIGHT.w) // the reference sprite width should be 1/3rd the (half-)roadWidth
