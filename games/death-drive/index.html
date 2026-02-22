@@ -1,0 +1,306 @@
+<!DOCTYPE html> 
+
+<html>
+<head>
+  <title>DEATH DRIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <!-- common.css removed -->
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #racer {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      display: block;
+    }
+    canvas {
+      display: block;
+      width: 640px !important;
+      height: 480px !important;
+    }
+    #hud {
+      position: absolute;
+      top: 8px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #c8ff00;
+      text-shadow: 0 0 6px #c8ff00;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #fps { display:none; }
+  </style>
+
+<script>
+// ─── DEATH DRIVE AUDIO ENGINE ───────────────────────────────────────────
+var AudioEngine = (function() {
+  var ctx = null, engineOsc = null, engineGain = null;
+  var engineLfo = null, lfoGain = null;
+  var running = false;
+  var lastCollision = 0, lastScreech = 0;
+
+  function init() {
+    if (ctx) return;
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+
+  function startEngine() {
+    if (!ctx || running) return;
+    running = true;
+    engineGain = ctx.createGain();
+    engineGain.gain.value = 0.14;
+    engineGain.connect(ctx.destination);
+    engineOsc = ctx.createOscillator();
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.value = 50;
+    var dist = ctx.createWaveShaper();
+    var c = new Float32Array(256);
+    for (var i=0;i<256;i++){var x=(i*2)/256-1;c[i]=(Math.PI+400)*x/(Math.PI+400*Math.abs(x));}
+    dist.curve = c;
+    var filt = ctx.createBiquadFilter();
+    filt.type='lowpass'; filt.frequency.value=300; filt.Q.value=1.2;
+    engineLfo = ctx.createOscillator();
+    engineLfo.type='sine'; engineLfo.frequency.value=7;
+    lfoGain = ctx.createGain(); lfoGain.gain.value=12;
+    engineLfo.connect(lfoGain); lfoGain.connect(engineOsc.frequency);
+    engineOsc.connect(dist); dist.connect(filt); filt.connect(engineGain);
+    engineOsc.start(); engineLfo.start();
+  }
+
+  function setEngineSpeed(s) {
+    if (!ctx||!engineOsc||!running) return;
+    engineOsc.frequency.setTargetAtTime(45+s*100, ctx.currentTime, 0.08);
+    engineGain.gain.setTargetAtTime(0.08+s*0.16, ctx.currentTime, 0.12);
+    engineLfo.frequency.setTargetAtTime(5+s*14, ctx.currentTime, 0.1);
+  }
+
+  function playCollision() {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    if (t - lastCollision < 0.3) return;
+    lastCollision = t;
+    var o=ctx.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(110,t);
+    o.frequency.exponentialRampToValueAtTime(28,t+0.3);
+    var g=ctx.createGain(); g.gain.setValueAtTime(0.8,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.38);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+0.42);
+    var n=ctx.sampleRate*0.18|0, buf=ctx.createBuffer(1,n,ctx.sampleRate);
+    var d=buf.getChannelData(0);
+    for(var i=0;i<n;i++) d[i]=Math.random()*2-1;
+    var src=ctx.createBufferSource(); src.buffer=buf;
+    var nf=ctx.createBiquadFilter(); nf.type='bandpass';
+    nf.frequency.value=700; nf.Q.value=0.5;
+    var ng=ctx.createGain(); ng.gain.setValueAtTime(0.55,t);
+    ng.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+    src.connect(nf); nf.connect(ng); ng.connect(ctx.destination); src.start(t);
+  }
+
+  function playScreech(intensity) {
+    if (!ctx||intensity<0.4) return;
+    var t=ctx.currentTime;
+    if (t-lastScreech<0.18) return;
+    lastScreech=t;
+    var dur=0.1+intensity*0.2;
+    var n=ctx.sampleRate*dur|0, buf=ctx.createBuffer(1,n,ctx.sampleRate);
+    var d=buf.getChannelData(0);
+    for(var i=0;i<n;i++) d[i]=Math.random()*2-1;
+    var src=ctx.createBufferSource(); src.buffer=buf;
+    var f=ctx.createBiquadFilter(); f.type='bandpass';
+    f.frequency.value=3800; f.Q.value=9;
+    var g=ctx.createGain(); g.gain.setValueAtTime(intensity*0.3,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t);
+  }
+
+  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech};
+})();
+</script>
+</head> 
+
+<body> 
+
+  
+
+  
+
+  <div id="racer">
+    <div id="hud">
+      <span id="speed"            class="hud"><span id="speed_value" class="value">0</span> mph</span>
+      <span id="current_lap_time" class="hud">Time: <span id="current_lap_time_value" class="value">0.0</span></span> 
+      <span id="last_lap_time"    class="hud">Last Lap: <span id="last_lap_time_value" class="value">0.0</span></span>
+      <span id="fast_lap_time"    class="hud">Fastest Lap: <span id="fast_lap_time_value" class="value">0.0</span></span>
+    </div>
+    <canvas id="canvas" width="640" height="480">
+      Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
+    </canvas>
+    Loading...
+  </div>
+
+  <audio id='music'>
+    
+    
+  </audio>
+  <span id="mute"></span>
+
+  
+  
+  <script>
+/**
+ * @author mrdoob / http://mrdoob.com/
+ */
+
+var Stats = function () {
+
+  var startTime = Date.now(), prevTime = startTime;
+  var ms = 0, msMin = 1000, msMax = 0;
+  var fps = 0, fpsMin = 1000, fpsMax = 0;
+  var frames = 0, mode = 0;mode
+  var container = document.createElement( 'div' );
+  container.id = 'stats';
+  container.addEventListener( 'mousedown', function ( event ) { event.preventDefault(); setMode( ++ mode % 2 ) }, false );
+  container.style.cssText = 'width:80px;opacity:0.9;cursor:pointer';
+
+  var fpsDiv = document.createElement( 'div' );
+  fpsDiv.id = 'fps';
+  fpsDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#002';
+  container.appendChild( fpsDiv );
+
+  var fpsText = document.createElement( 'div' );
+  fpsText.id = 'fpsText';
+  fpsText.style.cssText = 'color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
+  fpsText.innerHTML = 'FPS';
+  fpsDiv.appendChild( fpsText );
+
+  var fpsGraph = document.createElement( 'div' );
+  fpsGraph.id = 'fpsGraph';
+  fpsGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0ff';
+  fpsDiv.appendChild( fpsGraph );
+
+  while ( fpsGraph.children.length < 74 ) {
+
+    var bar = document.createElement( 'span' );
+    bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#113';
+    fpsGraph.appendChild( bar );
+
+  }
+
+  var msDiv = document.createElement( 'div' );
+  msDiv.id = 'ms';
+  msDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#020;display:none';
+  container.appendChild( msDiv );
+
+  var msText = document.createElement( 'div' );
+  msText.id = 'msText';
+  msText.style.cssText = 'color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
+  msText.innerHTML = 'MS';
+  msDiv.appendChild( msText );
+
+  var msGraph = document.createElement( 'div' );
+  msGraph.id = 'msGraph';
+  msGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0f0';
+  msDiv.appendChild( msGraph );
+
+  while ( msGraph.children.length < 74 ) {
+
+    var bar = document.createElement( 'span' );
+    bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#131';
+    msGraph.appendChild( bar );
+
+  }
+
+  var setMode = function ( value ) {
+
+    mode = value;
+
+    switch ( mode ) {
+
+      case 0:
+        fpsDiv.style.display = 'block';
+        msDiv.style.display = 'none';
+        break;
+      case 1:
+        fpsDiv.style.display = 'none';
+        msDiv.style.display = 'block';
+        break;
+    }
+
+  }
+
+  var updateGraph = function ( dom, value ) {
+
+    var child = dom.appendChild( dom.firstChild );
+    child.style.height = value + 'px';
+
+  }
+
+  return {
+
+    domElement: container,
+
+    setMode: setMode,
+
+    current: function() { return fps; },
+
+    begin: function () {
+
+      startTime = Date.now();
+
+    },
+
+    end: function () {
+
+      var time = Date.now();
+
+      ms = time - startTime;
+      msMin = Math.min( msMin, ms );
+      msMax = Math.max( msMax, ms );
+
+      msText.textContent = ms + ' MS (' + msMin + '-' + msMax + ')';
+      updateGraph( msGraph, Math.min( 30, 30 - ( ms / 200 ) * 30 ) );
+
+      frames ++;
+
+      if ( time > prevTime + 1000 ) {
+
+        fps = Math.round( ( frames * 1000 ) / ( time - prevTime ) );
+        fpsMin = Math.min( fpsMin, fps );
+        fpsMax = Math.max( fpsMax, fps );
+
+        fpsText.textContent = fps + ' FPS (' + fpsMin + '-' + fpsMax + ')';
+        updateGraph( fpsGraph, Math.min( 30, 30 - ( fps / 100 ) * 30 ) );
+
+        prevTime = time;
+        frames = 0;
+
+      }
+
+      return time;
+
+    },
+
+    update: function () {
+
+      startTime = this.end();
+      
+    }
+
+  }
+  
+};
+</script>
+<sorry-truncated>
