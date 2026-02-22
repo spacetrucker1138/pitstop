@@ -470,8 +470,20 @@ function createCardElement(card, sourceType, cardIndex) {
     div.addEventListener("dragstart", e => {
       e.dataTransfer.setData("text/plain", JSON.stringify({ source: sourceType, index: cardIndex }));
       div.classList.add("dragging");
+      // Compute draggedInfo for highlighting
+      if (sourceType === "waste") {
+        draggedInfo = { cards: waste.length ? [waste[waste.length-1]] : [], sourceType, index: cardIndex };
+      } else if (sourceType.startsWith("tableau-")) {
+        const si = parseInt(sourceType.split("-")[1]);
+        draggedInfo = { cards: tableau[si].slice(cardIndex), sourceType, index: cardIndex };
+      }
+      setTimeout(highlightDropTargets, 0);
     });
-    div.addEventListener("dragend", () => div.classList.remove("dragging"));
+    div.addEventListener("dragend", () => {
+      div.classList.remove("dragging");
+      clearDropHighlights();
+      draggedInfo = null;
+    });
   }
   return div;
 }
@@ -546,6 +558,37 @@ function handleDrop(data, destType, destId) {
     }
   }
   render();
+}
+
+// ── Drop target highlighting ──────────────────────────────────────────────────
+function clearDropHighlights() {
+  document.querySelectorAll(".drop-valid, .drop-invalid").forEach(el => {
+    el.classList.remove("drop-valid","drop-invalid");
+  });
+}
+
+function highlightDropTargets() {
+  if (!draggedInfo || !draggedInfo.cards.length) return;
+  const { cards } = draggedInfo;
+  const topCard = cards[0];
+
+  // Foundations — only valid for single-card drags
+  for (let suit of SUITS) {
+    const fDiv = document.getElementById("foundation-"+suit);
+    if (!fDiv) continue;
+    const valid = cards.length === 1 && canPlaceOnFoundation(topCard, foundations[suit]);
+    fDiv.classList.add(valid ? "drop-valid" : "drop-invalid");
+  }
+
+  // Tableau piles
+  const pileEls = document.querySelectorAll(".tableau-pile");
+  for (let i = 0; i < 7; i++) {
+    if (!pileEls[i]) continue;
+    // Don't highlight source pile
+    if (draggedInfo.sourceType === "tableau-"+i) continue;
+    const valid = canPlaceOnTableau(topCard, tableau[i]);
+    pileEls[i].classList.add(valid ? "drop-valid" : "drop-invalid");
+  }
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
