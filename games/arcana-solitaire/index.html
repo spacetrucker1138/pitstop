@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JURN Minor Arcana Solitaire</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a0a2e;
+      color: #f0e6c8;
+      font-family: 'Georgia', serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #0d0520;
+      border-bottom: 2px solid #c9a227;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      flex: 1;
+      font-size: 1.4rem;
+      color: #c9a227;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    #timerDisplay {
+      font-size: 1.1rem;
+      color: #f0e6c8;
+      min-width: 70px;
+      text-align: center;
+      border: 1px solid #c9a227;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: #0d0520;
+    }
+    header button {
+      background: #c9a227;
+      color: #1a0a2e;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    header button:hover { background: #e8be3a; }
+    #game-container {
+      flex: 1;
+      padding: 14px 10px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    #top-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    #foundations {
+      display: flex;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .pile-container {
+      position: relative;
+      width: 100px;
+      height: 140px;
+      border: 2px dashed #5a3e80;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.3);
+    }
+    .pile-title {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      opacity: 0.4;
+      pointer-events: none;
+      text-align: center;
+    }
+    /* CARDS */
+    .card {
+      width: 100px;
+      height: 140px;
+      border-radius: 6px;
+      border: 2px solid #c9a227;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: box-shadow 0.15s ease;
+      user-select: none;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 4px;
+    }
+    .card.back {
+      background: #1a0a2e;
+      border: 2px solid #c9a227;
+    }
+    .card.back img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .card.dragging { opacity: 0.5; }
+    .card.highlight { box-shadow: 0 0 12px 4px #c9a227; }
+    .card.drag-over { box-shadow: 0 0 10px 3px #44ff88; }
+    #tableau {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      flex-wrap: nowrap;
+    }
+    .tableau-pile {
+      position: relative;
+      flex: 1;
+      min-width: 100px;
+      height: 520px;
+    }
+    #message {
+      margin-top: 12px;
+      color: #c9a227;
+      font-size: 1rem;
+      min-height: 1.4em;
+      text-align: center;
+    }
+    /* LEADERBOARD MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75);
+    }
+    .modal.visible { display: flex; align-items: center; justify-content: center; }
+    .modal-content {
+      background: #1a0a2e;
+      border: 2px solid #c9a227;
+      border-radius: 10px;
+      padding: 24px;
+      max-width: 440px;
+      width: 90%;
+      color: #f0e6c8;
+      position: relative;
+    }
+    .modal-content h2 { color: #c9a227; margin-bottom: 14px; }
+    .modal-content p { margin-bottom: 10px; line-height: 1.6; }
+    .close {
+      position: absolute;
+      top: 10px; right: 16px;
+      font-size: 1.6rem;
+      cursor: pointer;
+      color: #c9a227;
+    }
+    /* Win modal extras */
+    #initialsInput {
+      background: #0d0520;
+      border: 1px solid #c9a227;
+      color: #f0e6c8;
+      padding: 6px 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      border-radius: 4px;
+      width: 80px;
+      text-align: center;
+      text-transform: uppercase;
+      margin-right: 8px;
+    }
+    #submitInitials {
+      background: #c9a227;
+      color: #1a0a2e;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-family: inherit;
+    }
+    #leaderboardList { list-style: none; padding: 0; margin-top: 10px; }
+    #leaderboardList li {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #3a2060;
+      font-size: 0.95rem;
+    }
+    #leaderboardList li:first-child { color: #c9a227; font-weight: bold; }
+    footer {
+      text-align: center;
+      padding: 8px;
+      font-size: 0.75rem;
+      color: #5a3e80;
+    }
+    @media (max-width: 700px) {
+      .card, .pile-container { width: 72px; height: 101px; }
+      .tableau-pile { min-width: 72px; height: 440px; }
+      header h1 { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>&#9760; Arcana Solitaire</h1>
+  <div id="timerDisplay">0:00</div>
+  <button id="helpBtn">Rules</button>
+  <button id="lbBtn">Best Times</button>
+  <button id="newGameBtn">New Game</button>
+</header>
+
+<div id="game-container">
+  <div id="top-area">
+    <div id="stock" class="pile-container">
+      <div class="pile-title">&#9886;</div>
+    </div>
+    <div id="waste" class="pile-container">
+      <div class="pile-title"></div>
+    </div>
+    <div id="foundations">
+      <div id="foundation-wands"   class="pile-container" data-suit="wands"><div class="pile-title">&#127757;</div></div>
+      <div id="foundation-cups"    class="pile-container" data-suit="cups"><div class="pile-title">&#127942;</div></div>
+      <div id="foundation-swords"  class="pile-container" data-suit="swords"><div class="pile-title">&#9876;</div></div>
+      <div id="foundation-pent"    class="pile-container" data-suit="pent"><div class="pile-title">&#11088;</div></div>
+    </div>
+  </div>
+  <div id="tableau"></div>
+  <div id="message"></div>
+</div>
+
+<footer>&#9760; JURN Arcana Solitaire &mdash; thejurn.com</footer>
+
+<!-- HELP MODAL -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="closeHelp">&times;</span>
+    <h2>How to Play</h2>
+    <p><strong>Goal:</strong> Build all four Foundation piles Ace &rarr; King for each suit: Wands &#127757;, Cups &#127942;, Swords &#9876;, Pentacles &#11088;.</p>
+    <p><strong>Tableau:</strong> Stack cards in descending order, alternating suit-color (Wands/Cups = warm; Swords/Pentacles = cool). Empty columns accept only a King.</p>
+    <p><strong>Stock:</strong> Click the stock pile to deal one card to the Waste. Click the empty stock to recycle.</p>
+    <p><strong>Timer:</strong> Starts on your first move. Fastest solve wins. Top-10 times saved to the leaderboard.</p>
+  </div>
+</div>
+
+<!-- LEADERBOARD MODAL -->
+<div id="lbModal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="closeLb">&times;</span>
+    <h2>&#9760; Best Times</h2>
+    <ul id="leaderboardList"><li>Loading...</li></ul>
+  </div>
+</div>
+
+<!-- WIN MODAL -->
+<div id="winModal" class="modal">
+  <div class="modal-content" style="text-align:center;">
+    <h2>&#9760; You Win! &#9760;</h2>
+    <p id="winTimeMsg" style="font-size:1.2rem; color:#c9a227; margin:12px 0;"></p>
+    <p>Enter your initials:</p>
+    <div style="margin:10px 0;">
+      <input id="initialsInput" maxlength="3" placeholder="AAA"/>
+      <button id="submitInitials">Save</button>
+    </div>
+    <p id="winMessage" style="margin-top:8px;"></p>
+  </div>
+</div>
+
+<script>
+// ── Firebase (pitstop-wall project) ──────────────────────────────────────────
+const FB_URL = "https://pitstop-wall-default-rtdb.firebaseio.com/arcana-solitaire/leaderboard";
+
+async function fbGet(path) {
+  const r = await fetch(FB_URL + (path||"") + ".json");
+  return r.ok ? r.json() : null;
+}
+async function fbPush(data) {
+  const r = await fetch(FB_URL + ".json", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(data)
+  });
+  return r.ok ? r.json() : null;
+}
+
+// ── Card image map ────────────────────────────────────────────────────────────
+const BASE = "https://thejurn.com/assets/tarot/";
+const BACK = "https://thejurn.com/assets/tarot-game/card_back.jpg";
+
+const cardImageMap = {
+  "wands": {
+    "A": "wands_01_ace_of_wands.jpg",
+    "2": "wands_02_two_of_wands.jpg",
+    "3": "wands_03_three_of_wands.jpg",
+    "4": "wands_04_four_of_wands.jpg",
+    "5": "wands_05_five_of_wands.jpg",
+    "6": "wands_06_six_of_wands.jpg",
+    "7": "wands_07_seven_of_wands.jpg",
+    "8": "wands_08_eight_of_wands.jpg",
+    "9": "wands_09_nine_of_wands.jpg",
+    "10": "wands_10_ten_of_wands.jpg",
+    "Page": "wands_11_page_of_wands.jpg",
+    "Knight": "wands_12_knight_of_wands.jpg",
+    "Queen": "wands_13_queen_of_wands.jpg",
+    "King": "wands_14_king_of_wands.jpg",
+  },
+  "cups": {
+    "A": "cups_01_ace_of_cups.jpg",
+    "2": "cups_02_two_of_cups.jpg",
+    "3": "cups_03_three_of_cups.jpg",
+    "4": "cups_04_four_of_cups.jpg",
+    "5": "cups_05_five_of_cups.jpg",
+    "6": "cups_06_six_of_cups.jpg",
+    "7": "cups_07_seven_of_cups.jpg",
+    "8": "cups_08_eight_of_cups.jpg",
+    "9": "cups_09_nine_of_cups.jpg",
+    "10": "cups_10_ten_of_cups.jpg",
+    "Page": "cups_11_page_of_cups.jpg",
+    "Knight": "cups_12_knight_of_cups.jpg",
+    "Queen": "cups_13_queen_of_cups.jpg",
+    "King": "cups_14_king_of_cups.jpg",
+  },
+  "swords": {
+    "A": "swords_01_ace_of_swords.jpg",
+    "2": "swords_02_two_of_swords.jpg",
+    "3": "swords_03_three_of_swords.jpg",
+    "4": "swords_04_four_of_swords.jpg",
+    "5": "swords_05_five_of_swords.jpg",
+    "6": "swords_06_six_of_swords.jpg",
+    "7": "swords_07_seven_of_swords.jpg",
+    "8": "swords_08_eight_of_swords.jpg",
+    "9": "swords_09_nine_of_swords.jpg",
+    "10": "swords_10_ten_of_swords.jpg",
+    "Page": "swords_11_page_of_swords.jpg",
+    "Knight": "swords_12_knight_of_swords.jpg",
+    "Queen": "swords_13_queen_of_swords.jpg",
+    "King": "swords_14_king_of_swords.jpg",
+  },
+  "pent": {
+    "A": "pent_01_ace_of_pentacles.jpg",
+    "2": "pent_02_two_of_pentacles.jpg",
+    "3": "pent_03_three_of_pentacles.jpg",
+    "4": "pent_04_four_of_pentacles.jpg",
+    "5": "pent_05_five_of_pentacles.jpg",
+    "6": "pent_06_six_of_pentacles.jpg",
+    "7": "pent_07_seven_of_pentacles.jpg",
+    "8": "pent_08_eight_of_pentacles.jpg",
+    "9": "pent_09_nine_of_pentacles.jpg",
+    "10": "pent_10_ten_of_pentacles.jpg",
+    "Page": "pent_11_page_of_pentacles.jpg",
+    "Knight": "pent_12_knight_of_pentacles.jpg",
+    "Queen": "pent_13_queen_of_pentacles.jpg",
+    "King": "pent_14_king_of_pentacles.jpg",
+  },
+};
+
+// ── Game constants ────────────────────────────────────────────────────────────
+const SUITS = ["wands","cups","swords","pent"];
+const RANKS = ["A","2","3","4","5","6","7","8","9","10","Page","Knight","Queen","King"];
+// Suit color groups: wands+cups = "warm", swords+pent = "cool" (alternating rule)
+function suitColor(suit) {
+  return (suit === "wands" || suit === "cups") ? "warm" : "cool";
+}
+
+// ── Game state ────────────────────────────────────────────────────────────────
+let deck=[], stock=[], waste=[], foundations={}, tableau=[];
+let timerInterval=null, timerSeconds=0, timerStarted=false;
+let finalTime=0;
+
+function formatTime(s) {
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+}
+function startTimer() {
+  if (timerStarted) return;
+  timerStarted = true;
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    document.getElementById("timerDisplay").textContent = formatTime(timerSeconds);
+  }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  finalTime = timerSeconds;
+}
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerSeconds = 0;
+  timerStarted = false;
+  document.getElementById("timerDisplay").textContent = "0:00";
+}
+
+// ── Deck build & shuffle ──────────────────────────────────────────────────────
+function buildDeck() {
+  deck = [];
+  for (let suit of SUITS)
+    for (let rank of RANKS)
+      deck.push({ suit, rank, faceUp: false });
+  // Fisher-Yates
+  for (let i = deck.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+}
+
+function dealGame() {
+  buildDeck();
+  let idx = 0;
+  tableau = [];
+  for (let i = 0; i < 7; i++) {
+    let pile = [];
+    for (let j = 0; j <= i; j++) {
+      let card = deck[idx++];
+      card.faceUp = (j === i);
+      pile.push(card);
+    }
+    tableau.push(pile);
+  }
+  stock = deck.slice(idx).map(c => ({...c, faceUp: false}));
+  waste = [];
+  foundations = { wands:[], cups:[], swords:[], pent:[] };
+}
+
+// ── Card element creation ─────────────────────────────────────────────────────
+function createCardElement(card, sourceType, cardIndex) {
+  const div = document.createElement("div");
+  div.className = "card";
+  const img = document.createElement("img");
+  if (!card.faceUp) {
+    div.classList.add("back");
+    img.src = BACK;
+    img.alt = "card back";
+  } else {
+    img.src = BASE + cardImageMap[card.suit][card.rank];
+    img.alt = card.rank + " of " + card.suit;
+  }
+  img.draggable = false;
+  div.appendChild(img);
+
+  if (card.faceUp && (sourceType.startsWith("waste") || sourceType.startsWith("tableau"))) {
+    div.draggable = true;
+    div.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", JSON.stringify({ source: sourceType, index: cardIndex }));
+      div.classList.add("dragging");
+    });
+    div.addEventListener("dragend", () => div.classList.remove("dragging"));
+  }
+  return div;
+}
+
+// ── Drop logic ────────────────────────────────────────────────────────────────
+function canPlaceOnFoundation(card, pile) {
+  if (!pile.length) return card.rank === "A";
+  const top = pile[pile.length-1];
+  if (top.suit !== card.suit) return false;
+  return RANKS.indexOf(card.rank) === RANKS.indexOf(top.rank)+1;
+}
+function canPlaceOnTableau(card, pile) {
+  if (!pile.length) return card.rank === "King";
+  const top = pile[pile.length-1];
+  if (!top.faceUp) return false;
+  if (suitColor(card.suit) === suitColor(top.suit)) return false; // must alternate warm/cool
+  return RANKS.indexOf(card.rank) === RANKS.indexOf(top.rank)-1;
+}
+
+function enableDrop(el, destType, destId) {
+  el.addEventListener("dragover", e => { e.preventDefault(); el.classList.add("drag-over"); });
+  el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
+  el.addEventListener("drop", e => {
+    e.preventDefault();
+    el.classList.remove("drag-over");
+    if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData("text/plain")); } catch { return; }
+    startTimer();
+    handleDrop(data, destType, destId);
+  });
+}
+
+function handleDrop(data, destType, destId) {
+  let card, cards;
+  const { source, index } = data;
+  if (source === "waste") {
+    card = waste[waste.length-1];
+    if (!card) return;
+    if (destType === "foundation") {
+      if (canPlaceOnFoundation(card, foundations[destId])) {
+        foundations[destId].push(waste.pop());
+        clearMsg(); checkWin();
+      } else { showMsg("Can't place there."); }
+    } else if (destType === "tableau") {
+      const pile = tableau[destId];
+      if (canPlaceOnTableau(card, pile)) {
+        pile.push(waste.pop());
+        clearMsg();
+      } else { showMsg("Can't place there."); }
+    }
+  } else if (source.startsWith("tableau-")) {
+    const srcIdx = parseInt(source.split("-")[1]);
+    const srcPile = tableau[srcIdx];
+    cards = srcPile.slice(index);
+    if (destType === "foundation") {
+      if (cards.length === 1 && canPlaceOnFoundation(cards[0], foundations[destId])) {
+        foundations[destId].push(srcPile.pop());
+        if (srcPile.length > 0 && !srcPile[srcPile.length-1].faceUp)
+          srcPile[srcPile.length-1].faceUp = true;
+        clearMsg(); checkWin();
+      } else { showMsg("Can't place there."); }
+    } else if (destType === "tableau") {
+      const destPile = tableau[destId];
+      if (parseInt(destId) === srcIdx) return;
+      if (canPlaceOnTableau(cards[0], destPile)) {
+        destPile.push(...srcPile.splice(index));
+        if (srcPile.length > 0 && !srcPile[srcPile.length-1].faceUp)
+          srcPile[srcPile.length-1].faceUp = true;
+        clearMsg();
+      } else { showMsg("Can't place there."); }
+    }
+  }
+  render();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  // Stock
+  const stockDiv = document.getElementById("stock");
+  stockDiv.innerHTML = "<div class=\"pile-title\">&#9886;</div>";
+  if (stock.length) {
+    const back = createCardElement({faceUp:false}, "stock", 0);
+    back.style.cursor = "pointer";
+    back.addEventListener("click", () => {
+      startTimer();
+      if (stock.length) {
+        const c = stock.pop();
+        c.faceUp = true;
+        waste.push(c);
+        clearMsg(); render();
+      }
+    });
+    stockDiv.appendChild(back);
+  } else {
+    // recycle
+    stockDiv.style.cursor = "pointer";
+    stockDiv.onclick = () => {
+      if (!stock.length && waste.length) {
+        startTimer();
+        stock = waste.reverse().map(c => ({...c, faceUp:false}));
+        waste = [];
+        render();
+      }
+    };
+  }
+
+  // Waste
+  const wasteDiv = document.getElementById("waste");
+  wasteDiv.innerHTML = "";
+  if (waste.length) {
+    const card = waste[waste.length-1];
+    wasteDiv.appendChild(createCardElement(card, "waste", waste.length-1));
+  }
+
+  // Foundations
+  for (let suit of SUITS) {
+    const fDiv = document.getElementById("foundation-"+suit);
+    const icons = {wands:"&#127757;",cups:"&#127942;",swords:"&#9876;",pent:"&#11088;"};
+    fDiv.innerHTML = `<div class="pile-title">${icons[suit]}</div>`;
+    const pile = foundations[suit];
+    if (pile.length) {
+      fDiv.appendChild(createCardElement(pile[pile.length-1], "foundation", pile.length-1));
+    }
+  }
+
+  // Tableau
+  const tabDiv = document.getElementById("tableau");
+  tabDiv.innerHTML = "";
+  for (let i = 0; i < 7; i++) {
+    const pileEl = document.createElement("div");
+    pileEl.className = "tableau-pile pile-container";
+    enableDrop(pileEl, "tableau", i);
+    const pile = tableau[i];
+    for (let j = 0; j < pile.length; j++) {
+      const card = pile[j];
+      const cardEl = createCardElement(card, "tableau-"+i, j);
+      const offset = card.faceUp ? 28 : 14;
+      cardEl.style.top = (j * offset) + "px";
+      // Allow dropping onto face-up tableau cards too
+      if (card.faceUp) {
+        enableDrop(cardEl, "tableau", i);
+      }
+      pileEl.appendChild(cardEl);
+    }
+    tabDiv.appendChild(pileEl);
+  }
+
+  // Foundation drop zones
+  for (let suit of SUITS) {
+    enableDrop(document.getElementById("foundation-"+suit), "foundation", suit);
+  }
+}
+
+function showMsg(m) { document.getElementById("message").textContent = m; }
+function clearMsg() { document.getElementById("message").textContent = ""; }
+
+// ── Win detection ─────────────────────────────────────────────────────────────
+function checkWin() {
+  const total = Object.values(foundations).reduce((s,p)=>s+p.length,0);
+  if (total === 56) {
+    stopTimer();
+    setTimeout(() => showWin(), 300);
+  }
+}
+
+function showWin() {
+  document.getElementById("winTimeMsg").textContent =
+    "Solved in " + formatTime(finalTime) + "!";
+  document.getElementById("winMessage").textContent = "";
+  document.getElementById("initialsInput").value = "";
+  document.getElementById("winModal").classList.add("visible");
+}
+
+document.getElementById("submitInitials").addEventListener("click", async () => {
+  if (document.activeElement.tagName !== "INPUT") return;
+  const raw = document.getElementById("initialsInput").value.trim().toUpperCase().replace(/[^A-Z]/g,"");
+  const initials = raw.slice(0,3) || "???";
+  const entry = { initials, time: finalTime, ts: Date.now() };
+  await fbPush(entry);
+  document.getElementById("winMessage").textContent = "Saved!";
+  document.getElementById("initialsInput").blur();
+  loadLeaderboard();
+});
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  const data = await fbGet();
+  const ul = document.getElementById("leaderboardList");
+  if (!data) { ul.innerHTML = "<li>No scores yet!</li>"; return; }
+  const entries = Object.values(data)
+    .filter(e => e && e.time)
+    .sort((a,b) => a.time - b.time)
+    .slice(0,10);
+  if (!entries.length) { ul.innerHTML = "<li>No scores yet!</li>"; return; }
+  ul.innerHTML = entries.map((e,i) =>
+    `<li><span>${i+1}. ${e.initials}</span><span>${formatTime(e.time)}</span></li>`
+  ).join("");
+}
+
+// ── New game ──────────────────────────────────────────────────────────────────
+function newGame() {
+  resetTimer();
+  dealGame();
+  clearMsg();
+  render();
+  // Close win modal if open
+  document.getElementById("winModal").classList.remove("visible");
+}
+
+// ── UI wiring ─────────────────────────────────────────────────────────────────
+document.getElementById("newGameBtn").addEventListener("click", newGame);
+
+document.getElementById("helpBtn").addEventListener("click", () => {
+  document.getElementById("helpModal").classList.add("visible");
+});
+document.getElementById("closeHelp").addEventListener("click", () => {
+  document.getElementById("helpModal").classList.remove("visible");
+});
+
+document.getElementById("lbBtn").addEventListener("click", async () => {
+  await loadLeaderboard();
+  document.getElementById("lbModal").classList.add("visible");
+});
+document.getElementById("closeLb").addEventListener("click", () => {
+  document.getElementById("lbModal").classList.remove("visible");
+});
+
+// Click on modals backdrop to close
+["helpModal","lbModal"].forEach(id => {
+  document.getElementById(id).addEventListener("click", e => {
+    if (e.target.id === id) document.getElementById(id).classList.remove("visible");
+  });
+});
+
+// Keyboard shortcuts (guard against input focus)
+document.addEventListener("keydown", e => {
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  if (e.key === "n" || e.key === "N") newGame();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+newGame();
+</script>
+</body>
+</html>
