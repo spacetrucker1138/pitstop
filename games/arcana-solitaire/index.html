@@ -279,6 +279,33 @@
       #titleButtons { right: 2%; gap: 10px; }
       #titleButtons button { padding: 8px 14px; font-size: 0.85rem; }
     }
+
+    /* Win screen extras */
+    #winScoreList li {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 12px;
+      border-bottom: 1px solid #c9a22722;
+    }
+    #winScoreList li:last-child { border-bottom: none; }
+    #winScoreList li.win-highlight {
+      color: #c9a227;
+      font-weight: bold;
+    }
+    #winPlayAgain {
+      background: #c9a227;
+      color: #0d0520;
+      border: none;
+      padding: 10px 28px;
+      font-family: Georgia, serif;
+      font-size: 1rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    #winPlayAgain:hover { background: #e8b92f; }
   </style>
 </head>
 <body>
@@ -347,6 +374,9 @@
 </div>
 
 <!-- WIN MODAL -->
+<!-- Card burst canvas sits behind modal -->
+<canvas id="burstCanvas" style="position:fixed;inset:0;z-index:99;pointer-events:none;display:none;"></canvas>
+
 <div id="winModal" class="modal">
   <div class="modal-content" style="text-align:center;">
     <h2>&#9760; You Win! &#9760;</h2>
@@ -356,7 +386,13 @@
       <input id="initialsInput" maxlength="3" placeholder="AAA"/>
       <button id="submitInitials">Save</button>
     </div>
-    <p id="winMessage" style="margin-top:8px;"></p>
+    <p id="winMessage" style="margin-top:8px;color:#c9a227;font-weight:bold;"></p>
+    <!-- Top 5 scores shown inline after save -->
+    <div id="winLeaderboard" style="display:none;margin-top:16px;">
+      <div style="font-size:0.8rem;color:#c9a22799;letter-spacing:1px;margin-bottom:6px;">BEST TIMES</div>
+      <ul id="winScoreList" style="list-style:none;padding:0;margin:0;font-size:0.95rem;"></ul>
+    </div>
+    <button id="winPlayAgain" style="margin-top:18px;display:none;">&#9760; Play Again</button>
   </div>
 </div>
 
@@ -772,7 +808,71 @@ function showWin() {
     "Solved in " + formatTime(finalTime) + "!";
   document.getElementById("winMessage").textContent = "";
   document.getElementById("initialsInput").value = "";
+  document.getElementById("winLeaderboard").style.display = "none";
+  document.getElementById("winPlayAgain").style.display = "none";
+  document.getElementById("winScoreList").innerHTML = "";
   document.getElementById("winModal").classList.add("visible");
+  launchCardBurst();
+}
+
+// ── Card burst confetti ───────────────────────────────────────────────────────
+function launchCardBurst() {
+  const canvas = document.getElementById("burstCanvas");
+  const W = window.innerWidth, H = window.innerHeight;
+  canvas.width = W; canvas.height = H;
+  canvas.style.display = "block";
+  const ctx = canvas.getContext("2d");
+  const SUITS = ["\u2660","\u2665","\u2666","\u2663","\u2020","\u2694"];
+  const COLORS = ["#c9a227","#e8b92f","#f0e6c8","#9b59b6","#c0392b","#2ecc71"];
+  const particles = [];
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: W / 2 + (Math.random() - 0.5) * 200,
+      y: H / 2,
+      vx: (Math.random() - 0.5) * 18,
+      vy: -(Math.random() * 14 + 4),
+      rot: Math.random() * Math.PI * 2,
+      rotV: (Math.random() - 0.5) * 0.2,
+      sym: SUITS[Math.floor(Math.random() * SUITS.length)],
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      size: 16 + Math.random() * 24,
+      alpha: 1,
+      gravity: 0.45 + Math.random() * 0.2
+    });
+  }
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+    let alive = false;
+    for (const p of particles) {
+      p.vy += p.gravity;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.rotV;
+      p.alpha -= 0.012;
+      if (p.alpha > 0) {
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.font = `bold ${p.size}px serif`;
+        ctx.fillStyle = p.color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.sym, 0, 0);
+        ctx.restore();
+      }
+    }
+    frame++;
+    if (alive && frame < 180) {
+      requestAnimationFrame(animate);
+    } else {
+      canvas.style.display = "none";
+      ctx.clearRect(0, 0, W, H);
+    }
+  }
+  requestAnimationFrame(animate);
 }
 
 document.getElementById("submitInitials").addEventListener("click", async () => {
@@ -784,7 +884,27 @@ document.getElementById("submitInitials").addEventListener("click", async () => 
   document.getElementById("winMessage").textContent = "Saved!";
   document.getElementById("initialsInput").blur();
   loadLeaderboard();
+  // Show inline top-5 in win screen
+  await showWinScores(initials, finalTime);
+  document.getElementById("winPlayAgain").style.display = "inline-block";
 });
+
+async function showWinScores(myInitials, myTime) {
+  const data = await fbGet();
+  const lb = document.getElementById("winLeaderboard");
+  const ul = document.getElementById("winScoreList");
+  if (!data) { lb.style.display = "none"; return; }
+  const entries = Object.values(data)
+    .filter(e => e && e.time)
+    .sort((a,b) => a.time - b.time)
+    .slice(0,5);
+  if (!entries.length) { lb.style.display = "none"; return; }
+  ul.innerHTML = entries.map((e,i) => {
+    const mine = e.initials === myInitials && e.time === myTime;
+    return `<li class="${mine ? "win-highlight" : ""}"><span>${i+1}. ${e.initials}</span><span>${formatTime(e.time)}</span></li>`;
+  }).join("");
+  lb.style.display = "block";
+}
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 async function loadLeaderboard() {
@@ -837,6 +957,11 @@ document.getElementById("closeLb").addEventListener("click", () => {
 });
 
 // Keyboard shortcuts (guard against input focus)
+document.getElementById("winPlayAgain").addEventListener("click", () => {
+  document.getElementById("winModal").classList.remove("visible");
+  newGame();
+});
+
 document.addEventListener("keydown", e => {
   const tag = document.activeElement && document.activeElement.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA") return;
