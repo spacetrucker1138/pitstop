@@ -130,6 +130,8 @@
     .card.dragging { opacity: 0.5; }
     .card.highlight { box-shadow: 0 0 12px 4px #c9a227; }
     .card.drag-over { box-shadow: 0 0 10px 3px #44ff88; }
+    .pile-container.drop-valid, .tableau-pile.drop-valid, .card.drop-valid { box-shadow: 0 0 14px 5px #44ff88 !important; border-color: #44ff88 !important; }
+    .pile-container.drop-invalid, .tableau-pile.drop-invalid, .card.drop-invalid { box-shadow: 0 0 14px 5px #ff3333 !important; border-color: #ff3333 !important; }
     #tableau {
       display: flex;
       gap: 10px;
@@ -388,6 +390,7 @@ function suitColor(suit) {
 
 // ── Game state ────────────────────────────────────────────────────────────────
 let deck=[], stock=[], waste=[], foundations={}, tableau=[];
+let draggedInfo = null; // { cards, sourceType, index }
 let timerInterval=null, timerSeconds=0, timerStarted=false;
 let finalTime=0;
 
