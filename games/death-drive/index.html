@@ -761,7 +761,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
-      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE;
+      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * 2.5;
       var speedPercent  = speed/maxSpeed;
       var dx            = dt * 2 * speedPercent; // at top speed, should be able to cross from left to right (-1 to 1) in 1 second
       var startPosition = position;
@@ -1006,7 +1006,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
         if (segment == playerSegment) {
           Render.player(ctx, width, height, resolution, roadWidth, sprites, speed/maxSpeed,
-                        cameraDepth/playerZ,
+                        (cameraDepth/playerZ) * 2.5,
                         width/2,
                         (height/2) - (cameraDepth/playerZ * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height/2),
                         speed * (keyLeft ? -1 : keyRight ? 1 : 0),
