@@ -782,7 +782,7 @@ var SPRITES = {
   PLAYER_RIGHT:           { x: 395, y: 1495, w:  119, h:  131 }
 };
 
-SPRITES.SCALE = 0.55 * (1/SPRITES.PLAYER_STRAIGHT.w) // player van fills ~half the road width
+SPRITES.SCALE = 0.3 * (1/SPRITES.PLAYER_STRAIGHT.w) // the reference sprite width should be 1/3rd the (half-)roadWidth
 
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS     = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
@@ -1106,7 +1106,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
         if (segment == playerSegment) {
           Render.player(ctx, width, height, resolution, roadWidth, sprites, speed/maxSpeed,
-                        (cameraDepth/playerZ) * 1.0,
+                        (cameraDepth/playerZ) * 4.0,
                         width/2,
                         (height/2) - (cameraDepth/playerZ * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height/2),
                         speed * (keyLeft ? -1 : keyRight ? 1 : 0),
@@ -1352,6 +1352,17 @@ Game.run({
       rumbleLength           = Util.toInt(options.rumbleLength,   rumbleLength);
       cameraDepth            = 1 / Math.tan((fieldOfView/2) * Math.PI/180);
       playerZ                = (cameraHeight * cameraDepth);
+
+      // ── live-tune bridge (used by CAM debug panel) ──
+      window.__camBridge = function(key, val) {
+        if      (key === 'cameraHeight')  { cameraHeight  = val; cameraDepth = 1/Math.tan((fieldOfView/2)*Math.PI/180); playerZ = cameraHeight*cameraDepth; }
+        else if (key === 'fieldOfView')   { fieldOfView   = val; cameraDepth = 1/Math.tan((fieldOfView/2)*Math.PI/180); playerZ = cameraHeight*cameraDepth; }
+        else if (key === 'drawDistance')  { drawDistance  = val; }
+        else if (key === 'fogDensity')    { fogDensity    = val; }
+        else if (key === 'roadWidth')     { roadWidth     = val; }
+        else if (key === 'centrifugal')   { centrifugal   = val; }
+        else if (key === 'vanScale')      { SPRITES.SCALE = val * (1/SPRITES.PLAYER_STRAIGHT.w); }
+      };
       resolution             = height/480;
       refreshTweakUI();
 
@@ -1375,5 +1386,120 @@ Game.run({
 
 
   <div id="fps" style="display:none"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAMERA DEBUG PANEL  (hidden by default, toggle with CAM button)
+     ═══════════════════════════════════════════════════════ -->
+<style>
+#cam-toggle {
+  position: fixed; top: 8px; right: 8px; z-index: 9999;
+  background: #111; color: #0ff; border: 1px solid #0ff;
+  font-family: monospace; font-size: 11px; padding: 3px 8px;
+  cursor: pointer; opacity: 0.85; border-radius: 3px; letter-spacing: 1px;
+}
+#cam-toggle.active { background: #0ff; color: #111; }
+#cam-panel {
+  display: none;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 9998;
+  width: 220px; background: rgba(0,0,0,0.92);
+  border-left: 1px solid #0ff; padding: 40px 10px 10px;
+  font-family: monospace; font-size: 11px; color: #ccc;
+  overflow-y: auto; box-sizing: border-box;
+}
+#cam-panel.open { display: block; }
+#cam-panel h3 { color: #0ff; margin: 0 0 10px; font-size: 12px; letter-spacing: 2px; }
+.cam-row { margin-bottom: 8px; }
+.cam-row label { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.cam-row label span { color: #ff0; }
+.cam-row input[type=range] { width: 100%; cursor: pointer; accent-color: #0ff; }
+#cam-copy {
+  width: 100%; margin-top: 12px; padding: 5px;
+  background: #111; color: #0f0; border: 1px solid #0f0;
+  font-family: monospace; font-size: 11px; cursor: pointer;
+  border-radius: 3px; letter-spacing: 1px;
+}
+#cam-copy:active { background: #0f0; color: #111; }
+#cam-output {
+  margin-top: 8px; font-size: 10px; color: #aaa;
+  white-space: pre; line-height: 1.5;
+  word-break: break-all;
+}
+</style>
+
+<button id="cam-toggle" onclick="
+  var p = document.getElementById('cam-panel');
+  p.classList.toggle('open');
+  this.classList.toggle('active');
+">CAM</button>
+
+<div id="cam-panel">
+  <h3>⚙ CAMERA</h3>
+
+  <div class="cam-row">
+    <label>cameraHeight <span id="lbl-cameraHeight">1000</span></label>
+    <input type="range" id="sl-cameraHeight" min="200" max="3000" step="50" value="1000"
+      oninput="CAM.set('cameraHeight',+this.value)">
+  </div>
+  <div class="cam-row">
+    <label>fieldOfView <span id="lbl-fieldOfView">100</span></label>
+    <input type="range" id="sl-fieldOfView" min="40" max="160" step="1" value="100"
+      oninput="CAM.set('fieldOfView',+this.value)">
+  </div>
+  <div class="cam-row">
+    <label>drawDistance <span id="lbl-drawDistance">300</span></label>
+    <input type="range" id="sl-drawDistance" min="50" max="600" step="10" value="300"
+      oninput="CAM.set('drawDistance',+this.value)">
+  </div>
+  <div class="cam-row">
+    <label>fogDensity <span id="lbl-fogDensity">5</span></label>
+    <input type="range" id="sl-fogDensity" min="0" max="20" step="1" value="5"
+      oninput="CAM.set('fogDensity',+this.value)">
+  </div>
+  <div class="cam-row">
+    <label>roadWidth <span id="lbl-roadWidth">2000</span></label>
+    <input type="range" id="sl-roadWidth" min="500" max="5000" step="100" value="2000"
+      oninput="CAM.set('roadWidth',+this.value)">
+  </div>
+  <div class="cam-row">
+    <label>vanScale×10 <span id="lbl-vanScale">5.5</span></label>
+    <input type="range" id="sl-vanScale" min="1" max="20" step="1" value="5"
+      oninput="CAM.setVanScale(+this.value)">
+  </div>
+  <div class="cam-row">
+    <label>centrifugal <span id="lbl-centrifugal">0.30</span></label>
+    <input type="range" id="sl-centrifugal" min="0" max="1" step="0.05" value="0.3"
+      oninput="CAM.set('centrifugal',+this.value)">
+  </div>
+
+  <button id="cam-copy" onclick="CAM.copy()">📋 COPY VALUES</button>
+  <div id="cam-output"></div>
+</div>
+
+<script>
+// CAM — live camera tuning bridge
+// The game exposes window.__camBridge after Game.run() via a patch below
+window.CAM = {
+  set: function(key, val) {
+    document.getElementById('lbl-' + key).textContent = val;
+    if (window.__camBridge) window.__camBridge(key, val);
+  },
+  setVanScale: function(tenths) {
+    var v = (tenths / 10).toFixed(1);
+    document.getElementById('lbl-vanScale').textContent = v;
+    if (window.__camBridge) window.__camBridge('vanScale', parseFloat(v));
+  },
+  copy: function() {
+    var keys = ['cameraHeight','fieldOfView','drawDistance','fogDensity','roadWidth','vanScale','centrifugal'];
+    var lines = keys.map(function(k) {
+      var el = document.getElementById('lbl-' + k);
+      return k + ': ' + (el ? el.textContent : '?');
+    });
+    var txt = lines.join('\n');
+    document.getElementById('cam-output').textContent = txt;
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+  }
+};
+</script>
+
 </body> 
 </html>
