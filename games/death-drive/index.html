@@ -88,135 +88,7 @@
 
   
   
-  
-<script>
-// ─── DEATH DRIVE AUDIO ENGINE (global) ──────────────────────────────────────
-var AudioEngine = (function() {
-  var ctx = null;
-  var engineOsc = null, engineGain = null, engineLfo = null;
-  var distortion = null, filter = null, lfoGain = null;
-  var running = false;
-  var lastScreechTime = 0;
-  var lastCollisionTime = 0;
-
-  function init() {
-    if (ctx) return;
-    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
-    catch(e) { ctx = null; }
-  }
-
-  function startEngine() {
-    if (!ctx || running) return;
-    running = true;
-
-    engineGain = ctx.createGain();
-    engineGain.gain.value = 0.15;
-    engineGain.connect(ctx.destination);
-
-    engineOsc = ctx.createOscillator();
-    engineOsc.type = 'sawtooth';
-    engineOsc.frequency.value = 55;
-
-    distortion = ctx.createWaveShaper();
-    var curve = new Float32Array(256);
-    for (var i = 0; i < 256; i++) {
-      var x = (i * 2) / 256 - 1;
-      curve[i] = (Math.PI + 400) * x / (Math.PI + 400 * Math.abs(x));
-    }
-    distortion.curve = curve;
-
-    filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 300;
-    filter.Q.value = 1.2;
-
-    engineLfo = ctx.createOscillator();
-    engineLfo.type = 'sine';
-    engineLfo.frequency.value = 7;
-    lfoGain = ctx.createGain();
-    lfoGain.gain.value = 12;
-    engineLfo.connect(lfoGain);
-    lfoGain.connect(engineOsc.frequency);
-
-    engineOsc.connect(distortion);
-    distortion.connect(filter);
-    filter.connect(engineGain);
-    engineOsc.start();
-    engineLfo.start();
-  }
-
-  function stopEngine() {
-    if (!ctx || !running) return;
-    running = false;
-    try { engineOsc.stop(); engineLfo.stop(); } catch(e) {}
-    engineGain.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
-  }
-
-  function setEngineSpeed(speedPercent) {
-    if (!ctx || !engineOsc || !running) return;
-    var freq = 45 + speedPercent * 95;
-    engineOsc.frequency.setTargetAtTime(freq, ctx.currentTime, 0.08);
-    engineGain.gain.setTargetAtTime(0.1 + speedPercent * 0.14, ctx.currentTime, 0.12);
-    engineLfo.frequency.setTargetAtTime(5 + speedPercent * 12, ctx.currentTime, 0.1);
-  }
-
-  function playCollision() {
-    if (!ctx) return;
-    var now = ctx.currentTime;
-    if (now - lastCollisionTime < 0.3) return; // debounce
-    lastCollisionTime = now;
-
-    var osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(110, now);
-    osc.frequency.exponentialRampToValueAtTime(28, now + 0.3);
-    var g = ctx.createGain();
-    g.gain.setValueAtTime(0.85, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start(now); osc.stop(now + 0.42);
-
-    var bufLen = Math.floor(ctx.sampleRate * 0.18);
-    var buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-    var data = buf.getChannelData(0);
-    for (var i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1);
-    var noise = ctx.createBufferSource();
-    noise.buffer = buf;
-    var nf = ctx.createBiquadFilter();
-    nf.type = 'bandpass'; nf.frequency.value = 700; nf.Q.value = 0.5;
-    var ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.6, now);
-    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-    noise.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
-    noise.start(now);
-  }
-
-  function playScreech(intensity) {
-    if (!ctx || intensity < 0.4) return;
-    var now = ctx.currentTime;
-    if (now - lastScreechTime < 0.18) return; // debounce – one screech per 180ms max
-    lastScreechTime = now;
-    var dur = 0.1 + intensity * 0.2;
-    var bufLen = Math.floor(ctx.sampleRate * dur);
-    var buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-    var data = buf.getChannelData(0);
-    for (var i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1);
-    var src = ctx.createBufferSource();
-    src.buffer = buf;
-    var f = ctx.createBiquadFilter();
-    f.type = 'bandpass'; f.frequency.value = 3800; f.Q.value = 9;
-    var g = ctx.createGain();
-    g.gain.setValueAtTime(intensity * 0.3, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    src.connect(f); f.connect(g); g.connect(ctx.destination);
-    src.start(now);
-  }
-
-  return { init:init, startEngine:startEngine, stopEngine:stopEngine, setEngineSpeed:setEngineSpeed, playCollision:playCollision, playScreech:playScreech };
-})();
-// ─────────────────────────────────────────────────────────────────────────────
-</script>
-<script>
+  <script>
 /**
  * @author mrdoob / http://mrdoob.com/
  */
@@ -807,12 +679,12 @@ var SPRITES = {
   CAR02:                  { x: 1383, y:  825, w:   80, h:   59 },
   CAR04:                  { x: 1383, y:  894, w:   80, h:   57 },
   CAR01:                  { x: 1205, y: 1018, w:   80, h:   56 },
-  PLAYER_UPHILL_LEFT:     { x: 1383, y:  961, w:   80, h:   45 },
-  PLAYER_UPHILL_STRAIGHT: { x: 1295, y: 1018, w:   80, h:   45 },
-  PLAYER_UPHILL_RIGHT:    { x: 1385, y: 1018, w:   80, h:   45 },
-  PLAYER_LEFT:            { x:  995, y:  480, w:   80, h:   41 },
-  PLAYER_STRAIGHT:        { x: 1085, y:  480, w:   80, h:   41 },
-  PLAYER_RIGHT:           { x:  995, y:  531, w:   80, h:   41 }
+  PLAYER_UPHILL_LEFT:     { x:   5, y: 1582, w:  160, h:   90 },
+  PLAYER_UPHILL_STRAIGHT: { x: 170, y: 1582, w:  160, h:   90 },
+  PLAYER_UPHILL_RIGHT:    { x: 335, y: 1582, w:  160, h:   90 },
+  PLAYER_LEFT:            { x:   5, y: 1495, w:  160, h:   82 },
+  PLAYER_STRAIGHT:        { x: 170, y: 1495, w:  160, h:   82 },
+  PLAYER_RIGHT:           { x: 335, y: 1495, w:  160, h:   82 }
 };
 
 SPRITES.SCALE = 0.3 * (1/SPRITES.PLAYER_STRAIGHT.w) // the reference sprite width should be 1/3rd the (half-)roadWidth
@@ -889,9 +761,8 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
-      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * 2.5;
+      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE;
       var speedPercent  = speed/maxSpeed;
-      AudioEngine.setEngineSpeed(speedPercent);
       var dx            = dt * 2 * speedPercent; // at top speed, should be able to cross from left to right (-1 to 1) in 1 second
       var startPosition = position;
 
@@ -899,13 +770,10 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       position = Util.increase(position, dt * speed, trackLength);
 
-      if (keyLeft) {
+      if (keyLeft)
         playerX = playerX - dx;
-        AudioEngine.playScreech(speedPercent - 0.5);
-      } else if (keyRight) {
+      else if (keyRight)
         playerX = playerX + dx;
-        AudioEngine.playScreech(speedPercent - 0.5);
-      }
 
       playerX = playerX - (dx * speedPercent * playerSegment.curve * centrifugal);
 
@@ -939,7 +807,6 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
         carW = car.sprite.w * SPRITES.SCALE;
         if (speed > car.speed) {
           if (Util.overlap(playerX, playerW, car.offset, carW, 0.8)) {
-            AudioEngine.playCollision();
             speed    = car.speed * (car.speed/speed);
             position = Util.increase(car.z, -playerZ, trackLength);
             break;
@@ -1140,7 +1007,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
         if (segment == playerSegment) {
           Render.player(ctx, width, height, resolution, roadWidth, sprites, speed/maxSpeed,
-                        (cameraDepth/playerZ) * 2.5,
+                        cameraDepth/playerZ,
                         width/2,
                         (height/2) - (cameraDepth/playerZ * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height/2),
                         speed * (keyLeft ? -1 : keyRight ? 1 : 0),
@@ -1346,11 +1213,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
     // THE GAME LOOP
     //=========================================================================
 
-    document.addEventListener("keydown", function _start() {
-  AudioEngine.init(); AudioEngine.startEngine();
-  document.removeEventListener("keydown", _start);
-}, {once: true});
-Game.run({
+    Game.run({
       canvas: canvas, render: render, update: update, stats: stats, step: step,
       images: ["background", "sprites"],
       keys: [
