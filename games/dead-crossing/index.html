@@ -246,14 +246,12 @@ function drawBg(){
   ctx.fillStyle='#110008';ctx.fillRect(0,rowY(13),W,GRID*2);
   for(var s=0;s<12;s++){var sx=(s+0.5)*(W/12),pulse=0.5+0.5*Math.sin(Date.now()/600+s*0.9);ctx.fillStyle='rgba(200,255,0,'+(0.08+pulse*0.18)+')';ctx.beginPath();ctx.arc(sx,rowY(13)+5,3,0,Math.PI*2);ctx.fill();}
 
-  // 4 cubby slots row 12
+  // 4 cubby slots row 12 — no outlines, subtle glow on floor
   ctx.fillStyle='#1a0a00';ctx.fillRect(0,rowY(12),W,GRID);
   var slotW=W/4;
   for(var c=0;c<4;c++){
-    ctx.strokeStyle='#c8ff00';ctx.lineWidth=1;
-    ctx.strokeRect(c*slotW+3,rowY(12)+3,slotW-6,GRID-6);
-    ctx.fillStyle='rgba(200,255,0,0.2)';ctx.font='7px "Courier New"';ctx.textAlign='center';
-    ctx.fillText(c+1,c*slotW+slotW/2,rowY(12)+GRID-5);ctx.textAlign='left';
+    ctx.fillStyle='rgba(200,255,0,0.06)';
+    ctx.fillRect(c*slotW+2,rowY(12)+2,slotW-4,GRID-4);
   }
   ctx.strokeStyle='#c8ff00';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,rowY(12)+GRID);ctx.lineTo(W,rowY(12)+GRID);ctx.stroke();
 
@@ -313,8 +311,6 @@ function drawTourVan(){
   if(spritesReady&&imgTourvan.complete&&imgTourvan.naturalWidth>0){
     // White bg removal: tourvan has transparent bg, just draw it
     ctx.drawImage(imgTourvan,0,0,480,320,vx,vy,vw,vh);
-    // Glow outline
-    ctx.strokeStyle='#c8ff00';ctx.lineWidth=1;ctx.strokeRect(vx,vy,vw,vh);
   } else {
     // Canvas fallback
     var bg=ctx.createLinearGradient(vx,vy,vx,vy+vh);
@@ -341,10 +337,11 @@ function drawVehicle(spr){
       ctx.beginPath();ctx.rect(spr.x,ry,spr.size,GRID);ctx.clip();
       // Draw sprite stretched to lane size
       ctx.drawImage(img,rect.sx,rect.sy,rect.sw,rect.sh,spr.x,ry,spr.size,GRID);
-      // Apply color tint for vehicles (multiply-like overlay)
+      // Colorize grayscale vehicle sprite using 'color' blend mode
+      // 'color' applies hue+saturation of fill to destination luminance — true colorization
       if(!isLog&&spr.tint){
-        ctx.globalCompositeOperation='multiply';
-        ctx.fillStyle=spr.tint;
+        ctx.globalCompositeOperation='color';
+        ctx.fillStyle=spr.tint.replace(/[\d.]+\)$/,'0.85)');  // solid-ish color for strong tint
         ctx.fillRect(spr.x,ry,spr.size,GRID);
         ctx.globalCompositeOperation='source-over';
       }
