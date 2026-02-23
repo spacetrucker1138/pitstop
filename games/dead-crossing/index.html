@@ -75,7 +75,7 @@ var W=480, H=560, GRID=40, ROWS=14, COLS=12;
 // All assets relative to this page
 var ASSET_BASE = 'assets/';
 
-var imgVehicles = new Image(); imgVehicles.src = ASSET_BASE+'vehicles.png';
+var imgVehicles = new Image(); imgVehicles.src = ASSET_BASE+'vehicles_new.png';
 var imgLogs     = new Image(); imgLogs.src     = ASSET_BASE+'logs.png';
 var imgBand     = new Image(); imgBand.src     = ASSET_BASE+'band.png';
 var imgTourvan  = new Image(); imgTourvan.src  = ASSET_BASE+'tourvan.png';
@@ -96,11 +96,11 @@ var SPRITE_COUNT  = 6;
 // Side-profile row: y=284, h=142, 3 vehicles at x=160,320,480 each w=160
 // Top-down rows: y=0 and y=142, 3 per row, each ~213x142
 var V = {
-  // side-profile row: y=214, h=106, 4 vehicles at x=0,160,320,480 each w=160
-  car0:   {sx:0,   sy:214, sw:160, sh:106},  // small van (facing left)
-  car1:   {sx:160, sy:214, sw:160, sh:106},  // utility truck
-  car2:   {sx:320, sy:214, sw:160, sh:106},  // delivery van
-  car3:   {sx:480, sy:214, sw:160, sh:106},  // fire truck (facing right)
+  // vehicles_new.png: 640×106, 4 cells 160×106 at y=0
+  car0:   {sx:0,   sy:0, sw:160, sh:106},  // police car
+  car1:   {sx:160, sy:0, sw:160, sh:106},  // firetruck
+  car2:   {sx:320, sy:0, sw:160, sh:106},  // hearse
+  car3:   {sx:480, sy:0, sw:160, sh:106},  // muscle car
 };
 
 // logs.png 550x366 — 4 rows h≈91 each
@@ -135,11 +135,11 @@ var ROW_TYPES = ['start','road','road','road','road','road','median','water','wa
 // tint applied over grayscale vehicle sprites via composite
 var LANES = [
   null,
-  { sprKey:'car0', tint:'rgba(200,0,40,0.35)',  size:GRID*2.2, speed:-1.4, spacing:[3,5]   },
-  { sprKey:'car1', tint:'rgba(20,80,220,0.35)', size:GRID*1.4, speed: 2.0, spacing:[4,3,6] },
-  { sprKey:'car3', tint:'rgba(140,60,0,0.35)',  size:GRID*3.5, speed:-1.0, spacing:[4]     },
-  { sprKey:'car1', tint:'rgba(180,120,0,0.35)', size:GRID*1.4, speed: 1.6, spacing:[3,4]   },
-  { sprKey:'car0', tint:'rgba(80,0,100,0.35)',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },
+  { sprKey:'car0',  size:GRID*2.2, speed:-1.4, spacing:[3,5]   },
+  { sprKey:'car1', size:GRID*1.4, speed: 2.0, spacing:[4,3,6] },
+  { sprKey:'car3',  size:GRID*3.5, speed:-1.0, spacing:[4]     },
+  { sprKey:'car1', size:GRID*1.4, speed: 1.6, spacing:[3,4]   },
+  { sprKey:'car0',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },
   null,
   { sprKey:'log_l', size:GRID*3,   speed: 1.2, spacing:[2]       },
   { sprKey:'log_s', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3] },
@@ -279,19 +279,28 @@ function drawBg(){
   ctx.fillStyle='#111822';ctx.fillRect(0,rowY(6),W,GRID);
   ctx.fillStyle='rgba(200,255,0,0.08)';for(var m=0;m<6;m++)ctx.fillRect(m*GRID*2+8,rowY(6)+10,GRID-16,20);
 
-  // Road rows 1-5 — 16-bit tile
+  // Road rows 1-5 — clean dark asphalt with proper lane markings
+  // Base asphalt fill for all road rows
+  ctx.fillStyle='#1c1c1c';ctx.fillRect(0,rowY(1),W,GRID*5);
+  // Subtle texture variation per row
   for(var rd=1;rd<=5;rd++){
-    if(spritesReady&&imgRoad.complete&&imgRoad.naturalWidth>0){
-      // tile 480×80 strip: draw top half or bottom half alternating for variety
-      var sy16=(rd%2===0)?0:40;
-      ctx.drawImage(imgRoad,0,sy16,480,40,0,rowY(rd),W,GRID);
-    } else {
-      ctx.fillStyle=rd%2===0?'#141424':'#1a1a2e';ctx.fillRect(0,rowY(rd),W,GRID);
-    }
-    // Lane divider subtle overlay
-    ctx.strokeStyle='rgba(200,255,0,0.04)';ctx.lineWidth=1;ctx.setLineDash([16,12]);
-    ctx.beginPath();ctx.moveTo(0,rowY(rd)+GRID);ctx.lineTo(W,rowY(rd)+GRID);ctx.stroke();ctx.setLineDash([]);
+    if(rd%2===0){ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,rowY(rd),W,GRID);}
   }
+  // Outer edge solid white lines (road boundaries)
+  ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=2;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(0,rowY(1)+1);ctx.lineTo(W,rowY(1)+1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,rowY(5)+GRID-1);ctx.lineTo(W,rowY(5)+GRID-1);ctx.stroke();
+  // Center double yellow line between rows 3 and 4 (divides traffic directions)
+  var cy=rowY(3)+GRID;
+  ctx.strokeStyle='rgba(255,200,0,0.85)';ctx.lineWidth=1.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(0,cy-1);ctx.lineTo(W,cy-1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,cy+1);ctx.lineTo(W,cy+1);ctx.stroke();
+  // Dashed lane dividers within each traffic direction
+  ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1;ctx.setLineDash([18,14]);
+  [rowY(2)+GRID, rowY(4)+GRID].forEach(function(ly){
+    ctx.beginPath();ctx.moveTo(0,ly);ctx.lineTo(W,ly);ctx.stroke();
+  });
+  ctx.setLineDash([]);
 
   // Start row 0
   ctx.fillStyle='#0d1a06';ctx.fillRect(0,rowY(0),W,GRID);
@@ -337,14 +346,7 @@ function drawVehicle(spr){
       ctx.beginPath();ctx.rect(spr.x,ry,spr.size,GRID);ctx.clip();
       // Draw sprite stretched to lane size
       ctx.drawImage(img,rect.sx,rect.sy,rect.sw,rect.sh,spr.x,ry,spr.size,GRID);
-      // Colorize grayscale vehicle sprite using 'color' blend mode
-      // 'color' applies hue+saturation of fill to destination luminance — true colorization
-      if(!isLog&&spr.tint){
-        ctx.globalCompositeOperation='color';
-        ctx.fillStyle=spr.tint.replace(/[\d.]+\)$/,'0.85)');  // solid-ish color for strong tint
-        ctx.fillRect(spr.x,ry,spr.size,GRID);
-        ctx.globalCompositeOperation='source-over';
-      }
+      // Vehicles are now full-color sprites — no tint needed
       ctx.restore();
       return;
     }
