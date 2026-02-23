@@ -32,8 +32,6 @@
 <body>
 <div id="wrapper">
   <canvas id="game" width="480" height="560"></canvas>
-
-  <!-- TITLE -->
   <div id="titleOverlay">
     <h1>☠ BAND ON THE RUN ☠</h1>
     <div class="sub">A JURN ARCADE GAME</div>
@@ -43,8 +41,6 @@
     <div class="lb-title">— HIGH SCORES —</div>
     <div id="titleLb"></div>
   </div>
-
-  <!-- GAME OVER -->
   <div id="gameOverOverlay">
     <h2>SHOW'S CANCELLED</h2>
     <div class="go-row" id="goScore"></div>
@@ -96,38 +92,23 @@ var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var W = 480, H = 560;
 var GRID = 40;
-var ROWS = H / GRID; // 14 rows
-var COLS = W / GRID; // 12 cols
+var ROWS = H / GRID; // 14
+var COLS = W / GRID; // 12
 
-// Band roster — 5 members
+// Band roster
 var BAND = [
-  { name:'VOX',        eyeColor:'#44aaff', hairColor:null,       hairType:'none',   vestColor:'#2244aa', extra:'mic'   },
-  { name:'TRASH QUEEN',eyeColor:'#00ffee', hairColor:'#ff33cc',  hairType:'long',   vestColor:'#cc0033', extra:'dress' },
-  { name:'RIFF-ROT',   eyeColor:'#88ff44', hairColor:'#44ff00',  hairType:'mohawk', vestColor:'#333',    extra:'guitar'},
-  { name:'TAZ',        eyeColor:'#ff4444', hairColor:'#ff2200',  hairType:'mohawk', vestColor:'#1a1a1a', extra:'bass'  },
-  { name:'BONECRUSH',  eyeColor:'#ddbbff', hairColor:null,       hairType:'helmet', vestColor:'#553300', extra:'drum'  },
+  { name:'VOX',         eyeColor:'#44aaff', hairColor:null,      hairType:'none',   vestColor:'#2244aa', extra:'mic'   },
+  { name:'TRASH QUEEN', eyeColor:'#00ffee', hairColor:'#ff33cc', hairType:'long',   vestColor:'#cc0033', extra:'dress' },
+  { name:'RIFF-ROT',    eyeColor:'#88ff44', hairColor:'#44ff00', hairType:'mohawk', vestColor:'#333',    extra:'guitar'},
+  { name:'TAZ',         eyeColor:'#ff4444', hairColor:'#ff2200', hairType:'mohawk', vestColor:'#1a1a1a', extra:'bass'  },
+  { name:'BONECRUSH',   eyeColor:'#ddbbff', hairColor:null,      hairType:'helmet', vestColor:'#553300', extra:'drum'  },
 ];
 
-// JURN colours
 var COL = {
-  skull:   '#e8dcc8',
-  road:    '#1a1a2a',
-  mud:     '#3d2200',
-  mudDark: '#2a1800',
-  water:   '#2a4a1a',
-  safe:    '#0d1a00',
-  safeL:   '#162600',
-  goal:    '#0a0000',
-  goalL:   '#1a0800',
-  glow:    '#c8ff00',
-  red:     '#ff2d2d',
-  orange:  '#ff7700',
-  dark:    '#06000e',
-  bus:     '#220033',
-  busGold: '#cc9900',
+  skull:'#e8dcc8', road:'#1a1a2a', mud:'#3d2200', safe:'#0d1a00',
+  safeL:'#162600', glow:'#c8ff00', red:'#ff2d2d', dark:'#06000e',
 };
 
-// Row layout
 var ROW_TYPES = [
   'start',
   'road','road','road','road','road',
@@ -138,24 +119,31 @@ var ROW_TYPES = [
 ];
 
 var LANES = [
-  null, // start
-  { color:'#555', tint:'#cc0033', size:GRID*2.2, speed:-1.4, spacing:[3,5],   type:'car'   },
-  { color:'#666', tint:'#1144aa', size:GRID*1.4, speed: 2.0, spacing:[4,3,6], type:'sedan' },
-  { color:'#444', tint:'#884400', size:GRID*3.5, speed:-1.0, spacing:[4],     type:'truck' },
-  { color:'#777', tint:'#aa7700', size:GRID*1.4, speed: 1.6, spacing:[3,4],   type:'sedan' },
-  { color:'#555', tint:'#440055', size:GRID*2.0, speed:-2.2, spacing:[5,3],   type:'car'   },
-  null, // median
-  { color:'#7a5a30', size:GRID*3,   speed: 1.2, spacing:[2],      type:'log' },
-  { color:'#5a4020', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3],type:'log' },
-  { color:'#8a6a3a', size:GRID*5,   speed: 1.5, spacing:[3],      type:'log' },
-  { color:'#6a4a28', size:GRID*2,   speed:-1.2, spacing:[2],      type:'log' },
-  { color:'#7a5a30', size:GRID*2.5, speed: 0.8, spacing:[1,2],    type:'log' },
-  null, // goal_safe
-  null, // goal
+  null,
+  { tint:'#cc0033', size:GRID*2.2, speed:-1.4, spacing:[3,5],    type:'car'   },
+  { tint:'#1144aa', size:GRID*1.4, speed: 2.0, spacing:[4,3,6],  type:'sedan' },
+  { tint:'#884400', size:GRID*3.5, speed:-1.0, spacing:[4],      type:'truck' },
+  { tint:'#aa7700', size:GRID*1.4, speed: 1.6, spacing:[3,4],    type:'sedan' },
+  { tint:'#440055', size:GRID*2.0, speed:-2.2, spacing:[5,3],    type:'car'   },
+  null,
+  { size:GRID*3,   speed: 1.2, spacing:[2],       type:'log' },
+  { size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3], type:'log' },
+  { size:GRID*5,   speed: 1.5, spacing:[3],        type:'log' },
+  { size:GRID*2,   speed:-1.2, spacing:[2],         type:'log' },
+  { size:GRID*2.5, speed: 0.8, spacing:[1,2],       type:'log' },
+  null,
+  null,
 ];
 
 // ── State ──
 var frogger, scoredMembers, rows, score, lives, phase, _lastScore, memberIdx;
+// countdown
+var countPhase = false;   // true while 1-2-3 animation playing
+var countVal   = 0;       // 3,2,1,0 = "LET'S ROCK"
+var countTimer = 0;
+var COUNT_INTERVAL = 800; // ms between beats
+var raf = null;
+
 phase = 'title';
 
 function buildRows() {
@@ -165,35 +153,107 @@ function buildRows() {
     var pat = LANES[r];
     if (!pat) continue;
     var x = 0, idx = 0;
-    var spacing = pat.spacing;
-    var totalW = spacing.reduce((a,b)=>a+b,0)*GRID + spacing.length * pat.size;
+    var sp = pat.spacing;
+    var totalW = sp.reduce((a,b)=>a+b,0)*GRID + sp.length * pat.size;
     var endX = 0;
     while (endX < W) endX += totalW;
     endX += totalW;
     while (x < endX) {
-      rows[r].push({ x, size: pat.size, speed: pat.speed, color: pat.color, tint: pat.tint, type: pat.type, index: idx });
-      x += pat.size + spacing[idx] * GRID;
-      idx = (idx + 1) % spacing.length;
+      rows[r].push({ x:x, size:pat.size, speed:pat.speed, tint:pat.tint, type:pat.type, index:idx });
+      x += pat.size + sp[idx]*GRID;
+      idx = (idx+1) % sp.length;
     }
   }
 }
 
 function initGame() {
-  score = 0; lives = 4; phase = 'playing';
-  memberIdx = 0;
-  scoredMembers = [];
+  score=0; lives=4; phase='playing';
+  memberIdx=0; scoredMembers=[];
   buildRows();
   resetFrogger();
+  startCountdown(); // always start with countdown
 }
 
 function resetFrogger() {
-  frogger = { x: GRID * 5, y: 0, speed: 0 };
+  frogger = { x: GRID*5, y:0, speed:0 };
+}
+
+// ── COUNTDOWN ──
+function startCountdown() {
+  countPhase = true;
+  countVal   = 3;
+  countTimer = Date.now();
+  if (raf) { cancelAnimationFrame(raf); raf = null; }
+  raf = requestAnimationFrame(countLoop);
+}
+
+function countLoop() {
+  // Advance lanes during countdown (enemies keep moving, player frozen)
+  moveLanes();
+
+  ctx.clearRect(0,0,W,H);
+  drawBg();
+  drawTourVan();
+  drawLaneSprites();
+
+  // Draw scored members
+  scoredMembers.forEach(function(sm){ drawMember(sm.x, rowY(ROWS-1), sm.mIdx); });
+  // Draw current frozen member
+  drawMember(frogger.x, rowY(frogger.y), memberIdx);
+
+  // Countdown overlay text
+  var elapsed = Date.now() - countTimer;
+  var beat = Math.floor(elapsed / COUNT_INTERVAL);
+  var label = '';
+  if      (beat === 0) label = '3';
+  else if (beat === 1) label = '2';
+  else if (beat === 2) label = '1';
+  else if (beat === 3) label = "LET'S ROCK!";
+  else {
+    // countdown done — hand off to game loop
+    countPhase = false;
+    raf = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  var alpha = 1 - ((elapsed % COUNT_INTERVAL) / COUNT_INTERVAL) * 0.4;
+  var scale = 1 + ((elapsed % COUNT_INTERVAL) / COUNT_INTERVAL) * 0.5;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(W/2, H/2);
+  ctx.scale(scale, scale);
+  ctx.font = 'bold 72px "Courier New"';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = COL.glow;
+  ctx.shadowColor = COL.glow;
+  ctx.shadowBlur = 30;
+  ctx.fillText(label, 0, 24);
+  ctx.restore();
+
+  // Play tick sound on new beat
+  if (beat !== countVal) {
+    countVal = beat;
+    playCountTick(beat);
+  }
+
+  raf = requestAnimationFrame(countLoop);
 }
 
 // ── AUDIO ──
 var AudioCtx = window.AudioContext || window.webkitAudioContext;
 var actx = null;
 function ensureAudio() { if (!actx) actx = new AudioCtx(); }
+
+function playCountTick(beat) {
+  ensureAudio();
+  var freq = beat < 3 ? 440 : 880;
+  var osc = actx.createOscillator(), g = actx.createGain();
+  osc.connect(g); g.connect(actx.destination);
+  osc.type = 'square'; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0.18, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15);
+  osc.start(); osc.stop(actx.currentTime + 0.18);
+}
 
 function playHop() {
   ensureAudio();
@@ -208,587 +268,499 @@ function playHop() {
 
 function playSplat() {
   ensureAudio();
-  var buf = actx.createBuffer(1, actx.sampleRate * 0.45, actx.sampleRate);
+  var buf = actx.createBuffer(1, actx.sampleRate*0.45, actx.sampleRate);
   var d = buf.getChannelData(0);
   for (var i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length,1.4);
   var src = actx.createBufferSource(), g = actx.createGain();
-  src.buffer = buf; src.connect(g); g.connect(actx.destination);
+  src.buffer=buf; src.connect(g); g.connect(actx.destination);
   g.gain.setValueAtTime(0.5, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.45);
-  src.start(); src.stop(actx.currentTime + 0.5);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+0.45);
+  src.start(); src.stop(actx.currentTime+0.5);
 }
 
 function playScore() {
   ensureAudio();
-  [330,440,550,660].forEach(function(f, i) {
-    var osc = actx.createOscillator(), g = actx.createGain();
+  [330,440,550,660].forEach(function(f,i){
+    var osc=actx.createOscillator(), g=actx.createGain();
     osc.connect(g); g.connect(actx.destination);
-    osc.frequency.value = f; osc.type = 'square';
-    g.gain.setValueAtTime(0, actx.currentTime + i*0.07);
-    g.gain.linearRampToValueAtTime(0.12, actx.currentTime + i*0.07 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i*0.07 + 0.12);
-    osc.start(actx.currentTime + i*0.07);
-    osc.stop(actx.currentTime + i*0.07 + 0.15);
+    osc.frequency.value=f; osc.type='square';
+    g.gain.setValueAtTime(0, actx.currentTime+i*0.07);
+    g.gain.linearRampToValueAtTime(0.12, actx.currentTime+i*0.07+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+i*0.07+0.12);
+    osc.start(actx.currentTime+i*0.07);
+    osc.stop(actx.currentTime+i*0.07+0.15);
   });
 }
 
 function playWin() {
   ensureAudio();
-  var melody = [330,392,440,523,587,659,784];
-  melody.forEach(function(f,i) {
-    var osc = actx.createOscillator(), g = actx.createGain();
+  [330,392,440,523,587,659,784].forEach(function(f,i){
+    var osc=actx.createOscillator(), g=actx.createGain();
     osc.connect(g); g.connect(actx.destination);
-    osc.frequency.value = f; osc.type = 'square';
-    g.gain.setValueAtTime(0, actx.currentTime + i*0.1);
-    g.gain.linearRampToValueAtTime(0.15, actx.currentTime + i*0.1 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i*0.1 + 0.18);
-    osc.start(actx.currentTime + i*0.1);
-    osc.stop(actx.currentTime + i*0.1 + 0.2);
+    osc.frequency.value=f; osc.type='square';
+    g.gain.setValueAtTime(0, actx.currentTime+i*0.1);
+    g.gain.linearRampToValueAtTime(0.15, actx.currentTime+i*0.1+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+i*0.1+0.18);
+    osc.start(actx.currentTime+i*0.1);
+    osc.stop(actx.currentTime+i*0.1+0.2);
   });
 }
 
-// ── DRAW HELPERS ──
-function rowY(r) { return H - (r + 1) * GRID; }
+// ── DRAW ──
+function rowY(r) { return H-(r+1)*GRID; }
 
-function drawBg() {
-  ctx.fillStyle = COL.dark; ctx.fillRect(0,0,W,H);
-
-  // Goal zone (rows 12-13) — tour bus parking
-  ctx.fillStyle = '#110008';
-  ctx.fillRect(0, rowY(13), W, GRID*2);
-  // Stars / stage lights across top
-  for (var s=0; s<12; s++) {
-    var sx = (s+0.5) * (W/12);
-    var pulse = 0.5 + 0.5*Math.sin(Date.now()/600 + s*0.9);
-    ctx.fillStyle = 'rgba(200,255,0,' + (0.15 + pulse*0.25) + ')';
-    ctx.beginPath(); ctx.arc(sx, rowY(13) + 6, 3, 0, Math.PI*2); ctx.fill();
-  }
-  // "TOUR BUS LOADING" label
-  ctx.fillStyle = 'rgba(200,255,0,0.55)';
-  ctx.font = 'bold 8px "Courier New"';
-  ctx.fillText('◄ TOUR BUS LOADING ZONE ►', 68, rowY(13) + 30);
-
-  // Goal safe (row 12) — stage edge
-  ctx.fillStyle = '#1a0a00';
-  ctx.fillRect(0, rowY(12), W, GRID);
-  // Glow line
-  ctx.strokeStyle = COL.glow; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(0, rowY(12)+GRID); ctx.lineTo(W, rowY(12)+GRID); ctx.stroke();
-
-  // Muddy water (rows 7-11)
-  for (var r=7; r<=11; r++) {
-    var wgrad = ctx.createLinearGradient(0, rowY(r), 0, rowY(r)+GRID);
-    wgrad.addColorStop(0, '#2a1a08');
-    wgrad.addColorStop(0.5, '#3d2810');
-    wgrad.addColorStop(1, '#1e1208');
-    ctx.fillStyle = wgrad;
-    ctx.fillRect(0, rowY(r), W, GRID);
-    // water ripples
-    ctx.strokeStyle = 'rgba(120,90,40,0.18)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([8,6]);
-    var rippleOff = (Date.now()/60 + r*30) % W;
-    ctx.beginPath();
-    ctx.moveTo(-rippleOff, rowY(r) + GRID*0.5);
-    ctx.lineTo(W - rippleOff + W, rowY(r) + GRID*0.5);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  // "MUDDY WATER" label
-  ctx.fillStyle = 'rgba(160,120,60,0.35)';
-  ctx.font = '7px "Courier New"';
-  ctx.fillText('~ MUDDY WATER ~', 170, rowY(9) + 24);
-
-  // Median (row 6)
-  ctx.fillStyle = '#111822';
-  ctx.fillRect(0, rowY(6), W, GRID);
-  ctx.fillStyle = 'rgba(200,255,0,0.10)';
-  for (var m=0; m<6; m++) {
-    ctx.fillRect(m*GRID*2 + 8, rowY(6)+10, GRID - 16, 20);
-  }
-  ctx.fillStyle = 'rgba(200,255,0,0.35)';
-  ctx.font = '7px "Courier New"';
-  ctx.fillText('— MEDIAN —', 188, rowY(6)+24);
-
-  // Road rows (1-5)
-  for (var rd=1; rd<=5; rd++) {
-    ctx.fillStyle = rd%2===0 ? '#141424' : '#1a1a2e';
-    ctx.fillRect(0, rowY(rd), W, GRID);
-    ctx.strokeStyle = 'rgba(200,255,0,0.06)'; ctx.lineWidth = 1;
-    ctx.setLineDash([16,12]);
-    ctx.beginPath(); ctx.moveTo(0, rowY(rd)+GRID); ctx.lineTo(W, rowY(rd)+GRID); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // Start (row 0)
-  ctx.fillStyle = '#0d1a06';
-  ctx.fillRect(0, rowY(0), W, GRID);
-  ctx.fillStyle = 'rgba(100,180,60,0.18)';
-  ctx.fillRect(0, rowY(0), W, GRID);
-
-  // HUD
-  ctx.fillStyle = COL.glow;
-  ctx.font = 'bold 12px "Courier New"';
-  ctx.fillText('SCORE: ' + score, 8, 15);
-
-  // Lives: draw mini skulls
-  var member = BAND[memberIdx % BAND.length];
-  ctx.font = '9px "Courier New"';
-  ctx.fillStyle = '#aaa';
-  ctx.fillText('NEXT:', W - 140, 15);
-  for (var lv=0; lv<lives; lv++) {
-    drawMiniMember(W - 112 + lv*24, 4, member);
+function moveLanes() {
+  for (var r=0; r<ROWS; r++) {
+    var pat=LANES[r]; if (!pat) continue;
+    var row=rows[r];
+    for (var i=0; i<row.length; i++) {
+      var spr=row[i];
+      spr.x += spr.speed;
+      spr._y = rowY(r);
+      if (spr.speed<0 && spr.x < -spr.size) {
+        var rm=row.reduce(function(a,b){return b.x>a.x?b:a;});
+        var sp=pat.spacing;
+        spr.x=rm.x+rm.size+sp[rm.index%sp.length]*GRID;
+        spr.index=(rm.index+1)%sp.length;
+      }
+      if (spr.speed>0 && spr.x > W) {
+        var lm=row.reduce(function(a,b){return b.x<a.x?b:a;});
+        var sp=pat.spacing;
+        var ix=lm.index-1; if(ix<0) ix=sp.length-1;
+        spr.x=lm.x-sp[ix]*GRID-spr.size;
+        spr.index=ix;
+      }
+    }
   }
 }
 
-function drawMiniMember(x, y, member) {
+function drawLaneSprites() {
+  for (var r=0; r<ROWS; r++) {
+    var pat=LANES[r]; if (!pat) continue;
+    var row=rows[r];
+    for (var i=0; i<row.length; i++) drawVehicle(row[i]);
+  }
+}
+
+function drawBg() {
+  ctx.fillStyle=COL.dark; ctx.fillRect(0,0,W,H);
+
+  // Goal zone rows 12-13
+  ctx.fillStyle='#110008';
+  ctx.fillRect(0,rowY(13),W,GRID*2);
+
+  // Stage lights pulse
+  for (var s=0; s<12; s++) {
+    var sx=(s+0.5)*(W/12);
+    var pulse=0.5+0.5*Math.sin(Date.now()/600+s*0.9);
+    ctx.fillStyle='rgba(200,255,0,'+(0.1+pulse*0.2)+')';
+    ctx.beginPath(); ctx.arc(sx,rowY(13)+5,3,0,Math.PI*2); ctx.fill();
+  }
+
+  // 4 cubby slots in goal_safe row (row 12)
+  ctx.fillStyle='#1a0a00';
+  ctx.fillRect(0,rowY(12),W,GRID);
+  var slotW=W/4;
+  for (var c=0; c<4; c++) {
+    // cubby box
+    ctx.strokeStyle=COL.glow; ctx.lineWidth=1;
+    ctx.strokeRect(c*slotW+4, rowY(12)+4, slotW-8, GRID-8);
+    // slot number
+    ctx.fillStyle='rgba(200,255,0,0.25)';
+    ctx.font='7px "Courier New"';
+    ctx.textAlign='center';
+    ctx.fillText((c+1), c*slotW+slotW/2, rowY(12)+GRID-6);
+    ctx.textAlign='left';
+  }
+  // glow line below goal_safe
+  ctx.strokeStyle=COL.glow; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,rowY(12)+GRID); ctx.lineTo(W,rowY(12)+GRID); ctx.stroke();
+
+  // Muddy water (rows 7-11)
+  for (var r=7;r<=11;r++) {
+    var wg=ctx.createLinearGradient(0,rowY(r),0,rowY(r)+GRID);
+    wg.addColorStop(0,'#2a1a08'); wg.addColorStop(0.5,'#3d2810'); wg.addColorStop(1,'#1e1208');
+    ctx.fillStyle=wg;
+    ctx.fillRect(0,rowY(r),W,GRID);
+    // ripple
+    ctx.strokeStyle='rgba(120,90,40,0.15)'; ctx.lineWidth=1;
+    ctx.setLineDash([8,6]);
+    var off=(Date.now()/60+r*30)%W;
+    ctx.beginPath(); ctx.moveTo(-off,rowY(r)+GRID*0.5); ctx.lineTo(W-off+W,rowY(r)+GRID*0.5); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle='rgba(160,120,60,0.3)'; ctx.font='7px "Courier New"';
+  ctx.textAlign='center';
+  ctx.fillText('~ MUDDY WATER ~',W/2,rowY(9)+24);
+  ctx.textAlign='left';
+
+  // Median row 6
+  ctx.fillStyle='#111822';
+  ctx.fillRect(0,rowY(6),W,GRID);
+  ctx.fillStyle='rgba(200,255,0,0.08)';
+  for (var m=0;m<6;m++) ctx.fillRect(m*GRID*2+8,rowY(6)+10,GRID-16,20);
+
+  // Road rows 1-5
+  for (var rd=1;rd<=5;rd++) {
+    ctx.fillStyle=rd%2===0?'#141424':'#1a1a2e';
+    ctx.fillRect(0,rowY(rd),W,GRID);
+    ctx.strokeStyle='rgba(200,255,0,0.06)'; ctx.lineWidth=1;
+    ctx.setLineDash([16,12]);
+    ctx.beginPath(); ctx.moveTo(0,rowY(rd)+GRID); ctx.lineTo(W,rowY(rd)+GRID); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Start row 0
+  ctx.fillStyle='#0d1a06'; ctx.fillRect(0,rowY(0),W,GRID);
+
+  // HUD
+  ctx.fillStyle=COL.glow; ctx.font='bold 12px "Courier New"';
+  ctx.fillText('SCORE: '+score, 8, 15);
+  // Mini life skulls
+  for (var lv=0;lv<lives;lv++) drawMiniMember(W-112+lv*28,3, BAND[memberIdx%BAND.length]);
+
+  // Current member name
+  ctx.fillStyle='rgba(200,255,0,0.5)'; ctx.font='8px "Courier New"';
+  ctx.fillText(BAND[memberIdx%BAND.length].name, 8, H-4);
+}
+
+function drawMiniMember(x,y,member) {
   ctx.save();
-  ctx.fillStyle = COL.skull;
-  ctx.beginPath(); ctx.arc(x+8, y+8, 6, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = member.eyeColor;
-  ctx.beginPath(); ctx.arc(x+6, y+6, 1.5, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+10, y+6, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle=COL.skull;
+  ctx.beginPath(); ctx.arc(x+8,y+8,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=member.eyeColor;
+  ctx.beginPath(); ctx.arc(x+6,y+6,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+10,y+6,1.5,0,Math.PI*2); ctx.fill();
   if (member.hairColor) {
-    ctx.fillStyle = member.hairColor;
-    if (member.hairType === 'mohawk') {
-      ctx.fillRect(x+6, y, 4, 6);
-    } else if (member.hairType === 'long') {
-      ctx.fillRect(x+2, y+2, 3, 10);
-      ctx.fillRect(x+11, y+2, 3, 10);
-    }
+    ctx.fillStyle=member.hairColor;
+    if (member.hairType==='mohawk') ctx.fillRect(x+6,y,4,6);
+    else if (member.hairType==='long') { ctx.fillRect(x+2,y+2,3,10); ctx.fillRect(x+11,y+2,3,10); }
   }
-  if (member.hairType === 'helmet') {
-    ctx.fillStyle = '#888';
-    ctx.fillRect(x+2, y, 12, 7);
-    ctx.fillStyle = '#aaa';
-    ctx.fillRect(x+0, y+2, 2, 4);
-    ctx.fillRect(x+14, y+2, 2, 4);
-  }
+  if (member.hairType==='helmet') { ctx.fillStyle='#888'; ctx.fillRect(x+2,y,12,7); }
   ctx.restore();
+}
+
+// Tour van: single large van ~160px wide centered on top of playfield
+function drawTourVan() {
+  var vw = 160, vh = 36;
+  var vx = (W-vw)/2, vy = rowY(13);
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillRect(vx+4, vy+vh-2, vw, 6);
+  // Body gradient
+  var bg=ctx.createLinearGradient(vx,vy,vx,vy+vh);
+  bg.addColorStop(0,'#3a0050'); bg.addColorStop(0.5,'#220033'); bg.addColorStop(1,'#110022');
+  ctx.fillStyle=bg;
+  ctx.beginPath();
+  if (ctx.roundRect) { ctx.roundRect(vx,vy,vw,vh,6); } else { ctx.rect(vx,vy,vw,vh); }
+  ctx.fill();
+  // Gold trim
+  ctx.strokeStyle='#cc9900'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  if (ctx.roundRect) { ctx.roundRect(vx+1,vy+1,vw-2,vh-2,5); } else { ctx.rect(vx+1,vy+1,vw-2,vh-2); }
+  ctx.stroke();
+  // Windows — 4 across
+  for (var wi=0;wi<4;wi++) {
+    ctx.fillStyle='rgba(100,200,255,0.18)';
+    ctx.fillRect(vx+10+wi*36, vy+6, 24, vh-16);
+    ctx.strokeStyle='rgba(180,220,255,0.25)'; ctx.lineWidth=0.5;
+    ctx.strokeRect(vx+10+wi*36, vy+6, 24, vh-16);
+  }
+  // Big skull grille center
+  ctx.font='bold 22px sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#c8a050';
+  ctx.fillText('☠', vx+vw/2, vy+vh-6);
+  ctx.textAlign='left';
+  // JURN TOUR label
+  ctx.fillStyle=COL.glow; ctx.font='bold 8px "Courier New"';
+  ctx.textAlign='center';
+  ctx.fillText('☠ JURN TOUR ☠', vx+vw/2, vy+12);
+  ctx.textAlign='left';
+  // Wheels
+  ctx.fillStyle='#111';
+  ctx.beginPath(); ctx.arc(vx+20,vy+vh,7,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(vx+vw-20,vy+vh,7,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#555'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(vx+20,vy+vh,5,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(vx+vw-20,vy+vh,5,0,Math.PI*2); ctx.stroke();
+  // Glow under van
+  ctx.strokeStyle=COL.glow; ctx.lineWidth=1;
+  ctx.strokeRect(vx,vy,vw,vh);
 }
 
 function drawVehicle(spr) {
   ctx.save();
   var ry = spr._y !== undefined ? spr._y : rowY(0);
-
-  if (spr.type === 'log') {
-    // Log in muddy water
-    var lgrad = ctx.createLinearGradient(spr.x, ry+10, spr.x, ry+GRID-10);
-    lgrad.addColorStop(0, '#9a7040');
-    lgrad.addColorStop(0.3, '#7a5830');
-    lgrad.addColorStop(0.7, '#5a4020');
-    lgrad.addColorStop(1, '#7a5830');
-    ctx.fillStyle = lgrad;
-    // main log body
+  if (spr.type==='log') {
+    var lg=ctx.createLinearGradient(spr.x,ry+10,spr.x,ry+GRID-10);
+    lg.addColorStop(0,'#9a7040'); lg.addColorStop(0.3,'#7a5830');
+    lg.addColorStop(0.7,'#5a4020'); lg.addColorStop(1,'#7a5830');
+    ctx.fillStyle=lg;
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(spr.x+2, ry+10, spr.size-4, GRID-20, 6)
-                  : ctx.fillRect(spr.x+2, ry+10, spr.size-4, GRID-20);
+    if (ctx.roundRect) ctx.roundRect(spr.x+2,ry+10,spr.size-4,GRID-20,5);
+    else ctx.rect(spr.x+2,ry+10,spr.size-4,GRID-20);
     ctx.fill();
-    // bark texture lines
-    ctx.strokeStyle = 'rgba(40,20,5,0.3)'; ctx.lineWidth = 1;
-    for (var bk=0; bk<Math.floor(spr.size/20); bk++) {
-      ctx.beginPath();
-      ctx.moveTo(spr.x + bk*20 + 10, ry+12);
-      ctx.lineTo(spr.x + bk*20 + 14, ry+GRID-12);
-      ctx.stroke();
+    // bark lines
+    ctx.strokeStyle='rgba(40,20,5,0.3)'; ctx.lineWidth=1;
+    for (var bk=0;bk<Math.floor(spr.size/20);bk++) {
+      ctx.beginPath(); ctx.moveTo(spr.x+bk*20+10,ry+12); ctx.lineTo(spr.x+bk*20+14,ry+GRID-12); ctx.stroke();
     }
-    // end circles (wood grain)
-    ctx.fillStyle = '#c8a050';
-    ctx.beginPath(); ctx.arc(spr.x+10, ry+GRID/2, 7, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#8a6030'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(spr.x+10, ry+GRID/2, 5, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(spr.x+10, ry+GRID/2, 3, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = '#c8a050';
-    ctx.beginPath(); ctx.arc(spr.x+spr.size-10, ry+GRID/2, 7, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#8a6030';
-    ctx.beginPath(); ctx.arc(spr.x+spr.size-10, ry+GRID/2, 5, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(spr.x+spr.size-10, ry+GRID/2, 3, 0, Math.PI*2); ctx.stroke();
-    // moss on top
-    ctx.fillStyle = 'rgba(60,120,20,0.4)';
-    ctx.fillRect(spr.x+16, ry+10, spr.size-32, 5);
-  } else if (spr.type === 'truck') {
-    // Grayscale tinted truck (tour bus style)
-    ctx.fillStyle = spr.tint || '#445';
-    ctx.fillRect(spr.x, ry+3, spr.size, GRID-6);
-    // cab
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    if (spr.speed < 0) {
-      ctx.fillRect(spr.x, ry+5, spr.size*0.2, GRID-10);
-    } else {
-      ctx.fillRect(spr.x + spr.size*0.8, ry+5, spr.size*0.2, GRID-10);
-    }
-    // windows
-    ctx.fillStyle = 'rgba(180,220,255,0.15)';
-    ctx.fillRect(spr.x+4, ry+7, spr.size*0.28, GRID-16);
-    // JURN tag
-    ctx.fillStyle = COL.glow; ctx.font = 'bold 8px "Courier New"';
-    ctx.fillText('JURN', spr.x + spr.size*0.35, ry+GRID*0.58);
+    // end grain circles
+    ctx.fillStyle='#c8a050';
+    ctx.beginPath(); ctx.arc(spr.x+10,ry+GRID/2,7,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#8a6030'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(spr.x+10,ry+GRID/2,5,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(spr.x+10,ry+GRID/2,3,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#c8a050';
+    ctx.beginPath(); ctx.arc(spr.x+spr.size-10,ry+GRID/2,7,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#8a6030';
+    ctx.beginPath(); ctx.arc(spr.x+spr.size-10,ry+GRID/2,5,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(spr.x+spr.size-10,ry+GRID/2,3,0,Math.PI*2); ctx.stroke();
+    // moss
+    ctx.fillStyle='rgba(60,120,20,0.35)';
+    ctx.fillRect(spr.x+16,ry+10,spr.size-32,5);
+  } else if (spr.type==='truck') {
+    ctx.fillStyle=spr.tint||'#445';
+    ctx.fillRect(spr.x,ry+3,spr.size,GRID-6);
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    if (spr.speed<0) ctx.fillRect(spr.x,ry+5,spr.size*0.22,GRID-10);
+    else ctx.fillRect(spr.x+spr.size*0.78,ry+5,spr.size*0.22,GRID-10);
+    ctx.fillStyle='rgba(180,220,255,0.15)';
+    ctx.fillRect(spr.x+4,ry+7,spr.size*0.28,GRID-16);
+    ctx.fillStyle=COL.glow; ctx.font='bold 8px "Courier New"';
+    ctx.fillText('JURN',spr.x+spr.size*0.35,ry+GRID*0.58);
   } else {
-    // Grayscale car / sedan — tinted version
-    ctx.fillStyle = spr.tint || '#445';
-    ctx.fillRect(spr.x, ry+6, spr.size, GRID-12);
-    // roof
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(spr.x + spr.size*0.2, ry+4, spr.size*0.6, GRID-10);
-    // windshield
-    ctx.fillStyle = 'rgba(180,220,255,0.2)';
-    ctx.fillRect(spr.x + spr.size*0.22, ry+6, spr.size*0.22, GRID-14);
-    // headlights
-    ctx.fillStyle = spr.speed < 0 ? 'rgba(255,50,0,0.7)' : 'rgba(255,255,180,0.7)';
-    var lx = spr.speed < 0 ? spr.x + spr.size - 4 : spr.x;
-    ctx.fillRect(lx, ry+8, 4, 6);
-    ctx.fillRect(lx, ry+GRID-14, 4, 6);
+    ctx.fillStyle=spr.tint||'#445';
+    ctx.fillRect(spr.x,ry+6,spr.size,GRID-12);
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.fillRect(spr.x+spr.size*0.2,ry+4,spr.size*0.6,GRID-10);
+    ctx.fillStyle='rgba(180,220,255,0.2)';
+    ctx.fillRect(spr.x+spr.size*0.22,ry+6,spr.size*0.22,GRID-14);
+    ctx.fillStyle=spr.speed<0?'rgba(255,50,0,0.7)':'rgba(255,255,180,0.7)';
+    var lx=spr.speed<0?spr.x+spr.size-4:spr.x;
+    ctx.fillRect(lx,ry+8,4,5); ctx.fillRect(lx,ry+GRID-14,4,5);
   }
   ctx.restore();
 }
 
-// Draw tour bus at goal top
-function drawTourBus(x, w) {
-  var y = rowY(13) + 2;
-  var h = GRID - 4;
-  // body
-  var bg = ctx.createLinearGradient(x, y, x, y+h);
-  bg.addColorStop(0, '#330022');
-  bg.addColorStop(0.5, '#220033');
-  bg.addColorStop(1, '#110022');
-  ctx.fillStyle = bg;
-  ctx.fillRect(x, y, w, h);
-  // skull grille
-  ctx.fillStyle = '#c8a050';
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillText('☠', x + w*0.5 - 10, y + h*0.7);
-  // windows
-  ctx.fillStyle = 'rgba(100,200,255,0.2)';
-  for (var wi=0; wi<3; wi++) {
-    ctx.fillRect(x + 8 + wi*18, y + 6, 12, h-16);
-  }
-  // JURN label
-  ctx.fillStyle = COL.glow; ctx.font = 'bold 7px "Courier New"';
-  ctx.fillText('JURN TOUR', x + w*0.5 - 18, y + h - 4);
-  // wheels
-  ctx.fillStyle = '#222';
-  ctx.beginPath(); ctx.arc(x+12, y+h, 5, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+w-12, y+h, 5, 0, Math.PI*2); ctx.fill();
-  // outline glow
-  ctx.strokeStyle = COL.glow; ctx.lineWidth = 1;
-  ctx.strokeRect(x+1, y+1, w-2, h-2);
-}
-
-function drawMember(x, y, memberIdx) {
-  var member = BAND[memberIdx % BAND.length];
-  var cx = x + GRID/2, cy = y + GRID/2;
+function drawMember(x,y,idx) {
+  var member=BAND[idx%BAND.length];
+  var cx=x+GRID/2, cy=y+GRID/2;
   ctx.save();
-
-  // Hair / helmet BEHIND skull
-  if (member.hairColor && member.hairType === 'mohawk') {
-    ctx.fillStyle = member.hairColor;
-    // mohawk spikes
-    for (var sp=0; sp<3; sp++) {
-      ctx.beginPath();
-      ctx.moveTo(cx - 4 + sp*4, cy - 12);
-      ctx.lineTo(cx - 1 + sp*4, cy - 20 - sp*2);
-      ctx.lineTo(cx + 2 + sp*4, cy - 12);
-      ctx.fill();
+  // Hair behind skull
+  if (member.hairColor && member.hairType==='mohawk') {
+    ctx.fillStyle=member.hairColor;
+    for (var sp=0;sp<3;sp++) {
+      ctx.beginPath(); ctx.moveTo(cx-4+sp*4,cy-12);
+      ctx.lineTo(cx-1+sp*4,cy-20-sp*2); ctx.lineTo(cx+2+sp*4,cy-12); ctx.fill();
     }
   }
-  if (member.hairType === 'helmet') {
-    ctx.fillStyle = '#777';
-    ctx.beginPath(); ctx.arc(cx, cy-6, 14, Math.PI, 0); ctx.fill();
-    ctx.fillStyle = '#999';
-    ctx.fillRect(cx-16, cy-8, 4, 10);
-    ctx.fillRect(cx+12, cy-8, 4, 10);
+  if (member.hairType==='helmet') {
+    ctx.fillStyle='#777';
+    ctx.beginPath(); ctx.arc(cx,cy-6,14,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#999';
+    ctx.fillRect(cx-16,cy-8,4,10); ctx.fillRect(cx+12,cy-8,4,10);
   }
-  if (member.hairType === 'long') {
-    ctx.fillStyle = member.hairColor;
-    ctx.beginPath();
-    ctx.moveTo(cx-8, cy-12);
-    ctx.quadraticCurveTo(cx-14, cy+4, cx-10, cy+12);
-    ctx.lineTo(cx-6, cy+12);
-    ctx.quadraticCurveTo(cx-10, cy+4, cx-4, cy-10);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx+8, cy-12);
-    ctx.quadraticCurveTo(cx+14, cy+4, cx+10, cy+12);
-    ctx.lineTo(cx+6, cy+12);
-    ctx.quadraticCurveTo(cx+10, cy+4, cx+4, cy-10);
-    ctx.fill();
+  if (member.hairType==='long') {
+    ctx.fillStyle=member.hairColor;
+    ctx.beginPath(); ctx.moveTo(cx-8,cy-12); ctx.quadraticCurveTo(cx-14,cy+4,cx-10,cy+12);
+    ctx.lineTo(cx-6,cy+12); ctx.quadraticCurveTo(cx-10,cy+4,cx-4,cy-10); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx+8,cy-12); ctx.quadraticCurveTo(cx+14,cy+4,cx+10,cy+12);
+    ctx.lineTo(cx+6,cy+12); ctx.quadraticCurveTo(cx+10,cy+4,cx+4,cy-10); ctx.fill();
   }
-
   // Skull
-  ctx.fillStyle = COL.skull;
-  ctx.beginPath(); ctx.arc(cx, cy-4, 12, 0, Math.PI*2); ctx.fill();
-  // jaw
-  ctx.fillRect(cx-8, cy+2, 16, 10);
-  // eye sockets
-  ctx.fillStyle = member.eyeColor;
-  ctx.beginPath(); ctx.arc(cx-4, cy-6, 4, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx+4, cy-6, 4, 0, Math.PI*2); ctx.fill();
-  // pupils
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.beginPath(); ctx.arc(cx-4, cy-6, 2, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx+4, cy-6, 2, 0, Math.PI*2); ctx.fill();
-  // nose cavity
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath(); ctx.arc(cx, cy-2, 2, 0, Math.PI*2); ctx.fill();
-  // teeth
-  ctx.fillStyle = '#d0c8b0';
-  for (var t=0; t<4; t++) ctx.fillRect(cx-7+t*4, cy+4, 3, 6);
-
+  ctx.fillStyle=COL.skull;
+  ctx.beginPath(); ctx.arc(cx,cy-4,12,0,Math.PI*2); ctx.fill();
+  ctx.fillRect(cx-8,cy+2,16,10);
+  // Eyes
+  ctx.fillStyle=member.eyeColor;
+  ctx.beginPath(); ctx.arc(cx-4,cy-6,4,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+4,cy-6,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.6)';
+  ctx.beginPath(); ctx.arc(cx-4,cy-6,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+4,cy-6,2,0,Math.PI*2); ctx.fill();
+  // Nose
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.arc(cx,cy-2,2,0,Math.PI*2); ctx.fill();
+  // Teeth
+  ctx.fillStyle='#d0c8b0';
+  for (var t=0;t<4;t++) ctx.fillRect(cx-7+t*4,cy+4,3,6);
   // Outfit
-  if (member.extra === 'dress') {
-    ctx.fillStyle = member.vestColor;
-    // ruffle dress
-    ctx.beginPath();
-    ctx.moveTo(cx-10, cy+12);
-    ctx.lineTo(cx-14, cy+28);
-    ctx.lineTo(cx+14, cy+28);
-    ctx.lineTo(cx+10, cy+12);
-    ctx.fill();
-    // ruffles
-    for (var rf=0; rf<4; rf++) {
-      ctx.beginPath();
-      ctx.arc(cx-8+rf*5, cy+24, 4, 0, Math.PI); ctx.fill();
-    }
+  if (member.extra==='dress') {
+    ctx.fillStyle=member.vestColor;
+    ctx.beginPath(); ctx.moveTo(cx-10,cy+12); ctx.lineTo(cx-14,cy+28);
+    ctx.lineTo(cx+14,cy+28); ctx.lineTo(cx+10,cy+12); ctx.fill();
+    for (var rf=0;rf<4;rf++) { ctx.beginPath(); ctx.arc(cx-8+rf*5,cy+24,4,0,Math.PI); ctx.fill(); }
   } else {
-    // Vest / tee
-    ctx.fillStyle = member.vestColor;
-    ctx.fillRect(cx-8, cy+12, 16, 10);
-    if (member.extra === 'mic') {
-      // mic stand
-      ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(cx+10, cy+10); ctx.lineTo(cx+14, cy+22); ctx.stroke();
-      ctx.fillStyle = '#bbb';
-      ctx.beginPath(); ctx.arc(cx+10, cy+9, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle=member.vestColor;
+    ctx.fillRect(cx-8,cy+12,16,10);
+    if (member.extra==='mic') {
+      ctx.strokeStyle='#ccc'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(cx+10,cy+10); ctx.lineTo(cx+14,cy+22); ctx.stroke();
+      ctx.fillStyle='#bbb'; ctx.beginPath(); ctx.arc(cx+10,cy+9,3,0,Math.PI*2); ctx.fill();
     }
-    if (member.extra === 'guitar') {
-      ctx.fillStyle = '#aa6600';
-      ctx.fillRect(cx+8, cy+8, 4, 14);
-      ctx.beginPath(); ctx.arc(cx+10, cy+20, 5, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#eee'; ctx.lineWidth = 0.8;
-      for (var str=0; str<3; str++) {
-        ctx.beginPath(); ctx.moveTo(cx+8+str, cy+8); ctx.lineTo(cx+8+str, cy+22); ctx.stroke();
-      }
+    if (member.extra==='guitar') {
+      ctx.fillStyle='#aa6600'; ctx.fillRect(cx+8,cy+8,4,14);
+      ctx.beginPath(); ctx.arc(cx+10,cy+20,5,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#eee'; ctx.lineWidth=0.8;
+      for (var s2=0;s2<3;s2++) { ctx.beginPath(); ctx.moveTo(cx+8+s2,cy+8); ctx.lineTo(cx+8+s2,cy+22); ctx.stroke(); }
     }
-    if (member.extra === 'bass') {
-      ctx.fillStyle = '#cc2200';
-      ctx.fillRect(cx-14, cy+10, 4, 12);
-      ctx.beginPath(); ctx.arc(cx-12, cy+20, 4, 0, Math.PI*2); ctx.fill();
+    if (member.extra==='bass') {
+      ctx.fillStyle='#cc2200'; ctx.fillRect(cx-14,cy+10,4,12);
+      ctx.beginPath(); ctx.arc(cx-12,cy+20,4,0,Math.PI*2); ctx.fill();
     }
   }
-
   ctx.restore();
 }
 
 // ── GAME LOOP ──
-var raf;
 function gameLoop() {
-  if (phase !== 'playing') return;
+  if (phase!=='playing') return;
   raf = requestAnimationFrame(gameLoop);
 
+  moveLanes();
   ctx.clearRect(0,0,W,H);
   drawBg();
+  drawTourVan();
+  drawLaneSprites();
 
-  // Tour buses at top
-  drawTourBus(10, GRID*2.5);
-  drawTourBus(GRID*3.5 + 10, GRID*2.5);
-  drawTourBus(GRID*7 + 10, GRID*2.5);
-  drawTourBus(GRID*10 + 10, GRID*2.5);
-
-  // Update + draw lanes
-  for (var r = 0; r < ROWS; r++) {
-    var pat = LANES[r];
-    if (!pat) continue;
-    var row = rows[r];
-    for (var i = 0; i < row.length; i++) {
-      var spr = row[i];
-      spr.x += spr.speed;
-      spr._y = rowY(r);
-      drawVehicle(spr);
-
-      // wrap
-      if (spr.speed < 0 && spr.x < -spr.size) {
-        var rightmost = row.reduce(function(a,b){ return b.x > a.x ? b : a; });
-        var sp = pat.spacing;
-        spr.x = rightmost.x + rightmost.size + sp[rightmost.index % sp.length] * GRID;
-        spr.index = (rightmost.index + 1) % sp.length;
-      }
-      if (spr.speed > 0 && spr.x > W) {
-        var leftmost = row.reduce(function(a,b){ return b.x < a.x ? b : a; });
-        var sp = pat.spacing;
-        var idx2 = leftmost.index - 1; if (idx2 < 0) idx2 = sp.length - 1;
-        spr.x = leftmost.x - sp[idx2] * GRID - spr.size;
-        spr.index = idx2;
-      }
-    }
-  }
-
-  // Move member with log
+  // Carry frogger on log
   frogger.x += frogger.speed;
   frogger.speed = 0;
 
-  // Draw scored members (reached bus)
-  scoredMembers.forEach(function(sm) {
-    drawMember(sm.x, rowY(ROWS-1), sm.mIdx);
-  });
-
-  // Draw active member
-  var fy = rowY(frogger.y);
+  scoredMembers.forEach(function(sm){ drawMember(sm.x, rowY(ROWS-1), sm.mIdx); });
+  var fy=rowY(frogger.y);
   drawMember(frogger.x, fy, memberIdx);
 
   // Collision
-  var fr = frogger.y;
-  var onFloater = false;
+  var fr=frogger.y;
+  var onFloater=false;
   if (rows[fr]) {
-    for (var i = 0; i < rows[fr].length; i++) {
-      var spr = rows[fr][i];
-      if (frogger.x < spr.x + spr.size - 4 && frogger.x + GRID - 4 > spr.x) {
-        var rtype = ROW_TYPES[fr];
-        if (rtype === 'road') {
-          playSplat(); loseLife(); return;
-        } else if (rtype === 'water') {
-          onFloater = true;
-          frogger.speed = spr.speed;
-        }
+    for (var i=0;i<rows[fr].length;i++) {
+      var spr=rows[fr][i];
+      if (frogger.x < spr.x+spr.size-4 && frogger.x+GRID-4 > spr.x) {
+        var rtype=ROW_TYPES[fr];
+        if (rtype==='road') { playSplat(); loseLife(); return; }
+        else if (rtype==='water') { onFloater=true; frogger.speed=spr.speed; }
       }
     }
   }
-
-  if (!onFloater && ROW_TYPES[fr] === 'water') {
-    playSplat(); loseLife(); return;
-  }
+  if (!onFloater && ROW_TYPES[fr]==='water') { playSplat(); loseLife(); return; }
 
   // Clamp
-  if (frogger.x < 0) frogger.x = 0;
-  if (frogger.x > W - GRID) frogger.x = W - GRID;
+  if (frogger.x<0) frogger.x=0;
+  if (frogger.x>W-GRID) frogger.x=W-GRID;
 
   // Reached goal row
-  if (frogger.y === ROWS - 1) {
-    var slot = Math.floor(frogger.x / (W/4));
-    var slotX = slot * (W/4) + (W/4 - GRID)/2;
-    if (!scoredMembers.find(function(sm){ return sm.slot === slot; })) {
-      scoredMembers.push({ x: slotX, y: ROWS-1, mIdx: memberIdx, slot: slot });
+  if (frogger.y===ROWS-1) {
+    var slot=Math.floor(frogger.x/(W/4));
+    slot=Math.max(0,Math.min(3,slot));
+    var slotX=slot*(W/4)+(W/4-GRID)/2;
+    if (!scoredMembers.find(function(sm){return sm.slot===slot;})) {
+      scoredMembers.push({x:slotX, y:ROWS-1, mIdx:memberIdx, slot:slot});
       memberIdx++;
-      score += 200;
+      score+=200;
       playScore();
     }
+    phase='playing'; // keep phase, but stop loop and countdown
+    cancelAnimationFrame(raf); raf=null;
     resetFrogger();
-    if (scoredMembers.length >= 4) {
-      // All 4 on the bus!
-      score += 1000;
-      playWin();
-      scoredMembers = [];
-      memberIdx = 0;
+    if (scoredMembers.length>=4) {
+      score+=1000; playWin();
+      scoredMembers=[]; memberIdx=0;
     }
+    startCountdown(); // countdown for next member
   }
 }
 
 function loseLife() {
+  cancelAnimationFrame(raf); raf=null;
   lives--;
-  if (lives <= 0) { triggerGameOver(); return; }
+  if (lives<=0) { triggerGameOver(); return; }
   resetFrogger();
-  gameLoop();
+  startCountdown(); // countdown on respawn — fixes speed-doubling bug
 }
 
 // ── GAME OVER ──
 function triggerGameOver() {
-  if (phase === 'gameover') return;
-  phase = 'gameover';
-  cancelAnimationFrame(raf);
-  _lastScore = score;
+  if (phase==='gameover') return;
+  phase='gameover';
+  cancelAnimationFrame(raf); raf=null;
 
-  fbGet(function(data) {
-    var sorted = getSorted(data);
-    document.getElementById('goScore').textContent = 'FINAL SCORE: ' + score;
-
-    if (isHighScore(score, sorted)) {
-      var initSec = document.getElementById('goInitialsSection');
-      initSec.style.display = 'flex';
-      var inp = document.getElementById('goInitialsInput');
-      inp.value = '';
-      setTimeout(function(){ inp.focus(); }, 80);
+  fbGet(function(data){
+    var sorted=getSorted(data);
+    document.getElementById('goScore').textContent='FINAL SCORE: '+score;
+    if (isHighScore(score,sorted)) {
+      var initSec=document.getElementById('goInitialsSection');
+      initSec.style.display='flex';
+      var inp=document.getElementById('goInitialsInput');
+      inp.value='';
+      setTimeout(function(){ inp.focus(); },80);
       function submitScore() {
-        if (document.activeElement && document.activeElement.tagName==='INPUT' && inp.value.trim().length===0) return;
-        var name = inp.value.trim().toUpperCase().slice(0,3) || 'AAA';
-        fbPush(name, score);
-        initSec.style.display = 'none';
-        fbGet(function(d2){ renderLb('goLb', getSorted(d2), score); });
+        if (document.activeElement&&document.activeElement.tagName==='INPUT'&&inp.value.trim().length===0) return;
+        var name=inp.value.trim().toUpperCase().slice(0,3)||'AAA';
+        fbPush(name,score);
+        initSec.style.display='none';
+        fbGet(function(d2){ renderLb('goLb',getSorted(d2),score); });
       }
-      document.getElementById('goSubmitBtn').onclick = submitScore;
-      inp.onkeydown = function(e){ if(e.key==='Enter') submitScore(); };
-    } else {
-      renderLb('goLb', sorted, score);
-    }
-    document.getElementById('gameOverOverlay').style.display = 'flex';
+      document.getElementById('goSubmitBtn').onclick=submitScore;
+      inp.onkeydown=function(e){ if(e.key==='Enter') submitScore(); };
+    } else { renderLb('goLb',sorted,score); }
+    document.getElementById('gameOverOverlay').style.display='flex';
   });
 }
 
 // ── CONTROLS ──
-document.addEventListener('keydown', function(e) {
-  if (phase === 'title') {
+document.addEventListener('keydown',function(e){
+  if (phase==='title') {
     ensureAudio();
-    document.getElementById('titleOverlay').style.display = 'none';
-    initGame();
-    requestAnimationFrame(gameLoop);
-    return;
+    document.getElementById('titleOverlay').style.display='none';
+    initGame(); return;
   }
-  if (phase !== 'playing') return;
-  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  if (countPhase) return; // locked during countdown
+  if (phase!=='playing') return;
+  if (document.activeElement&&document.activeElement.tagName==='INPUT') return;
 
-  if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { frogger.x -= GRID; playHop(); }
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { frogger.x += GRID; playHop(); }
-  if (e.key === 'ArrowUp'    || e.key === 'w' || e.key === 'W') { if (frogger.y < ROWS-1) frogger.y++; playHop(); }
-  if (e.key === 'ArrowDown'  || e.key === 's' || e.key === 'S') { if (frogger.y > 0) frogger.y--; playHop(); }
-
-  frogger.x = Math.min(Math.max(0, frogger.x), W - GRID);
-
-  e.preventDefault();
+  var moved=false;
+  if (e.key==='ArrowLeft'||e.key==='a'||e.key==='A') { frogger.x-=GRID; moved=true; }
+  if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') { frogger.x+=GRID; moved=true; }
+  if (e.key==='ArrowUp'||e.key==='w'||e.key==='W') { if(frogger.y<ROWS-1){frogger.y++;moved=true;} }
+  if (e.key==='ArrowDown'||e.key==='s'||e.key==='S') { if(frogger.y>0){frogger.y--;moved=true;} }
+  if (moved) { playHop(); frogger.x=Math.min(Math.max(0,frogger.x),W-GRID); e.preventDefault(); }
 });
 
-// Touch controls
-var touchStartX, touchStartY;
-canvas.addEventListener('touchstart', function(e) {
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-  e.preventDefault();
-}, { passive: false });
-canvas.addEventListener('touchend', function(e) {
-  var dx = e.changedTouches[0].clientX - touchStartX;
-  var dy = e.changedTouches[0].clientY - touchStartY;
-  if (phase === 'title') {
-    ensureAudio();
-    document.getElementById('titleOverlay').style.display = 'none';
-    initGame(); requestAnimationFrame(gameLoop); return;
+// Touch
+var touchStartX,touchStartY;
+canvas.addEventListener('touchstart',function(e){ touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY; e.preventDefault(); },{passive:false});
+canvas.addEventListener('touchend',function(e){
+  if (phase==='title') {
+    ensureAudio(); document.getElementById('titleOverlay').style.display='none'; initGame(); return;
   }
-  if (phase !== 'playing') return;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > 20) { frogger.x += GRID; playHop(); }
-    else if (dx < -20) { frogger.x -= GRID; playHop(); }
+  if (countPhase||phase!=='playing') return;
+  var dx=e.changedTouches[0].clientX-touchStartX, dy=e.changedTouches[0].clientY-touchStartY;
+  if (Math.abs(dx)>Math.abs(dy)) {
+    if (dx>20){frogger.x+=GRID;playHop();} else if(dx<-20){frogger.x-=GRID;playHop();}
   } else {
-    if (dy < -20) { if (frogger.y < ROWS-1) frogger.y++; playHop(); }
-    else if (dy > 20) { if (frogger.y > 0) frogger.y--; playHop(); }
+    if (dy<-20){if(frogger.y<ROWS-1){frogger.y++;playHop();}} else if(dy>20){if(frogger.y>0){frogger.y--;playHop();}}
   }
-  frogger.x = Math.min(Math.max(0, frogger.x), W - GRID);
+  frogger.x=Math.min(Math.max(0,frogger.x),W-GRID);
   e.preventDefault();
-}, { passive: false });
+},{passive:false});
 
-// ── BUTTONS ──
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-  document.getElementById('gameOverOverlay').style.display = 'none';
+document.getElementById('playAgainBtn').addEventListener('click',function(){
+  document.getElementById('gameOverOverlay').style.display='none';
   initGame();
-  requestAnimationFrame(gameLoop);
 });
-document.getElementById('goTitleBtn').addEventListener('click', function() {
-  document.getElementById('gameOverOverlay').style.display = 'none';
+document.getElementById('goTitleBtn').addEventListener('click',function(){
+  document.getElementById('gameOverOverlay').style.display='none';
   loadTitleLb();
-  document.getElementById('titleOverlay').style.display = 'flex';
-  phase = 'title';
+  document.getElementById('titleOverlay').style.display='flex';
+  phase='title';
 });
 
 // Idle bg
-(function() {
-  ctx.fillStyle = '#06000e'; ctx.fillRect(0,0,W,H);
-})();
-phase = 'title';
+(function(){ ctx.fillStyle='#06000e'; ctx.fillRect(0,0,W,H); })();
+phase='title';
 </script>
 </body>
 </html>
