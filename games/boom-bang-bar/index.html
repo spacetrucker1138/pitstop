@@ -82,9 +82,9 @@ var W=canvas.width,H=canvas.height;
 // Band row: y=340  (band members positioned here, top-down tokens)
 // Amp row: y=448  (5 amp stacks at very front of stage)
 var CROWD_TOP=32, CROWD_BOT=220;
-var STAGE_TOP=310, STAGE_BOT=430;
-var BAND_Y=355;      // center y of band token row
-var AMP_Y=448;       // y center of amp stacks
+var STAGE_TOP=255, STAGE_BOT=440;
+var BAND_Y=375;      // center y of band token row
+var AMP_Y=460;       // y center of amp stacks
 var AMP_W=40, AMP_H=30;
 var NOTE_SPD=11, MAX_LVL=6;
 
@@ -260,15 +260,7 @@ function drawBand(ts){
     var drawX=bx-dw/2;
     var drawY=BAND_Y-dh/2+bob;
     if(bandReady){
-      // The sprite sheet has a dark (near-black) background — use 'lighter' blend to key it
-      // Actually darken blending works: multiply will keep the dark bg transparent on dark floor
-      // Best: just draw it — dark tokens on dark stage looks good
       ctx.drawImage(bandImg, sp.sx, sp.sy, sp.sw, sp.sh, drawX, drawY, dw, dh);
-    } else {
-      // Fallback colored circle
-      ctx.fillStyle=['#ff44aa','#cccccc','#888','#44ff44'][bi];
-      ctx.beginPath(); ctx.arc(bx, BAND_Y+bob, 18, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle=C.bone; ctx.fillRect(bx-4,BAND_Y-20+bob,8,10);
     }
   });
   ctx.restore();
