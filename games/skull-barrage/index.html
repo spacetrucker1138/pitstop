@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Skull Barrage – JURN Arcade</title>
+  <meta charset="UTF-8">
+  <style>
+    html, body { height:100%; margin:0; background:#000; display:flex; align-items:center; justify-content:center; flex-direction:column; font-family:'Courier New',monospace; }
+    canvas { cursor:crosshair; display:block; }
+    /* overlays */
+    #titleOverlay, #gameOverOverlay { display:none; position:absolute; top:0; left:0; width:640px; height:480px; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.82); color:#c8ff00; text-align:center; z-index:10; }
+    #titleOverlay { display:flex; }
+    h1 { font-size:52px; margin:0 0 4px 0; letter-spacing:6px; color:#c8ff00; text-shadow: 0 0 24px #c8ff00, 0 0 6px #fff; }
+    h2 { font-size:32px; margin:0 0 4px 0; letter-spacing:4px; color:#ff2d2d; text-shadow: 0 0 16px #ff2d2d; }
+    .sub { font-size:13px; letter-spacing:4px; color:#888; margin-bottom:18px; }
+    .press-key { font-size:14px; letter-spacing:3px; color:#c8ff00; animation: blink 1s step-end infinite; margin-top:14px; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .lb-title { font-size:12px; letter-spacing:3px; color:#888; margin:16px 0 6px; }
+    .lb-row { font-size:13px; color:#c8ff00; letter-spacing:2px; margin:2px 0; }
+    .go-row { font-size:14px; color:#c8ff00; letter-spacing:2px; margin:3px 0; }
+    .btn { background:transparent; border:1px solid #c8ff00; color:#c8ff00; font-family:'Courier New',monospace; font-size:13px; letter-spacing:3px; padding:8px 22px; cursor:pointer; margin-top:10px; }
+    .btn:hover { background:rgba(200,255,0,0.15); }
+    .initials-label { font-size:12px; letter-spacing:3px; color:#888; margin:10px 0 6px; }
+    .initials-input { background:transparent; border-bottom:2px solid #c8ff00; color:#c8ff00; font-family:'Courier New',monospace; font-size:22px; letter-spacing:8px; width:80px; text-align:center; outline:none; }
+    #wrapper { position:relative; width:640px; height:480px; overflow:hidden; }
+  </style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="game" width="640" height="480"></canvas>
+
+  <!-- TITLE OVERLAY -->
+  <div id="titleOverlay">
+    <h1>☠ SKULL BARRAGE ☠</h1>
+    <div class="sub">A JURN ARCADE GAME</div>
+    <div class="press-key">CLICK TO BEGIN</div>
+    <div class="lb-title">— HIGH SCORES —</div>
+    <div id="titleLb"></div>
+  </div>
+
+  <!-- GAME OVER OVERLAY -->
+  <div id="gameOverOverlay">
+    <h2>GAME OVER</h2>
+    <div class="go-row" id="goScore"></div>
+    <div id="goInitialsSection" style="display:none; flex-direction:column; align-items:center;">
+      <div class="initials-label">NEW HIGH SCORE — ENTER YOUR INITIALS</div>
+      <input type="text" id="goInitialsInput" class="initials-input" maxlength="3" autocomplete="off">
+      <button class="btn" id="goSubmitBtn">SUBMIT</button>
+    </div>
+    <div class="lb-title" style="margin-top:14px;">— HIGH SCORES —</div>
+    <div id="goLb"></div>
+    <button class="btn" id="playAgainBtn" style="margin-top:18px;">PLAY AGAIN</button>
+    <button class="btn" id="titleBtn">RETURN TO TITLE</button>
+  </div>
+</div>
+
+<script>
+// ── Firebase leaderboard (same project as Death Drive / Jurnbreaker) ──
+const FB_URL = 'https://pitstop-wall-default-rtdb.firebaseio.com/highscores/skull-barrage';
+
+function fbGet(cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', FB_URL + '.json');
+  xhr.onload = function() { cb(JSON.parse(xhr.responseText) || {}); };
+  xhr.onerror = function() { cb({}); };
+  xhr.send();
+}
+function fbPush(name, score) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', FB_URL + '.json');
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.send(JSON.stringify({ name: name, score: score }));
+}
+function getSorted(data) {
+  return Object.values(data)
+    .filter(e => e && e.name && typeof e.score === 'number')
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+}
+function isHighScore(score, sorted) {
+  return sorted.length < 10 || score > sorted[sorted.length - 1].score;
+}
+function renderLb(elId, sorted, highlight) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = sorted.slice(0, 7).map((e, i) => {
+    var style = (e.score === highlight) ? 'color:#fff;font-weight:bold;' : '';
+    return '<div class="lb-row" style="' + style + '">' + (i+1) + '. ' + e.name + ' &nbsp; ' + e.score + '</div>';
+  }).join('');
+}
+function loadTitleLb() {
+  fbGet(function(data) { renderLb('titleLb', getSorted(data), -1); });
+}
+loadTitleLb();
+
+// ── Canvas ──
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d');
+var W = canvas.width, H = canvas.height;
+
+// ── JURN palette ──
+var C = {
+  sky:     '#0a0010',
+  ground:  '#1a0030',
+  glow:    '#c8ff00',
+  red:     '#ff2d2d',
+  orange:  '#ff7700',
+  purple:  '#8a2be2',
+  bone:    '#e8dcc8',
+  dim:     '#333'
+};
+
+// ── Game constants ──
+var GROUND_Y     = 440;
+var TOWN_W       = 38, TOWN_H = 22;
+var SILO_Y       = GROUND_Y - 28;
+var M_SPEED      = 0.7;   // enemy skull speed
+var CM_SPEED     = 14;    // counter-skull speed
+var MAX_LEVEL    = 6;
+
+// ── State ──
+var missiles, counterMissiles, explosions, towns, silos;
+var score, lives, level, gamePhase; // 'title' | 'playing' | 'gameover'
+var lastSpawnTime, spawnInterval, spawnCount, spawnedCount;
+var _lastGoScore = 0;
+
+function initGame() {
+  score  = 0;
+  lives  = 3;
+  level  = 1;
+  missiles = []; counterMissiles = []; explosions = [];
+  gamePhase = 'playing';
+  lastSpawnTime = -3000;
+  setLevelParams();
+  resetDefenders();
+}
+
+function setLevelParams() {
+  spawnInterval = Math.max(600, 2200 - level * 250);
+  spawnCount    = 2 + level;
+  spawnedCount  = 0;
+}
+
+var SILO_POS = [55, W/2, 585];
+var TOWN_XS  = [130, 200, 270, 370, 440, 510];
+
+function resetDefenders() {
+  towns = TOWN_XS.map(x => ({ x, alive: true }));
+  silos = SILO_POS.map(x => ({ x, y: SILO_Y, missiles: 10, alive: true }));
+}
+
+function spawnSkull() {
+  var aliveTowns = towns.filter(t => t.alive);
+  var aliveSilos = silos.filter(s => s.alive);
+  var targets = aliveTowns.concat(aliveSilos);
+  if (!targets.length) return;
+  var spawns = [0, W/4, W/2, W*3/4, W].map(x => ({ x, y: 0 }));
+  var sx = spawns[Math.floor(Math.random() * spawns.length)];
+  var tx = targets[Math.floor(Math.random() * targets.length)];
+  var angle = Math.atan2(tx.y - sx.y, tx.x - sx.x) + Math.PI/2;
+  var spd = M_SPEED * (1 + level * 0.08);
+  missiles.push({
+    start: {x: sx.x, y: 0},
+    target: tx,
+    pos: {x: sx.x, y: 0},
+    dx: spd * Math.sin(angle),
+    dy: spd * -Math.cos(angle),
+    alive: true
+  });
+}
+
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function drawSkullIcon(x, y, r, col) {
+  ctx.save();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(x, y - r*0.1, r, 0, Math.PI*2);
+  ctx.fill();
+  // jaw
+  ctx.fillRect(x - r*0.5, y + r*0.5, r, r*0.55);
+  // eye sockets
+  ctx.fillStyle = C.sky;
+  ctx.beginPath(); ctx.arc(x - r*0.28, y - r*0.15, r*0.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + r*0.28, y - r*0.15, r*0.2, 0, Math.PI*2); ctx.fill();
+  // nose
+  ctx.beginPath(); ctx.arc(x, y + r*0.2, r*0.1, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCrypt(x, alive) {
+  if (!alive) return;
+  ctx.save();
+  var bx = x - TOWN_W/2, by = GROUND_Y - TOWN_H;
+  // body
+  ctx.fillStyle = '#2a0044';
+  ctx.fillRect(bx, by, TOWN_W, TOWN_H);
+  // arch top
+  ctx.fillStyle = '#3d0066';
+  ctx.beginPath();
+  ctx.arc(x, by + 2, TOWN_W*0.35, Math.PI, 0);
+  ctx.fill();
+  // cross
+  ctx.fillStyle = C.glow;
+  ctx.fillRect(x - 1, by - 8, 3, 14);
+  ctx.fillRect(x - 6, by - 4, 14, 3);
+  // window
+  ctx.fillStyle = C.purple;
+  ctx.fillRect(x - 5, by + 6, 10, 10);
+  ctx.restore();
+}
+
+function drawSilo(silo) {
+  if (!silo.alive) return;
+  ctx.save();
+  // hill
+  ctx.fillStyle = '#1a0030';
+  ctx.beginPath();
+  ctx.arc(silo.x, GROUND_Y, 35, Math.PI, 0);
+  ctx.fill();
+  // launcher tube
+  ctx.fillStyle = '#4a0080';
+  ctx.fillRect(silo.x - 6, SILO_Y - 14, 12, 20);
+  // glow tip
+  ctx.fillStyle = silo.missiles > 0 ? C.glow : C.dim;
+  ctx.fillRect(silo.x - 4, SILO_Y - 18, 8, 6);
+  // ammo pips
+  ctx.fillStyle = C.glow;
+  for (var i = 0; i < silo.missiles; i++) {
+    ctx.fillRect(silo.x - 22 + (i % 5) * 9, SILO_Y + 8 + Math.floor(i/5)*6, 5, 4);
+  }
+  ctx.restore();
+}
+
+function drawBackground() {
+  // Sky gradient
+  var grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+  grad.addColorStop(0,   '#000010');
+  grad.addColorStop(0.6, '#0a0018');
+  grad.addColorStop(1,   '#1a0030');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, GROUND_Y);
+
+  // Moon
+  ctx.save();
+  ctx.fillStyle = '#fff8d0';
+  ctx.beginPath(); ctx.arc(W - 80, 55, 30, 0, Math.PI*2); ctx.fill();
+  // moon skull overlay
+  ctx.fillStyle = 'rgba(0,0,10,0.45)';
+  ctx.beginPath(); ctx.arc(W - 72, 50, 14, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W - 88, 50, 14, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,240,0.6)';
+  var starSeeds = [17,41,73,109,151,197,233,269,311,353,389,421,457,499,541];
+  for (var i = 0; i < starSeeds.length; i++) {
+    var sx = (starSeeds[i] * 43 + 7) % W;
+    var sy = (starSeeds[i] * 17 + 11) % (GROUND_Y * 0.7);
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+
+  // Ground
+  var ggrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  ggrad.addColorStop(0, '#2a0044');
+  ggrad.addColorStop(1, '#0d0018');
+  ctx.fillStyle = ggrad;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  // Ground glow line
+  ctx.strokeStyle = C.purple;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(W, GROUND_Y); ctx.stroke();
+
+  // Score + Level HUD
+  ctx.fillStyle = C.glow;
+  ctx.font = 'bold 14px "Courier New"';
+  ctx.fillText('SCORE: ' + score, 10, 22);
+  ctx.fillText('LVL: ' + level, W/2 - 28, 22);
+  ctx.fillText('LIVES: ' + lives, W - 100, 22);
+}
+
+// ── AUDIO ──
+var AudioCtx = window.AudioContext || window.webkitAudioContext;
+var audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playLaunch() {
+  ensureAudio();
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.18);
+  gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+}
+
+function playBoom(big) {
+  ensureAudio();
+  var buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.6, audioCtx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, big ? 1.2 : 2);
+  var src = audioCtx.createBufferSource();
+  var gain = audioCtx.createGain();
+  src.buffer = buf;
+  var filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass'; filt.frequency.value = big ? 600 : 300;
+  src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+  gain.gain.setValueAtTime(big ? 0.7 : 0.35, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+  src.start(); src.stop(audioCtx.currentTime + 0.65);
+}
+
+function playDestroy() { playBoom(true); }
+
+// ── GAME LOOP ──
+var raf;
+var lastTime2 = -3000;
+
+function gameLoop(ts) {
+  if (gamePhase !== 'playing') return;
+  raf = requestAnimationFrame(gameLoop);
+
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+
+  // spawn enemy skulls
+  if (ts - lastTime2 > spawnInterval && spawnedCount < spawnCount * MAX_LEVEL) {
+    var batch = spawnCount;
+    for (var b = 0; b < batch; b++) spawnSkull();
+    spawnedCount += batch;
+    lastTime2 = ts;
+    if (spawnedCount >= spawnCount * level) {
+      // level up when all batches for this level spawned and no missiles remain
+    }
+  }
+
+  // check level advance
+  if (missiles.length === 0 && counterMissiles.length === 0 && explosions.length === 0 && spawnedCount >= spawnCount * level && ts - lastTime2 > 1500) {
+    level++;
+    if (level > MAX_LEVEL) level = MAX_LEVEL;
+    spawnedCount = 0;
+    lastTime2 = ts;
+    setLevelParams();
+    score += 500; // level bonus
+  }
+
+  // ── Enemy skulls ──
+  ctx.strokeStyle = C.red;
+  ctx.lineWidth = 1.5;
+  missiles.forEach(function(m) {
+    m.pos.x += m.dx;
+    m.pos.y += m.dy;
+
+    // explosion intercept
+    explosions.forEach(function(ex) {
+      if (dist(ex, m.pos) < 4 + ex.size) m.alive = false;
+    });
+
+    var d = dist(m.pos, m.target);
+    if (d < 2) {
+      m.alive = false;
+      m.target.alive = false;
+      playDestroy();
+      explosions.push({ x: m.pos.x, y: m.pos.y, size: 2, dir: 1, alive: true, enemy: true });
+      // lose life if town or silo hit
+      lives--;
+      if (lives <= 0) { triggerGameOver(); return; }
+    }
+
+    if (m.alive) {
+      // trail
+      ctx.beginPath();
+      ctx.moveTo(m.start.x, m.start.y);
+      ctx.lineTo(m.pos.x, m.pos.y);
+      ctx.stroke();
+      // skull head
+      drawSkullIcon(m.pos.x, m.pos.y, 6, C.red);
+    } else {
+      explosions.push({ x: m.pos.x, y: m.pos.y, size: 2, dir: 1, alive: true, enemy: true });
+    }
+  });
+
+  // ── Counter skulls (player) ──
+  ctx.strokeStyle = C.glow;
+  counterMissiles.forEach(function(cm) {
+    cm.pos.x += cm.dx;
+    cm.pos.y += cm.dy;
+    var d = dist(cm.pos, cm.target);
+    if (d < CM_SPEED) {
+      cm.alive = false;
+      explosions.push({ x: cm.pos.x, y: cm.pos.y, size: 3, dir: 1, alive: true, player: true });
+      playBoom(false);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(cm.start.x, cm.start.y);
+      ctx.lineTo(cm.pos.x, cm.pos.y);
+      ctx.stroke();
+      drawSkullIcon(cm.pos.x, cm.pos.y, 5, C.glow);
+    }
+  });
+
+  // ── Explosions ──
+  explosions.forEach(function(ex) {
+    ex.size += 0.4 * ex.dir;
+    if (ex.size > 28) ex.dir = -1;
+    if (ex.size <= 0) { ex.alive = false; return; }
+    var col = ex.player ? C.glow : C.orange;
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = col;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.arc(ex.x, ex.y, ex.size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    // also intercept enemy missiles within range (already done above)
+  });
+
+  // ── Draw world ──
+  towns.forEach(function(t) { drawCrypt(t.x, t.alive); });
+  silos.forEach(function(s) { drawSilo(s); });
+
+  // ── Cleanup ──
+  missiles = missiles.filter(function(m) { return m.alive; });
+  counterMissiles = counterMissiles.filter(function(c) { return c.alive; });
+  explosions = explosions.filter(function(e) { return e.alive; });
+
+  // game over if all towns and silos gone
+  var anyAlive = towns.some(function(t){ return t.alive; }) || silos.some(function(s){ return s.alive; });
+  if (!anyAlive) { triggerGameOver(); }
+}
+
+// ── FIRE COUNTER-MISSILE ──
+canvas.addEventListener('click', function(e) {
+  if (gamePhase !== 'playing') return;
+  ensureAudio();
+  var rect = canvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+
+  // pick nearest silo with ammo
+  var best = null, bestD = Infinity;
+  silos.forEach(function(s) {
+    if (!s.alive || !s.missiles) return;
+    var d = dist({x: mx, y: my}, s);
+    if (d < bestD) { bestD = d; best = s; }
+  });
+  if (!best) return;
+
+  var angle = Math.atan2(my - best.y, mx - best.x) + Math.PI/2;
+  best.missiles--;
+  counterMissiles.push({
+    start: { x: best.x, y: best.y },
+    target: { x: mx, y: my },
+    pos: { x: best.x, y: best.y },
+    dx: CM_SPEED * Math.sin(angle),
+    dy: CM_SPEED * -Math.cos(angle),
+    alive: true
+  });
+  playLaunch();
+  score += 10;
+});
+
+// ── GAME OVER ──
+function triggerGameOver() {
+  if (gamePhase === 'gameover') return;
+  gamePhase = 'gameover';
+  cancelAnimationFrame(raf);
+  _lastGoScore = score;
+
+  fbGet(function(data) {
+    var sorted = getSorted(data);
+    document.getElementById('goScore').textContent = 'FINAL SCORE: ' + score;
+
+    if (isHighScore(score, sorted)) {
+      var initSec = document.getElementById('goInitialsSection');
+      initSec.style.display = 'flex';
+      var inp = document.getElementById('goInitialsInput');
+      inp.value = '';
+      setTimeout(function() { inp.focus(); }, 80);
+
+      function submitScore() {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT' && inp.value.trim().length === 0) return;
+        var name = inp.value.trim().toUpperCase().slice(0,3) || 'AAA';
+        fbPush(name, score);
+        initSec.style.display = 'none';
+        fbGet(function(d2) { renderLb('goLb', getSorted(d2), score); });
+      }
+      document.getElementById('goSubmitBtn').onclick = submitScore;
+      inp.onkeydown = function(e) { if (e.key === 'Enter') submitScore(); };
+    } else {
+      renderLb('goLb', sorted, score);
+    }
+
+    document.getElementById('gameOverOverlay').style.display = 'flex';
+  });
+}
+
+// ── TITLE ──
+document.getElementById('titleOverlay').addEventListener('click', function() {
+  ensureAudio();
+  document.getElementById('titleOverlay').style.display = 'none';
+  initGame();
+  lastTime2 = -3000;
+  requestAnimationFrame(gameLoop);
+});
+
+// ── PLAY AGAIN ──
+document.getElementById('playAgainBtn').addEventListener('click', function() {
+  document.getElementById('gameOverOverlay').style.display = 'none';
+  initGame();
+  lastTime2 = -3000;
+  requestAnimationFrame(gameLoop);
+});
+
+// ── RETURN TO TITLE ──
+document.getElementById('titleBtn').addEventListener('click', function() {
+  document.getElementById('gameOverOverlay').style.display = 'none';
+  loadTitleLb();
+  document.getElementById('titleOverlay').style.display = 'flex';
+  gamePhase = 'title';
+});
+
+// Initial idle draw
+(function drawIdle() {
+  ctx.clearRect(0,0,W,H);
+  var grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#000010'); grad.addColorStop(1,'#1a0030');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+  // ground
+  ctx.fillStyle = '#2a0044'; ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+  ctx.strokeStyle = C.purple; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0,GROUND_Y); ctx.lineTo(W,GROUND_Y); ctx.stroke();
+  // crypts
+  TOWN_XS.forEach(function(x){ drawCrypt(x, true); });
+  SILO_POS.forEach(function(x){ drawSilo({x,y:SILO_Y,missiles:10,alive:true}); });
+})();
+
+gamePhase = 'title';
+</script>
+</body>
+</html>
