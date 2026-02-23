@@ -267,51 +267,7 @@ var AudioEngine = (function() {
     src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t);
   }
 
-
-  var lastHorn = 0;
-  function playHorn() {
-    if (!ctx) return;
-    var t = ctx.currentTime;
-    if (t - lastHorn < 1.2) return;
-    lastHorn = t;
-    // Nathan K5LA-inspired: Ab3=208Hz, Eb4=311Hz, Ab4=415Hz, C5=523Hz, Eb5=622Hz
-    var freqs = [208, 311, 415, 523, 622];
-    var gains = [0.38, 0.28, 0.22, 0.16, 0.12];
-    freqs.forEach(function(freq, i) {
-      var osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.value = freq;
-      // add slight detuning for each partial so they beat against each other
-      osc.detune.value = (i % 2 === 0 ? 1 : -1) * (i * 2.5);
-      // bandpass-ish shaping per partial
-      var filt = ctx.createBiquadFilter();
-      filt.type = 'peaking';
-      filt.frequency.value = freq;
-      filt.gain.value = 6;
-      filt.Q.value = 1.8;
-      var g = ctx.createGain();
-      // attack 0.04s → sustain → decay from 1.8s
-      g.gain.setValueAtTime(0.0, t);
-      g.gain.linearRampToValueAtTime(gains[i], t + 0.04);
-      g.gain.setValueAtTime(gains[i], t + 1.4);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 2.1);
-      osc.connect(filt); filt.connect(g); g.connect(ctx.destination);
-      osc.start(t); osc.stop(t + 2.15);
-    });
-    // low-frequency body thump to give it mass
-    var sub = ctx.createOscillator();
-    sub.type = 'sine';
-    sub.frequency.value = 104; // Ab2
-    var subG = ctx.createGain();
-    subG.gain.setValueAtTime(0.0, t);
-    subG.gain.linearRampToValueAtTime(0.22, t + 0.05);
-    subG.gain.setValueAtTime(0.22, t + 1.2);
-    subG.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
-    sub.connect(subG); subG.connect(ctx.destination);
-    sub.start(t); sub.stop(t + 2.05);
-  }
-
-  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech,playHorn:playHorn};
+  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech};
 })();
 </script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -895,26 +851,26 @@ var BACKGROUND = {
 
 var SPRITES = {
   PALM_TREE:              { x:    5, y:    5, w:  215, h:  540 },
-  BILLBOARD08:            { x:  230, y:    5, w:  385, h:  265 },
+  BILLBOARD08:            { x: 400, y: 532, w: 400, h: 266 },
   TREE1:                  { x:  625, y:    5, w:  360, h:  360 },
   DEAD_TREE1:             { x:    5, y:  555, w:  135, h:  332 },
-  BILLBOARD09:            { x:  150, y:  555, w:  328, h:  282 },
+  BILLBOARD09:            { x: 800, y: 532, w: 400, h: 266 },
   BOULDER3:               { x:  230, y:  280, w:  320, h:  220 },
   COLUMN:                 { x:  995, y:    5, w:  200, h:  315 },
-  BILLBOARD01:            { x:  625, y:  375, w:  300, h:  170 },
-  BILLBOARD06:            { x:  488, y:  555, w:  298, h:  190 },
-  BILLBOARD05:            { x:    5, y:  897, w:  298, h:  190 },
-  BILLBOARD07:            { x:  313, y:  897, w:  298, h:  190 },
+  BILLBOARD01:            { x:   0, y:   0, w: 400, h: 266 },
+  BILLBOARD06:            { x: 800, y: 266, w: 400, h: 266 },
+  BILLBOARD05:            { x: 400, y: 266, w: 400, h: 266 },
+  BILLBOARD07:            { x:   0, y: 532, w: 400, h: 266 },
   BOULDER2:               { x:  621, y:  897, w:  298, h:  140 },
   TREE2:                  { x: 1205, y:    5, w:  282, h:  295 },
-  BILLBOARD04:            { x: 1205, y:  310, w:  268, h:  170 },
+  BILLBOARD04:            { x:   0, y: 266, w: 400, h: 266 },
   DEAD_TREE2:             { x: 1205, y:  490, w:  150, h:  260 },
   BOULDER1:               { x: 1205, y:  760, w:  168, h:  248 },
   BUSH1:                  { x:    5, y: 1097, w:  240, h:  155 },
   CACTUS:                 { x:  929, y:  897, w:  235, h:  118 },
   BUSH2:                  { x:  255, y: 1097, w:  232, h:  152 },
-  BILLBOARD03:            { x:    5, y: 1262, w:  230, h:  220 },
-  BILLBOARD02:            { x:  245, y: 1262, w:  215, h:  220 },
+  BILLBOARD03:            { x: 800, y:   0, w: 400, h: 266 },
+  BILLBOARD02:            { x: 400, y:   0, w: 400, h: 266 },
   STUMP:                  { x:  995, y:  330, w:  195, h:  140 },
   SEMI:                   { x: 1365, y:  490, w:  122, h:  144 },
   TRUCK:                  { x: 1365, y:  644, w:  100, h:   78 },
@@ -960,6 +916,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
     var ctx            = canvas.getContext('2d'); // ...and its drawing context
     var background     = null;                    // our background image (loaded below)
     var sprites        = null;                    // our spritesheet (loaded below)
+    var billboardSprites = null;                 // custom billboard sheet
     var resolution     = null;                    // scaling factor to provide resolution independence (computed)
     var roadWidth      = 2000;                    // actually half the roads width, easier math if the road spans from -roadWidth to +roadWidth
     var segmentLength  = 200;                     // length of a single segment
@@ -1251,7 +1208,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
           spriteScale = segment.p1.screen.scale;
           spriteX     = segment.p1.screen.x + (spriteScale * sprite.offset * roadWidth * width/2);
           spriteY     = segment.p1.screen.y;
-          Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite.source, spriteScale, spriteX, spriteY, (sprite.offset < 0 ? -1 : 0), -1, segment.clip);
+          Render.sprite(ctx, width, height, resolution, roadWidth, (sprite.source.sheet || sprites), sprite.source, spriteScale, spriteX, spriteY, (sprite.offset < 0 ? -1 : 0), -1, segment.clip);
         }
 
         if (segment == playerSegment) {
@@ -1464,7 +1421,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
 Game.run({
       canvas: canvas, render: render, update: update, stats: stats, step: step,
-      images: ["background", "sprites"],
+      images: ["background", "sprites", "billboards"],
       keys: [
         { keys: [KEY.LEFT,  KEY.A], mode: 'down', action: function() { keyLeft   = true;  } },
         { keys: [KEY.RIGHT, KEY.D], mode: 'down', action: function() { keyRight  = true;  } },
@@ -1474,11 +1431,13 @@ Game.run({
         { keys: [KEY.RIGHT, KEY.D], mode: 'up',   action: function() { keyRight  = false; } },
         { keys: [KEY.UP,    KEY.W], mode: 'up',   action: function() { keyFaster = false; } },
         { keys: [KEY.DOWN,  KEY.S], mode: 'up',   action: function() { keySlower = false; } }
-        ,{ keys: [KEY.SPACE],      mode: 'down', action: function() { if (typeof AudioEngine !== 'undefined') AudioEngine.playHorn(); } }
       ],
       ready: function(images) {
         background = images[0];
-        sprites    = images[1];
+        sprites          = images[1];
+        billboardSprites = images[2];
+        // Tag each billboard sprite with its sheet so Render.sprite uses the right image
+        SPRITES.BILLBOARDS.forEach(function(s) { s.sheet = billboardSprites; });
         reset({ width: 640, height: 480 });
         Dom.storage.fast_lap_time = Dom.storage.fast_lap_time || 180;
         updateHud('fast_lap_time', formatTime(Util.toFloat(Dom.storage.fast_lap_time)));
