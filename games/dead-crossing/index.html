@@ -5,17 +5,15 @@
   <meta charset="UTF-8">
   <style>
 @import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
-    html, body { height:100%; margin:0; background:#000; display:flex; align-items:center; justify-content:center; font-family:'Courier New',monospace; }
-    #wrapper { position:relative; width:480px; height:560px; overflow:hidden; }
+    html, body { height:100%; margin:0; background:#000 url('assets/title_art.jpg') center/cover no-repeat fixed; display:flex; align-items:center; justify-content:center; font-family:'Courier New',monospace; }
+    #wrapper { position:relative; width:480px; height:560px; overflow:hidden; box-shadow:0 0 40px rgba(0,0,0,0.9), 0 0 0 2px #c8ff00; }
     canvas { display:block; }
     #titleOverlay, #gameOverOverlay {
       display:none; position:absolute; top:0; left:0; width:480px; height:560px;
       flex-direction:column; align-items:center; justify-content:center;
       background:rgba(0,0,0,0.88); color:#c8ff00; text-align:center; z-index:10;
     }
-    #titleOverlay { display:flex; background-image:url('assets/title_art.jpg'); background-size:cover; background-position:center; }
-    #titleOverlay::before { content:''; position:absolute; inset:0; background:rgba(0,0,0,0.55); z-index:0; }
-    #titleOverlay > * { position:relative; z-index:1; }
+    #titleOverlay { display:flex; }
     h1 { font-size:36px; margin:0 0 2px; letter-spacing:4px; color:#c8ff00; text-shadow:0 0 20px #c8ff00, 0 0 5px #fff; }
     h2 { font-size:26px; margin:0 0 4px; letter-spacing:4px; color:#ff2d2d; text-shadow:0 0 14px #ff2d2d; }
     .sub  { font-size:11px; letter-spacing:4px; color:#888; margin-bottom:10px; }
@@ -183,7 +181,7 @@ function buildRows() {
   }
 }
 
-function initGame() { score=0;lives=4;phase='playing';memberIdx=0;scoredMembers=[];buildRows();resetFrogger();startCountdown(); }
+function initGame() { score=0;lives=4;phase='playing';memberIdx=0;scoredMembers=[];buildRows();resumeMusic();resetFrogger();startCountdown(); }
 function resetFrogger() { frogger={x:GRID*5,y:0,speed:0}; }
 
 // ── Countdown ──
@@ -223,6 +221,14 @@ function countLoop() {
 // ── Audio ──
 var AudioCtx=window.AudioContext||window.webkitAudioContext, actx=null;
 function ensureAudio(){if(!actx)actx=new AudioCtx();}
+var bgMusic=null, musicStarted=false;
+function startMusic(){
+  if(!bgMusic) bgMusic=document.getElementById('bgMusic');
+  if(bgMusic&&bgMusic.paused){bgMusic.volume=0.55;bgMusic.play().catch(function(){});}
+  musicStarted=true;
+}
+function stopMusic(){if(bgMusic&&!bgMusic.paused)bgMusic.pause();}
+function resumeMusic(){if(musicStarted&&bgMusic&&bgMusic.paused)bgMusic.play().catch(function(){});}
 function playCountTick(beat){ensureAudio();var f=beat<3?440:880,osc=actx.createOscillator(),g=actx.createGain();osc.connect(g);g.connect(actx.destination);osc.type='square';osc.frequency.value=f;g.gain.setValueAtTime(0.18,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.15);osc.start();osc.stop(actx.currentTime+0.18);}
 function playHop(){ensureAudio();var osc=actx.createOscillator(),g=actx.createGain();osc.connect(g);g.connect(actx.destination);osc.type='square';osc.frequency.value=280;osc.frequency.exponentialRampToValueAtTime(520,actx.currentTime+0.06);g.gain.setValueAtTime(0.1,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.09);osc.start();osc.stop(actx.currentTime+0.12);}
 function playSplat(){ensureAudio();var buf=actx.createBuffer(1,actx.sampleRate*0.45,actx.sampleRate),d=buf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.4);var src=actx.createBufferSource(),g=actx.createGain();src.buffer=buf;src.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(0.5,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.45);src.start();src.stop(actx.currentTime+0.5);}
@@ -310,9 +316,44 @@ function drawBg(){
     ctx.setLineDash([]);
   }
 
-  // Median row 6
-  ctx.fillStyle='#111822';ctx.fillRect(0,rowY(6),W,GRID);
-  ctx.fillStyle='rgba(200,255,0,0.08)';for(var m=0;m<6;m++)ctx.fillRect(m*GRID*2+8,rowY(6)+10,GRID-16,20);
+  // Median row 6 — graveyard strip with tombstones
+  ctx.fillStyle='#0d1208';ctx.fillRect(0,rowY(6),W,GRID);
+  // Dirt patches
+  ctx.fillStyle='#1a1508';
+  for(var dp=0;dp<8;dp++) ctx.fillRect(dp*(W/8)+4,rowY(6)+GRID*0.6,W/8-8,GRID*0.35);
+  // Tombstones — 5 evenly spaced
+  var numTombs=5, tombW=18, tombH=22;
+  for(var t=0;t<numTombs;t++){
+    var tx=Math.round((t+0.5)*(W/numTombs)-tombW/2);
+    var ty=rowY(6)+4;
+    var pulse=0.5+0.5*Math.sin(Date.now()/1200+t*1.3);
+    // Stone body (rounded top)
+    ctx.fillStyle='#4a4a5a';
+    ctx.beginPath();
+    ctx.arc(tx+tombW/2, ty+tombW/2, tombW/2, Math.PI, 0);
+    ctx.lineTo(tx+tombW, ty+tombH);
+    ctx.lineTo(tx, ty+tombH);
+    ctx.closePath();
+    ctx.fill();
+    // Stone shadow edge
+    ctx.fillStyle='#2a2a38';
+    ctx.fillRect(tx+tombW-3, ty+tombW/2, 3, tombH-tombW/2);
+    ctx.fillRect(tx, ty+tombH-3, tombW, 3);
+    // ☠ symbol
+    ctx.save();
+    ctx.font='bold 9px monospace';
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(200,255,0,'+(0.5+pulse*0.4)+')';
+    ctx.shadowColor='#c8ff00'; ctx.shadowBlur=4*pulse;
+    ctx.fillText('☠',tx+tombW/2,ty+tombH-6);
+    ctx.restore();
+    // Eerie glow at base
+    ctx.save();
+    ctx.globalAlpha=0.07+pulse*0.06;
+    ctx.fillStyle='#44ff00';
+    ctx.beginPath();ctx.ellipse(tx+tombW/2,ty+tombH+2,tombW*0.6,4,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
 
   // Road rows 1-5 — clean dark asphalt with proper lane markings
   // Base asphalt fill for all road rows
@@ -501,7 +542,7 @@ function loseLife(){
 
 function triggerGameOver(){
   if(phase==='gameover')return;
-  phase='gameover';cancelAnimationFrame(raf);raf=null;
+  phase='gameover';cancelAnimationFrame(raf);raf=null;stopMusic();
   fbGet(function(data){
     var sorted=getSorted(data);
     document.getElementById('goScore').textContent='FINAL SCORE: '+score;
@@ -519,7 +560,7 @@ function triggerGameOver(){
 
 // ── Controls ──
 document.addEventListener('keydown',function(e){
-  if(phase==='title'){ensureAudio();document.getElementById('titleOverlay').style.display='none';initGame();return;}
+  if(phase==='title'){ensureAudio();startMusic();startMusic();document.getElementById('titleOverlay').style.display='none';initGame();return;}
   if(countPhase)return;
   if(phase!=='playing')return;
   if(document.activeElement&&document.activeElement.tagName==='INPUT')return;
@@ -534,7 +575,7 @@ document.addEventListener('keydown',function(e){
 var touchStartX,touchStartY;
 canvas.addEventListener('touchstart',function(e){touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;e.preventDefault();},{passive:false});
 canvas.addEventListener('touchend',function(e){
-  if(phase==='title'){ensureAudio();document.getElementById('titleOverlay').style.display='none';initGame();return;}
+  if(phase==='title'){ensureAudio();startMusic();document.getElementById('titleOverlay').style.display='none';initGame();return;}
   if(countPhase||phase!=='playing')return;
   var dx=e.changedTouches[0].clientX-touchStartX,dy=e.changedTouches[0].clientY-touchStartY;
   if(Math.abs(dx)>Math.abs(dy)){if(dx>20){frogger.x+=GRID;playHop();}else if(dx<-20){frogger.x-=GRID;playHop();}}
@@ -548,5 +589,6 @@ document.getElementById('goTitleBtn').addEventListener('click',function(){docume
 (function(){ctx.fillStyle='#06000e';ctx.fillRect(0,0,W,H);})();
 phase='title';
 </script>
+<audio id="bgMusic" src="assets/swampmusic.mp3" loop preload="auto"></audio>
 </body>
 </html>
