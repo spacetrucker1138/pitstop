@@ -131,15 +131,14 @@ var TOURVAN_W = 120, TOURVAN_H = Math.round(320 * 120/480); // ≈107px tall
 var ROW_TYPES = ['start','road','road','road','road','road','median','water','water','water','water','water','goal_safe','goal'];
 
 // ── Lane definitions ──
-// type codes: 'car0','car1','car2' = tinted road vehicles; 'log_l','log_m','log_s' = logs
-// tint applied over grayscale vehicle sprites via composite
+// type codes: 'car0','car1','car2' = road vehicles; 'log_l','log_m','log_s' = logs
 var LANES = [
   null,
-  { sprKey:'car0',  size:GRID*2.2, speed:-1.4, spacing:[3,5]   },
-  { sprKey:'car1', size:GRID*1.4, speed: 2.0, spacing:[4,3,6] },
-  { sprKey:'car3',  size:GRID*3.5, speed:-1.0, spacing:[4]     },
-  { sprKey:'car1', size:GRID*1.4, speed: 1.6, spacing:[3,4]   },
-  { sprKey:'car0',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },
+  { sprKey:'car0',  size:GRID*2.2, speed:-1.4, spacing:[3,5]   },  // police (rows 1,5 — go left)
+  { sprKey:'car3',  size:GRID*2.0, speed: 2.0, spacing:[4,3,6] },  // muscle (rows 2,4 — go right)
+  { sprKey:'car1',  size:GRID*3.5, speed:-1.0, spacing:[4]     },  // firetruck (row 3 — big, goes left)
+  { sprKey:'car3',  size:GRID*2.0, speed: 1.6, spacing:[3,4]   },  // muscle (rows 2,4 — go right)
+  { sprKey:'car0',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },  // police (rows 1,5 — go left)
   null,
   { sprKey:'log_l', size:GRID*3,   speed: 1.2, spacing:[2]       },
   { sprKey:'log_s', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3] },
@@ -172,7 +171,7 @@ function buildRows() {
     var totalW=sp.reduce((a,b)=>a+b,0)*GRID+sp.length*pat.size;
     var endX=0; while(endX<W) endX+=totalW; endX+=totalW;
     while(x<endX) {
-      rows[r].push({x:x,size:pat.size,speed:pat.speed,sprKey:pat.sprKey,tint:pat.tint,index:idx});
+      rows[r].push({x:x,size:pat.size,speed:pat.speed,sprKey:pat.sprKey,index:idx});
       x+=pat.size+sp[idx]*GRID; idx=(idx+1)%sp.length;
     }
   }
@@ -331,7 +330,7 @@ function drawTourVan(){
   }
 }
 
-// ── Draw vehicle sprite (with tint overlay for grayscale cars, or log) ──
+// ── Draw vehicle sprite (colored sprite or log) ──
 function drawVehicle(spr){
   var ry=spr._y!==undefined?spr._y:rowY(0);
   var rect=SPRITE_RECTS[spr.sprKey];
@@ -344,8 +343,14 @@ function drawVehicle(spr){
       ctx.save();
       // Clip to sprite area
       ctx.beginPath();ctx.rect(spr.x,ry,spr.size,GRID);ctx.clip();
-      // Draw sprite stretched to lane size
-      ctx.drawImage(img,rect.sx,rect.sy,rect.sw,rect.sh,spr.x,ry,spr.size,GRID);
+      // Flip horizontally for left-moving sprites (negative speed)
+      if(!isLog&&spr.speed<0){
+        ctx.translate(spr.x+spr.size/2, ry+GRID/2);
+        ctx.scale(-1,1);
+        ctx.drawImage(img,rect.sx,rect.sy,rect.sw,rect.sh,-spr.size/2,-(GRID/2),spr.size,GRID);
+      } else {
+        ctx.drawImage(img,rect.sx,rect.sy,rect.sw,rect.sh,spr.x,ry,spr.size,GRID);
+      }
       // Vehicles are now full-color sprites — no tint needed
       ctx.restore();
       return;
@@ -359,7 +364,7 @@ function drawVehicle(spr){
     ctx.fillStyle='#c8a050';ctx.beginPath();ctx.arc(spr.x+10,ry+GRID/2,7,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.arc(spr.x+spr.size-10,ry+GRID/2,7,0,Math.PI*2);ctx.fill();
   } else {
-    ctx.fillStyle=spr.tint||'#445';ctx.fillRect(spr.x,ry+6,spr.size,GRID-12);
+    ctx.fillStyle='#445';ctx.fillRect(spr.x,ry+6,spr.size,GRID-12);
     ctx.fillStyle='rgba(180,220,255,0.2)';ctx.fillRect(spr.x+spr.size*0.22,ry+8,spr.size*0.22,GRID-18);
   }
 }
