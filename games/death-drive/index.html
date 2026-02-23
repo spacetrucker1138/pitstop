@@ -141,14 +141,7 @@ var AudioEngine = (function() {
   
 
   <div id="racer">
-    <button id="hitbox-toggle" onclick="window.showHitboxes=!window.showHitboxes; this.classList.toggle('active');"
-  style="position:fixed;bottom:12px;right:12px;z-index:9999;
-         background:#111;color:#ff00ff;border:1px solid #ff00ff;
-         font-family:monospace;font-size:11px;padding:4px 10px;
-         cursor:pointer;opacity:0.85;border-radius:3px;letter-spacing:1px;">
-  HITBOX
-</button>
-<div id="hud">
+    <div id="hud">
       <span id="speed"            class="hud"><span id="speed_value" class="value">0</span> mph</span>
       <span id="current_lap_time" class="hud">Time: <span id="current_lap_time_value" class="value">0.0</span></span> 
       <span id="last_lap_time"    class="hud">Last Lap: <span id="last_lap_time_value" class="value">0.0</span></span>
@@ -665,9 +658,7 @@ var Render = {
     var drawH = destH - clipH;
     if (clipH < destH)
       ctx.drawImage(sprites, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
-    if ((window.showHitboxes || window._drawingPlayerHitbox) && clipH < destH) {
-      var isPlayer = !!window._drawingPlayerHitbox;
-      ctx.save();
+    if ((window.showHitboxes || ctx.save();
       ctx.strokeStyle = isPlayer ? 'rgba(0,255,0,0.9)' : 'rgba(255,0,255,0.9)';
       ctx.lineWidth = isPlayer ? 2 : 1;
       ctx.strokeRect(destX + 0.5, destY + 0.5, destW - 1, drawH - 1);
@@ -689,12 +680,7 @@ var Render = {
     else if (steer > 0)
       sprite = (updown > 0) ? SPRITES.PLAYER_UPHILL_RIGHT : SPRITES.PLAYER_RIGHT;
     else
-      sprite = (updown > 0) ? SPRITES.PLAYER_UPHILL_STRAIGHT : SPRITES.PLAYER_STRAIGHT;
-
-    window._drawingPlayerHitbox = window.showHitboxes;
-    Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY + bounce, -0.5, -1);
-    window._drawingPlayerHitbox = false;
-  },
+      sprite = (updown > 0) ? SPRITES.PLAYER_UPHILL_STRAIGHT : SPRITES.PLAYER_STRAIGHT; Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY + bounce, -0.5, -1); },
 
   //---------------------------------------------------------------------------
 
@@ -715,10 +701,7 @@ var Render = {
 //=============================================================================
 // RACING GAME CONSTANTS
 //=============================================================================
-
-window.showHitboxes = false;
-
-    var KEY = {
+var KEY = {
   LEFT:  37,
   UP:    38,
   RIGHT: 39,
@@ -797,7 +780,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
     var step           = 1/fps;                   // how long is each frame (in seconds)
     var width          = 1024;                    // logical canvas width
     var height         = 768;                     // logical canvas height
-    var centrifugal    = 0.3;                     // centrifugal force multiplier when going around curves
+    var centrifugal    = 0.30;                     // centrifugal force multiplier when going around curves
     var offRoadDecel   = 0.99;                    // speed multiplier when off road (e.g. you lose 2% speed each update frame)
     var skySpeed       = 0.001;                   // background sky layer scroll speed when going around curve (or up hill)
     var hillSpeed      = 0.002;                   // background hill layer scroll speed when going around curve (or up hill)
@@ -819,12 +802,12 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
     var trackLength    = null;                    // z length of entire track (computed)
     var lanes          = 3;                       // number of lanes
     var fieldOfView    = 100;                     // angle (degrees) for field of view
-    var cameraHeight   = 1000;                    // z height of camera
+    var cameraHeight   = 1450;                    // z height of camera
     var cameraDepth    = null;                    // z distance camera is from screen (computed)
-    var drawDistance   = 300;                     // number of segments to draw
+    var drawDistance   = 210;                     // number of segments to draw
     var playerX        = 0;                       // player x offset from center of road (-1 to 1 to stay independent of roadWidth)
     var playerZ        = null;                    // player relative z distance from camera (computed)
-    var fogDensity     = 5;                       // exponential fog density
+    var fogDensity     = 19;                       // exponential fog density
     var position       = 0;                       // current camera Z position (add playerZ to get player's absolute Z position)
     var speed          = 0;                       // current speed
     var maxSpeed       = segmentLength/step;      // top speed (ensure we can't move more than 1 segment in a single frame to make collision detection easier)
@@ -1354,17 +1337,7 @@ Game.run({
       cameraDepth            = 1 / Math.tan((fieldOfView/2) * Math.PI/180);
       playerZ                = (cameraHeight * cameraDepth);
 
-      // ── live-tune bridge (used by CAM debug panel) ──
-      window.__camBridge = function(key, val) {
-        if      (key === 'cameraHeight')  { cameraHeight  = val; cameraDepth = 1/Math.tan((fieldOfView/2)*Math.PI/180); playerZ = cameraHeight*cameraDepth; }
-        else if (key === 'fieldOfView')   { fieldOfView   = val; cameraDepth = 1/Math.tan((fieldOfView/2)*Math.PI/180); playerZ = cameraHeight*cameraDepth; }
-        else if (key === 'drawDistance')  { drawDistance  = val; }
-        else if (key === 'fogDensity')    { fogDensity    = val; }
-        else if (key === 'roadWidth')     { roadWidth     = val; }
-        else if (key === 'centrifugal')   { centrifugal   = val; }
-        else if (key === 'vanScale')      { window.vanRenderScale = val; }
-      };
-      resolution             = height/480;
+          resolution             = height/480;
       refreshTweakUI();
 
       if ((segments.length==0) || (options.segmentLength) || (options.rumbleLength))
@@ -1391,57 +1364,9 @@ Game.run({
 <!-- ═══════════════════════════════════════════════════════
      CAMERA DEBUG PANEL  (hidden by default, toggle with CAM button)
      ═══════════════════════════════════════════════════════ -->
-<style>
-#cam-toggle {
-  position: fixed; top: 8px; right: 8px; z-index: 9999;
-  background: #111; color: #0ff; border: 1px solid #0ff;
-  font-family: monospace; font-size: 11px; padding: 3px 8px;
-  cursor: pointer; opacity: 0.85; border-radius: 3px; letter-spacing: 1px;
-}
-#cam-toggle.active { background: #0ff; color: #111; }
-#cam-panel {
-  display: none;
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 9998;
-  width: 220px; background: rgba(0,0,0,0.92);
-  border-left: 1px solid #0ff; padding: 40px 10px 10px;
-  font-family: monospace; font-size: 11px; color: #ccc;
-  overflow-y: auto; box-sizing: border-box;
-}
-#cam-panel.open { display: block; }
-#cam-panel h3 { color: #0ff; margin: 0 0 10px; font-size: 12px; letter-spacing: 2px; }
-.cam-row { margin-bottom: 8px; }
-.cam-row label { display: flex; justify-content: space-between; margin-bottom: 2px; }
-.cam-row label span { color: #ff0; }
-.cam-row input[type=range] { width: 100%; cursor: pointer; accent-color: #0ff; }
-#cam-copy {
-  width: 100%; margin-top: 12px; padding: 5px;
-  background: #111; color: #0f0; border: 1px solid #0f0;
-  font-family: monospace; font-size: 11px; cursor: pointer;
-  border-radius: 3px; letter-spacing: 1px;
-}
-#cam-copy:active { background: #0f0; color: #111; }
-#cam-output {
-  margin-top: 8px; font-size: 10px; color: #aaa;
-  white-space: pre; line-height: 1.5;
-  word-break: break-all;
-}
-</style>
 
-<button id="cam-toggle" onclick="
-  var p = document.getElementById('cam-panel');
-  p.classList.toggle('open');
-  this.classList.toggle('active');
-">CAM</button>
 
-<div id="cam-panel">
-  <h3>⚙ CAMERA</h3>
-
-  <div class="cam-row">
-    <label>cameraHeight <span id="lbl-cameraHeight">1000</span></label>
-    <input type="range" id="sl-cameraHeight" min="200" max="3000" step="50" value="1000"
-      oninput="CAM.set('cameraHeight',+this.value)">
-  </div>
-  <div class="cam-row">
+<div class="cam-row">
     <label>fieldOfView <span id="lbl-fieldOfView">100</span></label>
     <input type="range" id="sl-fieldOfView" min="40" max="160" step="1" value="100"
       oninput="CAM.set('fieldOfView',+this.value)">
