@@ -9,23 +9,34 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body {
-      background: #0a0a0a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+      background: #000;
       overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    /* Title art fills page behind everything */
+    #bgImage {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      object-fit: cover;
+      opacity: 0.35;
+      z-index: 0;
     }
     #racer {
       position: relative;
       width: 640px;
       height: 480px;
-      display: block;
+      z-index: 1;
     }
     canvas {
       display: block;
       width: 640px !important;
       height: 480px !important;
+      background: rgba(0,0,0,0.6);
     }
     #hud {
       position: absolute;
@@ -137,6 +148,8 @@ var AudioEngine = (function() {
   
 
   
+
+  <img id="bgImage" src="images/death_drive_title.jpg" alt="">
 
   <div id="racer">
     <div id="hud">
@@ -990,14 +1003,9 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       ctx.clearRect(0, 0, width, height);
 
-      if (titleImg && titleImg.complete && speed < 1 && position < segmentLength * 2) {
-        ctx.globalAlpha = 1.0;
-        ctx.drawImage(titleImg, 0, 0, width, height);
-      } else {
       Render.background(ctx, background, width, height, BACKGROUND.SKY,   skyOffset,  resolution * skySpeed  * playerY);
       Render.background(ctx, background, width, height, BACKGROUND.HILLS, hillOffset, resolution * hillSpeed * playerY);
       Render.background(ctx, background, width, height, BACKGROUND.TREES, treeOffset, resolution * treeSpeed * playerY);
-      }
 
       var n, i, segment, car, sprite, spriteScale, spriteX, spriteY;
 
@@ -1265,12 +1273,9 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
   document.removeEventListener('keydown', _ae);
 }, {once:true});
 
-    var titleImg = new Image();
-    titleImg.src = 'images/death_drive_title.jpg';
-
 Game.run({
       canvas: canvas, render: render, update: update, stats: stats, step: step,
-      images: ["background", "sprites", "death_drive_title"],
+      images: ["background", "sprites"],
       keys: [
         { keys: [KEY.LEFT,  KEY.A], mode: 'down', action: function() { keyLeft   = true;  } },
         { keys: [KEY.RIGHT, KEY.D], mode: 'down', action: function() { keyRight  = true;  } },
