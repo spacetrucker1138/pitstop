@@ -776,7 +776,7 @@ var Render = {
 
   //---------------------------------------------------------------------------
 
-  sprite: function(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY, offsetX, offsetY, clipY) {
+  sprite: function(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY, offsetX, offsetY, clipY, tint) {
 
                     //  scale for projection AND relative to roadWidth (for tweakUI)
     var destW  = (sprite.w * scale * width/2) * (SPRITES.SCALE * roadWidth);
@@ -787,8 +787,17 @@ var Render = {
 
     var clipH = clipY ? Math.max(0, destY+destH-clipY) : 0;
     var drawH = destH - clipH;
-    if (clipH < destH)
-      ctx.drawImage(sprites, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
+    var srcSheet = sprite.sheet || sprites;
+    if (clipH < destH) {
+      ctx.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
+      if (tint) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = tint;
+        ctx.fillRect(destX, destY, destW, drawH);
+        ctx.restore();
+      }
+    }
     if (window.showHitboxes) { ctx.save();
       ctx.strokeStyle = isPlayer ? 'rgba(0,255,0,0.9)' : 'rgba(255,0,255,0.9)';
       ctx.lineWidth = isPlayer ? 2 : 1;
@@ -883,12 +892,13 @@ var SPRITES = {
   BILLBOARD03:            { x: 800, y:   0, w: 400, h: 266 },
   BILLBOARD02:            { x: 400, y:   0, w: 400, h: 266 },
   STUMP:                  { x:  995, y:  330, w:  195, h:  140 },
-  SEMI:                   { x: 1365, y:  490, w:  122, h:  144 },
-  TRUCK:                  { x: 1365, y:  644, w:  100, h:   78 },
-  CAR03:                  { x: 1383, y:  760, w:   88, h:   55 },
-  CAR02:                  { x: 1383, y:  825, w:   80, h:   59 },
-  CAR04:                  { x: 1383, y:  894, w:   80, h:   57 },
-  CAR01:                  { x: 1205, y: 1018, w:   80, h:   56 },
+  // NPC vehicles — mobCars sheet (512×170 per cell, center col, 6 rows)
+  CAR01:                  { x: 512, y:   0, w: 512, h: 170 },  // compact
+  CAR02:                  { x: 512, y: 170, w: 512, h: 170 },  // sedan
+  CAR03:                  { x: 512, y: 340, w: 512, h: 170 },  // sports car
+  CAR04:                  { x: 512, y: 510, w: 512, h: 170 },  // van
+  SEMI:                   { x: 512, y: 680, w: 512, h: 170 },  // semi
+  CAR05:                  { x: 512, y: 850, w: 512, h: 170 },  // limo/hearse
   PLAYER_UPHILL_LEFT:     { x:   5, y: 1709, w:  119, h:  131 },
   PLAYER_UPHILL_STRAIGHT: { x: 200, y: 1709, w:  119, h:  131 },
   PLAYER_UPHILL_RIGHT:    { x: 395, y: 1709, w:  119, h:  131 },
@@ -902,7 +912,7 @@ window.vanRenderScale = 1.0; // per-van render scale multiplier (independent of 
 
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS     = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
-SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04, SPRITES.SEMI, SPRITES.TRUCK];
+SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04, SPRITES.SEMI, SPRITES.CAR05];
 
 
 </script>
@@ -928,6 +938,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
     var background     = null;                    // our background image (loaded below)
     var sprites        = null;                    // our spritesheet (loaded below)
     var billboardSprites = null;                 // custom billboard sheet
+    var mobCarSprites    = null;                 // grayscale NPC vehicle sheet
     var resolution     = null;                    // scaling factor to provide resolution independence (computed)
     var roadWidth      = 2000;                    // actually half the roads width, easier math if the road spans from -roadWidth to +roadWidth
     var segmentLength  = 200;                     // length of a single segment
@@ -1211,7 +1222,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
           spriteScale = Util.interpolate(segment.p1.screen.scale, segment.p2.screen.scale, car.percent);
           spriteX     = Util.interpolate(segment.p1.screen.x,     segment.p2.screen.x,     car.percent) + (spriteScale * car.offset * roadWidth * width/2);
           spriteY     = Util.interpolate(segment.p1.screen.y,     segment.p2.screen.y,     car.percent);
-          Render.sprite(ctx, width, height, resolution, roadWidth, sprites, car.sprite, spriteScale, spriteX, spriteY, -0.5, -1, segment.clip);
+          Render.sprite(ctx, width, height, resolution, roadWidth, sprites, car.sprite, spriteScale, spriteX, spriteY, -0.5, -1, segment.clip, car.tint);
         }
 
         for(i = 0 ; i < segment.sprites.length ; i++) {
@@ -1419,7 +1430,9 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
         z      = Math.floor(Math.random() * segments.length) * segmentLength;
         sprite = Util.randomChoice(SPRITES.CARS);
         speed  = maxSpeed/4 + Math.random() * maxSpeed/(sprite == SPRITES.SEMI ? 4 : 2);
-        car = { offset: offset, z: z, sprite: sprite, speed: speed };
+        var tintHues = [0, 30, 60, 120, 180, 210, 270, 300]; // red,orange,yellow,green,cyan,blue,purple,magenta
+        var h = tintHues[Math.floor(Math.random() * tintHues.length)];
+        car = { offset: offset, z: z, sprite: sprite, speed: speed, tint: 'hsl(' + h + ',70%,52%)' };
         segment = findSegment(car.z);
         segment.cars.push(car);
         cars.push(car);
@@ -1432,7 +1445,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
 Game.run({
       canvas: canvas, render: render, update: update, stats: stats, step: step,
-      images: ["background", "sprites", "billboards"],
+      images: ["background", "sprites", "billboards", "mobCars"],
       keys: [
         { keys: [KEY.LEFT,  KEY.A], mode: 'down', action: function() { keyLeft   = true;  } },
         { keys: [KEY.RIGHT, KEY.D], mode: 'down', action: function() { keyRight  = true;  } },
@@ -1448,8 +1461,11 @@ Game.run({
         background = images[0];
         sprites          = images[1];
         billboardSprites = images[2];
+        mobCarSprites    = images[3];
         // Tag each billboard sprite with its sheet so Render.sprite uses the right image
         SPRITES.BILLBOARDS.forEach(function(s) { s.sheet = billboardSprites; });
+        // Tag NPC car sprites to use the mobCars sheet
+        SPRITES.CARS.forEach(function(s) { s.sheet = mobCarSprites; });
         reset({ width: 640, height: 480 });
         Dom.storage.fast_lap_time = Dom.storage.fast_lap_time || 180;
         updateHud('fast_lap_time', formatTime(Util.toFloat(Dom.storage.fast_lap_time)));
