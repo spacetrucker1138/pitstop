@@ -223,7 +223,6 @@ function drawBackground(){
   ctx.textAlign='left';
 
   // Stage divider (transition strip)
-  ctx.fillStyle='#3a2000'; ctx.fillRect(0,CROWD_BOT,W,STAGE_TOP-CROWD_BOT);
   ctx.strokeStyle='#8B5e3c'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(0,CROWD_BOT); ctx.lineTo(W,CROWD_BOT); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0,STAGE_TOP);  ctx.lineTo(W,STAGE_TOP);  ctx.stroke();
