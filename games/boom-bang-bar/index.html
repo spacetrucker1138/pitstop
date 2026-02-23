@@ -101,30 +101,27 @@ var BAND_DRAW_H=60;
 var BAND_XS=[145, 265, 385, 505];  // stage x positions
 
 // Projectile clips from misc-sprites.png (1024x682):
-var PROJ_CLIPS=[
-  {sx:119,sy:57, sw:147,sh:176},
-  {sx:448,sy:57, sw:74, sh:176},
-  {sx:537,sy:57, sw:63, sh:176},
-  {sx:97, sy:234,sw:113,sh:131},
-  {sx:552,sy:234,sw:227,sh:131},
-  {sx:37, sy:444,sw:230,sh:204},
-  {sx:587,sy:444,sw:96, sh:204}
-];
+// Individual throwable sprite images (replaces old sprite sheet clips)
+var THROW_NAMES=['ashtray','baseball1','bottle1','bottle2','bottle3','duck','hand','star1'];
+var throwImgs=THROW_NAMES.map(function(n){
+  var img=new Image(); img.src='assets/'+n+'.png'; return img;
+});
+var smokeImg=new Image(); var smokeReady=false;
+smokeImg.onload=function(){smokeReady=true;};
+smokeImg.src='assets/Smokeboom.png';
 
 var AMP_POS=[65,160,255,440,545,610];
 var C={accent:'#ff6600',note:'#c8ff00',red:'#ff2d2d',bone:'#e8dcc8',dark:'#1a0a00',dim:'#555'};
 
 // ─── IMAGES ───────────────────────────────────────────────────────────────────
-var bandImg=new Image(), miscImg=new Image();
-var bandReady=false, miscReady=false;
+var bandImg=new Image();
+var bandReady=false;
 var ampImg=new Image(), ampReady=false;
 var dampImg=new Image(), dampReady=false;
 bandImg.onload=function(){bandReady=true;};
-miscImg.onload=function(){miscReady=true;};
 ampImg.onload=function(){ampReady=true;};
 dampImg.onload=function(){dampReady=true;};
 bandImg.src='assets/band-sprites.png';
-miscImg.src='assets/misc-sprites.png';
 ampImg.src='assets/amp.png';
 dampImg.src='assets/destroyedamp.png';
 
@@ -173,15 +170,51 @@ function playGuitarSound(idx){
 
 function playGlassBreak(){
   if(!audioCtx)return;
-  var buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.35,audioCtx.sampleRate);
-  var d=buf.getChannelData(0);
-  for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
-  var src=audioCtx.createBufferSource(),gain=audioCtx.createGain(),filt=audioCtx.createBiquadFilter();
-  filt.type='highpass'; filt.frequency.value=2800;
-  src.buffer=buf; src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
-  gain.gain.setValueAtTime(0.3,audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.35);
-  src.start(); src.stop(audioCtx.currentTime+0.4);
+  var now=audioCtx.currentTime;
+  var sr=audioCtx.sampleRate;
+  // Layer 1: low impact thud — bass punch
+  var thudOsc=audioCtx.createOscillator(), thudGain=audioCtx.createGain();
+  thudOsc.type='sine';
+  thudOsc.frequency.setValueAtTime(160,now);
+  thudOsc.frequency.exponentialRampToValueAtTime(30,now+0.08);
+  thudGain.gain.setValueAtTime(0.9,now);
+  thudGain.gain.exponentialRampToValueAtTime(0.001,now+0.12);
+  thudOsc.connect(thudGain); thudGain.connect(audioCtx.destination);
+  thudOsc.start(now); thudOsc.stop(now+0.15);
+  // Layer 2: mid crunch — distorted noise burst
+  var crunchLen=Math.round(sr*0.22);
+  var crunchBuf=audioCtx.createBuffer(1,crunchLen,sr);
+  var cd=crunchBuf.getChannelData(0);
+  for(var i=0;i<crunchLen;i++){
+    var env=Math.pow(1-i/crunchLen,0.6);
+    // distorted crunch: clipped noise
+    var raw=(Math.random()*2-1)*env;
+    cd[i]=raw>0.4?0.4:(raw<-0.4?-0.4:raw);
+  }
+  var crunchSrc=audioCtx.createBufferSource();
+  var crunchFilt=audioCtx.createBiquadFilter(), crunchGain=audioCtx.createGain();
+  crunchFilt.type='bandpass'; crunchFilt.frequency.value=800; crunchFilt.Q.value=0.7;
+  crunchSrc.buffer=crunchBuf;
+  crunchGain.gain.setValueAtTime(0.65,now+0.01);
+  crunchGain.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+  crunchSrc.connect(crunchFilt); crunchFilt.connect(crunchGain); crunchGain.connect(audioCtx.destination);
+  crunchSrc.start(now+0.01);
+  // Layer 3: glass scatter — bright fizzing noise tail
+  var glassLen=Math.round(sr*0.5);
+  var glassBuf=audioCtx.createBuffer(1,glassLen,sr);
+  var gd=glassBuf.getChannelData(0);
+  for(var j=0;j<glassLen;j++){
+    var genv=Math.pow(1-j/glassLen,2.2);
+    gd[j]=(Math.random()*2-1)*genv;
+  }
+  var glassSrc=audioCtx.createBufferSource();
+  var glassFilt=audioCtx.createBiquadFilter(), glassGain=audioCtx.createGain();
+  glassFilt.type='highpass'; glassFilt.frequency.value=5500;
+  glassSrc.buffer=glassBuf;
+  glassGain.gain.setValueAtTime(0.25,now+0.04);
+  glassGain.gain.exponentialRampToValueAtTime(0.001,now+0.5);
+  glassSrc.connect(glassFilt); glassFilt.connect(glassGain); glassGain.connect(audioCtx.destination);
+  glassSrc.start(now+0.04);
 }
 
 function playAmpDestroyed(){
@@ -330,11 +363,12 @@ function drawNote(x,y,r){
 function drawProjectile(x,y,type,wobble){
   ctx.save();
   ctx.translate(x,y); ctx.rotate(wobble);
-  if(miscReady){
-    var clip=PROJ_CLIPS[type%PROJ_CLIPS.length];
-    var dh=32, dw=Math.round(dh*clip.sw/clip.sh);
-    ctx.drawImage(miscImg, clip.sx, clip.sy, clip.sw, clip.sh, -dw/2, -dh/2, dw, dh);
+  var img=throwImgs[type%throwImgs.length];
+  if(img && img.complete && img.naturalWidth>0){
+    var dh=36, dw=Math.round(dh*img.naturalWidth/img.naturalHeight);
+    ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
   } else {
+    // Fallback: pill shape
     ctx.fillStyle='#44aa44'; ctx.fillRect(-4,-16,8,18);
     ctx.fillStyle='#777'; ctx.fillRect(-2,-22,5,7);
   }
@@ -441,6 +475,14 @@ function gameLoop(ts){
     ctx.save(); ctx.globalAlpha=0.72; ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=18;
     ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.size,0,Math.PI*2); ctx.fill();
     if(ex.enemy){
+      // Smokeboom overlay — scales from 0 to ~120px, fades with explosion
+      if(smokeReady){
+        var sScale=ex.size/28; // 0→1 over explosion lifetime
+        var sDim=Math.round(80+sScale*80); // 80px→160px
+        var sAlpha=Math.max(0, 0.9-sScale*0.7);
+        ctx.globalAlpha=sAlpha;
+        ctx.drawImage(smokeImg, ex.x-sDim/2, ex.y-sDim/2, sDim, sDim);
+      }
       ctx.fillStyle='#88cc44'; ctx.globalAlpha=0.5;
       for(var s=0;s<6;s++){var ang=(s/6)*Math.PI*2+ex.size*0.15;ctx.fillRect(ex.x+Math.cos(ang)*ex.size*1.3,ex.y+Math.sin(ang)*ex.size*1.3,3,3);}
     }
