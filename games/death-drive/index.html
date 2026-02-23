@@ -1444,7 +1444,16 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
         z      = Math.floor(Math.random() * segments.length) * segmentLength;
         var typeIndex = Math.floor(Math.random() * SPRITES.CARS.length);
         sprite = SPRITES.CARS[typeIndex];
-        speed  = maxSpeed/4 + Math.random() * maxSpeed/(typeIndex === 4 ? 4 : 2);  // SEMI is index 4
+        // Speed personality tiers — varied but capped so NPCs never go Mad Max
+        var isSemi = (typeIndex === 5); // truck/semi is row 5 in mobCars sheet
+        if (isSemi) {
+          speed = maxSpeed * (0.25 + Math.random() * 0.15); // semis: 25–40% maxSpeed
+        } else {
+          var roll = Math.random();
+          if (roll < 0.40)      speed = maxSpeed * (0.30 + Math.random() * 0.15); // slow:   30–45%
+          else if (roll < 0.80) speed = maxSpeed * (0.45 + Math.random() * 0.15); // medium: 45–60%
+          else                  speed = maxSpeed * (0.60 + Math.random() * 0.15); // fast:   60–75%
+        }
         var tintHues = [0, 30, 60, 120, 180, 210, 270, 300]; // red,orange,yellow,green,cyan,blue,purple,magenta
         var h = tintHues[Math.floor(Math.random() * tintHues.length)];
         car = { offset: offset, z: z, sprite: sprite, typeIndex: typeIndex, speed: speed, tint: 'hsl(' + h + ',70%,52%)' };
