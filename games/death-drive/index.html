@@ -267,7 +267,51 @@ var AudioEngine = (function() {
     src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t);
   }
 
-  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech};
+
+  var lastHorn = 0;
+  function playHorn() {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    if (t - lastHorn < 1.2) return;
+    lastHorn = t;
+    // Nathan K5LA-inspired: Ab3=208Hz, Eb4=311Hz, Ab4=415Hz, C5=523Hz, Eb5=622Hz
+    var freqs = [208, 311, 415, 523, 622];
+    var gains = [0.38, 0.28, 0.22, 0.16, 0.12];
+    freqs.forEach(function(freq, i) {
+      var osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      // add slight detuning for each partial so they beat against each other
+      osc.detune.value = (i % 2 === 0 ? 1 : -1) * (i * 2.5);
+      // bandpass-ish shaping per partial
+      var filt = ctx.createBiquadFilter();
+      filt.type = 'peaking';
+      filt.frequency.value = freq;
+      filt.gain.value = 6;
+      filt.Q.value = 1.8;
+      var g = ctx.createGain();
+      // attack 0.04s → sustain → decay from 1.8s
+      g.gain.setValueAtTime(0.0, t);
+      g.gain.linearRampToValueAtTime(gains[i], t + 0.04);
+      g.gain.setValueAtTime(gains[i], t + 1.4);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 2.1);
+      osc.connect(filt); filt.connect(g); g.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 2.15);
+    });
+    // low-frequency body thump to give it mass
+    var sub = ctx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.value = 104; // Ab2
+    var subG = ctx.createGain();
+    subG.gain.setValueAtTime(0.0, t);
+    subG.gain.linearRampToValueAtTime(0.22, t + 0.05);
+    subG.gain.setValueAtTime(0.22, t + 1.2);
+    subG.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+    sub.connect(subG); subG.connect(ctx.destination);
+    sub.start(t); sub.stop(t + 2.05);
+  }
+
+  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech,playHorn:playHorn};
 })();
 </script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1430,6 +1474,7 @@ Game.run({
         { keys: [KEY.RIGHT, KEY.D], mode: 'up',   action: function() { keyRight  = false; } },
         { keys: [KEY.UP,    KEY.W], mode: 'up',   action: function() { keyFaster = false; } },
         { keys: [KEY.DOWN,  KEY.S], mode: 'up',   action: function() { keySlower = false; } }
+        ,{ keys: [KEY.SPACE],      mode: 'down', action: function() { if (typeof AudioEngine !== 'undefined') AudioEngine.playHorn(); } }
       ],
       ready: function(images) {
         background = images[0];
