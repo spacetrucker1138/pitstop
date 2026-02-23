@@ -79,13 +79,16 @@ var imgVehicles = new Image(); imgVehicles.src = ASSET_BASE+'vehicles.png';
 var imgLogs     = new Image(); imgLogs.src     = ASSET_BASE+'logs.png';
 var imgBand     = new Image(); imgBand.src     = ASSET_BASE+'band.png';
 var imgTourvan  = new Image(); imgTourvan.src  = ASSET_BASE+'tourvan.png';
+var imgRoad     = new Image(); imgRoad.src     = ASSET_BASE+'road_tile.png';
+var imgWater    = new Image(); imgWater.src    = ASSET_BASE+'water_tile.png';
 
 // Track load state
 var spritesLoaded = 0;
 var spritesReady  = false;
-[imgVehicles, imgLogs, imgBand, imgTourvan].forEach(function(img){
-  img.onload  = function(){ spritesLoaded++; if(spritesLoaded===4) spritesReady=true; };
-  img.onerror = function(){ spritesLoaded++; if(spritesLoaded===4) spritesReady=true; }; // fail gracefully
+var SPRITE_COUNT  = 6;
+[imgVehicles, imgLogs, imgBand, imgTourvan, imgRoad, imgWater].forEach(function(img){
+  img.onload  = function(){ spritesLoaded++; if(spritesLoaded===SPRITE_COUNT) spritesReady=true; };
+  img.onerror = function(){ spritesLoaded++; if(spritesLoaded===SPRITE_COUNT) spritesReady=true; }; // fail gracefully
 });
 
 // ── Sprite layout constants ──
@@ -254,15 +257,43 @@ function drawBg(){
   }
   ctx.strokeStyle='#c8ff00';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,rowY(12)+GRID);ctx.lineTo(W,rowY(12)+GRID);ctx.stroke();
 
-  // Muddy water rows 7-11
-  for(var r=7;r<=11;r++){var wg=ctx.createLinearGradient(0,rowY(r),0,rowY(r)+GRID);wg.addColorStop(0,'#2a1a08');wg.addColorStop(0.5,'#3d2810');wg.addColorStop(1,'#1e1208');ctx.fillStyle=wg;ctx.fillRect(0,rowY(r),W,GRID);ctx.strokeStyle='rgba(120,90,40,0.15)';ctx.lineWidth=1;ctx.setLineDash([8,6]);var off=(Date.now()/60+r*30)%W;ctx.beginPath();ctx.moveTo(-off,rowY(r)+GRID*0.5);ctx.lineTo(W-off+W,rowY(r)+GRID*0.5);ctx.stroke();ctx.setLineDash([]);}
+  // Muddy water rows 7-11 — 16-bit tile
+  for(var r=7;r<=11;r++){
+    if(spritesReady&&imgWater.complete&&imgWater.naturalWidth>0){
+      // Animate tile offset for ripple effect
+      var woff=Math.floor(Date.now()/120+r*15)%480;
+      // Draw twice to handle wrap-around scroll
+      ctx.drawImage(imgWater,woff,0,480-woff,80,0,rowY(r),(480-woff)*(W/(480)),GRID);
+      if(woff>0) ctx.drawImage(imgWater,0,0,woff,80,(480-woff)*(W/480),rowY(r),woff*(W/480),GRID);
+    } else {
+      var wg=ctx.createLinearGradient(0,rowY(r),0,rowY(r)+GRID);
+      wg.addColorStop(0,'#2a1a08');wg.addColorStop(0.5,'#3d2810');wg.addColorStop(1,'#1e1208');
+      ctx.fillStyle=wg;ctx.fillRect(0,rowY(r),W,GRID);
+    }
+    // Ripple shimmer overlay
+    ctx.strokeStyle='rgba(120,90,40,0.12)';ctx.lineWidth=1;ctx.setLineDash([8,6]);
+    var off2=(Date.now()/80+r*25)%W;
+    ctx.beginPath();ctx.moveTo(-off2,rowY(r)+GRID*0.6);ctx.lineTo(W+W-off2,rowY(r)+GRID*0.6);ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // Median row 6
   ctx.fillStyle='#111822';ctx.fillRect(0,rowY(6),W,GRID);
   ctx.fillStyle='rgba(200,255,0,0.08)';for(var m=0;m<6;m++)ctx.fillRect(m*GRID*2+8,rowY(6)+10,GRID-16,20);
 
-  // Road rows 1-5
-  for(var rd=1;rd<=5;rd++){ctx.fillStyle=rd%2===0?'#141424':'#1a1a2e';ctx.fillRect(0,rowY(rd),W,GRID);ctx.strokeStyle='rgba(200,255,0,0.06)';ctx.lineWidth=1;ctx.setLineDash([16,12]);ctx.beginPath();ctx.moveTo(0,rowY(rd)+GRID);ctx.lineTo(W,rowY(rd)+GRID);ctx.stroke();ctx.setLineDash([]);}
+  // Road rows 1-5 — 16-bit tile
+  for(var rd=1;rd<=5;rd++){
+    if(spritesReady&&imgRoad.complete&&imgRoad.naturalWidth>0){
+      // tile 480×80 strip: draw top half or bottom half alternating for variety
+      var sy16=(rd%2===0)?0:40;
+      ctx.drawImage(imgRoad,0,sy16,480,40,0,rowY(rd),W,GRID);
+    } else {
+      ctx.fillStyle=rd%2===0?'#141424':'#1a1a2e';ctx.fillRect(0,rowY(rd),W,GRID);
+    }
+    // Lane divider subtle overlay
+    ctx.strokeStyle='rgba(200,255,0,0.04)';ctx.lineWidth=1;ctx.setLineDash([16,12]);
+    ctx.beginPath();ctx.moveTo(0,rowY(rd)+GRID);ctx.lineTo(W,rowY(rd)+GRID);ctx.stroke();ctx.setLineDash([]);
+  }
 
   // Start row 0
   ctx.fillStyle='#0d1a06';ctx.fillRect(0,rowY(0),W,GRID);
