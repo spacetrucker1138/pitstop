@@ -6,163 +6,363 @@
   <title>Games — Spacetrucker's Pit Stop</title>
   <meta name="description" content="Play games from the Afterverse. JURNBREAKER, Grave Crawler, Afterverse Invaders and more cursed arcade action.">
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ð</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☠</text></svg>">
   <style>
-    
-    .games-showcase {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      max-width: 900px;
+
+    /* ── Reset & base ── */
+    .arcade-wrap {
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0 1.5rem 4rem;
+      padding: 0 1.5rem 5rem;
     }
 
-    .showcase-card {
-      display: flex;
-      flex-direction: column;
-      background: rgba(15, 15, 25, 0.65);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(191, 0, 255, 0.12);
-      border-radius: 16px;
-      overflow: hidden;
-      text-decoration: none;
-      color: #fff;
-      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    }
-
-    .showcase-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 48px rgba(168, 85, 247, 0.15), 0 0 0 1px rgba(191, 0, 255, 0.25);
-      border-color: rgba(191, 0, 255, 0.3);
-    }
-
-    .showcase-card:hover .showcase-thumb img {
-      transform: scale(1.05);
-    }
-
-    .showcase-thumb {
+    /* ── HERO ── */
+    .hero {
       position: relative;
+      width: 100%;
+      aspect-ratio: 21 / 9;
+      max-height: 520px;
       overflow: hidden;
-      aspect-ratio: 16 / 9;
-      background: rgba(10, 5, 20, 0.8);
+      border-radius: 16px;
+      margin-bottom: 3rem;
+      background: #0a0514;
+      cursor: pointer;
+      display: block;
+      text-decoration: none;
+      color: inherit;
     }
 
-    .showcase-thumb img {
+    .hero-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.4s ease;
+      object-position: center top;
+      display: block;
+      transition: transform 0.5s ease;
     }
 
-    .showcase-thumb-emoji {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 4rem;
-      aspect-ratio: 3 / 1;
-      background: linear-gradient(135deg, rgba(30, 10, 50, 0.9), rgba(10, 5, 20, 0.9));
+    .hero:hover .hero-img {
+      transform: scale(1.02);
     }
 
-    .showcase-body {
-      padding: 1.5rem 2rem 1.8rem;
+    .hero-grad {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to right,
+        rgba(5,0,14,0.92) 0%,
+        rgba(5,0,14,0.7) 40%,
+        rgba(5,0,14,0.15) 70%,
+        transparent 100%
+      ),
+      linear-gradient(
+        to top,
+        rgba(5,0,14,0.5) 0%,
+        transparent 40%
+      );
+    }
+
+    .hero-content {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 55%;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      justify-content: flex-end;
+      padding: 2.5rem 3rem;
+      gap: 0.7rem;
     }
 
-    .showcase-genre {
+    .hero-eyebrow {
       font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #a855f7;
-      font-weight: 600;
-    }
-
-    .showcase-title {
-      font-family: 'Creepster', cursive;
-      font-size: 2rem;
+      letter-spacing: 3px;
       color: #0f8;
-      text-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
-      letter-spacing: 1px;
+      font-weight: 700;
     }
 
-    .showcase-desc {
+    .hero-title {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      color: #fff;
+      text-shadow: 0 0 40px rgba(0,255,136,0.4), 0 2px 8px rgba(0,0,0,0.8);
+      line-height: 1;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+
+    .hero-desc {
       font-size: 0.95rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255,255,255,0.75);
       line-height: 1.5;
+      max-width: 380px;
     }
 
-    .showcase-features {
+    .hero-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 0.4rem;
-      margin-top: 0.3rem;
     }
 
-    .feature-tag {
+    .hero-tag {
       font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       padding: 0.25rem 0.6rem;
       border-radius: 20px;
-      background: rgba(168, 85, 247, 0.12);
+      background: rgba(168,85,247,0.15);
       color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168,85,247,0.25);
     }
 
-    .showcase-play {
-      display: inline-block;
-      margin-top: 0.5rem;
-      padding: 0.5rem 1.4rem;
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 2rem;
       border-radius: 8px;
-      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(168, 85, 247, 0.15));
-      border: 1px solid rgba(168, 85, 247, 0.35);
-      color: #e9d5ff;
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      transition: all 0.3s ease;
-      align-self: flex-start;
-    }
-
-    .showcase-card:hover .showcase-play {
-      background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(168, 85, 247, 0.25));
-      border-color: rgba(168, 85, 247, 0.5);
-    }
-
-    .badge-new {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: linear-gradient(135deg, #a855f7, #7c3aed);
-      color: white;
-      padding: 0.2rem 0.7rem;
-      border-radius: 4px;
-      font-size: 0.7rem;
+      background: linear-gradient(135deg, rgba(0,255,136,0.25), rgba(0,255,136,0.12));
+      border: 1px solid rgba(0,255,136,0.4);
+      color: #0f8;
+      font-size: 0.95rem;
       font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
-      box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+      align-self: flex-start;
+      margin-top: 0.3rem;
+      transition: all 0.25s ease;
     }
 
+    .hero:hover .hero-btn {
+      background: linear-gradient(135deg, rgba(0,255,136,0.4), rgba(0,255,136,0.2));
+      box-shadow: 0 0 20px rgba(0,255,136,0.25);
+    }
+
+    /* ── SHELF ROWS ── */
+    .shelf-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .shelf-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .shelf-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .shelf-sublabel {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1px;
+    }
+
+    .shelf-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 220px;
+      gap: 1rem;
+      overflow-x: auto;
+      padding-bottom: 0.75rem;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(168,85,247,0.3) transparent;
+    }
+
+    .shelf-row::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .shelf-row::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .shelf-row::-webkit-scrollbar-thumb {
+      background: rgba(168,85,247,0.3);
+      border-radius: 2px;
+    }
+
+    /* ── SHELF CARD ── */
+    .shelf-card {
+      position: relative;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0a0514;
+      aspect-ratio: 16 / 9;
+      flex-shrink: 0;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .shelf-card:hover {
+      transform: scale(1.06) translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.3);
+      z-index: 2;
+    }
+
+    .shelf-thumb {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .shelf-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .shelf-card:hover .shelf-thumb img {
+      transform: scale(1.05);
+    }
+
+    .shelf-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(5,0,14,0.97) 0%, rgba(5,0,14,0.4) 50%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0.8rem;
+      gap: 0.2rem;
+    }
+
+    .shelf-card:hover .shelf-overlay {
+      opacity: 1;
+    }
+
+    .shelf-genre {
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #a855f7;
+      font-weight: 700;
+    }
+
+    .shelf-title {
+      font-family: 'Creepster', cursive;
+      font-size: 1rem;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+    }
+
+    .shelf-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-top: 0.1rem;
+    }
+
+    .ft {
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.15rem 0.45rem;
+      border-radius: 12px;
+      background: rgba(168,85,247,0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168,85,247,0.2);
+    }
+
+    .shelf-play {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      background: rgba(0,255,136,0.15);
+      border: 1px solid rgba(0,255,136,0.3);
+      color: #0f8;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      align-self: flex-start;
+      margin-top: 0.3rem;
+    }
+
+    /* Badge */
+    .badge-new {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: white;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(168,85,247,0.5);
+      z-index: 1;
+    }
+
+    /* ── ALL GAMES GRID ── */
+    .grid-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .all-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    /* ── MOBILE ── */
     @media (max-width: 700px) {
-      .showcase-thumb-emoji {
-        aspect-ratio: 2 / 1;
+      .arcade-wrap {
+        padding: 0 0.75rem 4rem;
       }
-      .showcase-body {
-        padding: 1.2rem 1.5rem 1.5rem;
+      .hero {
+        aspect-ratio: 16 / 9;
+        border-radius: 10px;
+        margin-bottom: 2rem;
       }
-      .showcase-title {
-        font-size: 1.6rem;
+      .hero-content {
+        width: 100%;
+        padding: 1.5rem;
       }
+      .hero-desc {
+        display: none;
+      }
+      .shelf-row {
+        grid-auto-columns: 160px;
+      }
+      .all-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* fade-in */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.5s ease forwards;
+    }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: none; }
     }
 
   </style>
 </head>
-<body>
+
 <nav>
   <div class="nav-inner">
     <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
@@ -181,276 +381,188 @@
     </ul>
   </div>
 </nav>
-<main>
 
-<div class="hero">
-  <div class="tagline">Afterverse Arcade</div>
-  <p class="intro">Cursed games from the grave. Break bones, dodge skulls, and rack up high scores.</p>
-</div>
+<main class="arcade-wrap">
 
-<div class="games-showcase">
-
-
-  <a href="games/tarot/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="assets/tarot-game/splash.jpg" alt="Trash Queen Tarot Reading" loading="lazy">
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Tarot Reading</div>
-      <div class="showcase-title">TRASH QUEEN TAROT</div>
-      <div class="showcase-desc">Let the Trash Queen read your fate. Press E for a 3-card spread — past, present, future. She deals the cards from beyond the grave, then you flip them to reveal your destiny. 5 unique dealing animations, 78 hand-crafted skeleton punk tarot cards with upright and reversed readings.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">78 Card Deck</span>
-        <span class="feature-tag">3-Card Spread</span>
-        <span class="feature-tag">Video Intros</span>
-        <span class="feature-tag">Card Flip Animation</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-  <a href="games/death-drive/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/death-drive/images/death_drive_title.jpg" alt="Death Drive - JURN OutRun Racer" loading="lazy">
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Racing</div>
-      <div class="showcase-title">DEATH DRIVE</div>
-      <div class="showcase-desc">Wheel the JURN tour van down a haunted highway at full speed. Night fog, mustard rumble strips, purple skies. OutRun-style pseudo-3D racing with JURN art. Dodge traffic and push the clock.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Pseudo-3D Road</span>
-        <span class="feature-tag">Tour Van</span>
-        <span class="feature-tag">Night Palette</span>
-        <span class="feature-tag">60fps</span>
-      </div>
-      <span class="showcase-play">&#9654; Play Now</span>
+  <!-- ══ HERO: PIT FURY ══ -->
+  <a href="games/jurn-rhythm/" class="hero fade-in" style="animation-delay:0.05s">
+    <img class="hero-img" src="games/jurn-rhythm/images/pit_fury_title_art.jpg" alt="PIT FURY">
+    <div class="hero-grad"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">Featured Game &nbsp;·&nbsp; Rhythm Game</div>
+      <h1 class="hero-title">PIT FURY</h1>
+      <p class="hero-desc">Hit notes in time with original JURN tracks. 4 lanes, 3 difficulties — A/S/D/F keys map to Taz, Sir Bonecrush, Riff-Rot, and Vox. Miss a note and that instrument drops out of the mix. Nail it back and it returns. More songs coming soon.</p>
+      <div class="hero-tags"><span class="ft">Original Music</span><span class="ft">Stem Audio</span><span class="ft">4-Key</span><span class="ft">3 Difficulties</span></div>
+      <span class="hero-btn">▶ &nbsp;Play Now</span>
     </div>
   </a>
 
-  <a href="games/skull-barrage/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22450%22%20viewBox%3D%220%200%20800%20450%22%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22%2306000e%22/%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22g%22%20cx%3D%2250%25%22%20cy%3D%2250%25%22%20r%3D%2270%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23c8ff00%22%20stop-opacity%3D%220.25%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2306000e%22%20stop-opacity%3D%220%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22200%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2296%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.4%22%3E%E2%98%A0%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22310%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-weight%3D%22bold%22%20font-size%3D%2242%22%20fill%3D%22%23c8ff00%22%20letter-spacing%3D%224%22%3ESKULL%20BARRAGE%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22355%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2216%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.6%22%20letter-spacing%3D%225%22%3EA%20JURN%20ARCADE%20GAME%3C/text%3E%0A%3C/svg%3E" alt="Skull Barrage – JURN Missile Command" loading="lazy">
+  <!-- ══ NEW ARRIVALS SHELF ══ -->
+  <section class="shelf-section fade-in" style="animation-delay:0.15s">
+    <div class="shelf-header">
+      <span class="shelf-label">New Arrivals</span>
+      <span class="shelf-sublabel">Just dropped</span>
     </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Missile Command</div>
-      <div class="showcase-title">SKULL BARRAGE <span class="badge-new">NEW</span></div>
-      <div class="showcase-desc">Enemy skulls rain down on the graveyard. Click to fire counter-skulls from your silos — intercept before the crypts fall. Waves get faster. Silos run dry. How long can you hold the line?</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Click to Fire</span>
-        <span class="feature-tag">Leaderboard</span>
-        <span class="feature-tag">Procedural</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
+    <div class="shelf-row">
+      <a href="games/tarot/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="assets/tarot-game/splash.jpg" alt="TRASH QUEEN TAROT" loading="lazy">
+          <span class="badge-new">NEW</span>
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Tarot Reading</div>
+            <div class="shelf-title">TRASH QUEEN TAROT</div>
+            <div class="shelf-features"><span class="ft">78 Card Deck</span><span class="ft">3-Card Spread</span><span class="ft">Video Intros</span><span class="ft">Card Flip Animation</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/death-drive/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/death-drive/images/death_drive_title.jpg" alt="DEATH DRIVE" loading="lazy">
+          <span class="badge-new">NEW</span>
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Racing</div>
+            <div class="shelf-title">DEATH DRIVE</div>
+            <div class="shelf-features"><span class="ft">Pseudo-3D Road</span><span class="ft">Tour Van</span><span class="ft">Night Palette</span><span class="ft">60fps</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/skull-barrage/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22450%22%20viewBox%3D%220%200%20800%20450%22%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22%2306000e%22/%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22g%22%20cx%3D%2250%25%22%20cy%3D%2250%25%22%20r%3D%2270%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23c8ff00%22%20stop-opacity%3D%220.25%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2306000e%22%20stop-opacity%3D%220%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22200%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2296%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.4%22%3E%E2%98%A0%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22310%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-weight%3D%22bold%22%20font-size%3D%2242%22%20fill%3D%22%23c8ff00%22%20letter-spacing%3D%224%22%3ESKULL%20BARRAGE%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22355%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2216%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.6%22%20letter-spacing%3D%225%22%3EA%20JURN%20ARCADE%20GAME%3C/text%3E%0A%3C/svg%3E" alt="SKULL BARRAGE" loading="lazy">
+          <span class="badge-new">NEW</span>
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Missile Command</div>
+            <div class="shelf-title">SKULL BARRAGE</div>
+            <div class="shelf-features"><span class="ft">Click to Fire</span><span class="ft">Leaderboard</span><span class="ft">Procedural</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/dead-crossing/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22450%22%20viewBox%3D%220%200%20800%20450%22%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22%2306000e%22/%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22g%22%20cx%3D%2250%25%22%20cy%3D%2250%25%22%20r%3D%2270%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23c8ff00%22%20stop-opacity%3D%220.25%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2306000e%22%20stop-opacity%3D%220%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22200%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2296%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.4%22%3E%E2%98%A0%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22310%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-weight%3D%22bold%22%20font-size%3D%2242%22%20fill%3D%22%23c8ff00%22%20letter-spacing%3D%224%22%3EDEAD%20CROSSING%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22355%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2216%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.6%22%20letter-spacing%3D%225%22%3EA%20JURN%20ARCADE%20GAME%3C/text%3E%0A%3C/svg%3E" alt="DEAD CROSSING" loading="lazy">
+          <span class="badge-new">NEW</span>
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Frogger</div>
+            <div class="shelf-title">DEAD CROSSING</div>
+            <div class="shelf-features"><span class="ft">Arrow Keys / WASD</span><span class="ft">Leaderboard</span><span class="ft">Lava River</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/arcana-solitaire/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/arcana-solitaire/assets/arcana_title.jpg" alt="ARCANA SOLITAIRE" loading="lazy">
+          <span class="badge-new">NEW</span>
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Card Game</div>
+            <div class="shelf-title">ARCANA SOLITAIRE</div>
+            <div class="shelf-features"><span class="ft">Klondike Rules</span><span class="ft">56 Tarot Cards</span><span class="ft">Speed Leaderboard</span><span class="ft">JURN Theme</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/afterverse-invaders/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/afterverse-invaders/titlescreen_bg.jpg" alt="AFTERVERSE INVADERS" loading="lazy">
+          <span class="badge-new">NEW</span>
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Space Invaders</div>
+            <div class="shelf-title">AFTERVERSE INVADERS</div>
+            <div class="shelf-features"><span class="ft">Boss Fights</span><span class="ft">Shield System</span><span class="ft">High Scores</span><span class="ft">Original Music</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
     </div>
-  </a>
+  </section>
 
-  <a href="games/dead-crossing/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22450%22%20viewBox%3D%220%200%20800%20450%22%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22%2306000e%22/%3E%0A%20%20%3Crect%20width%3D%22800%22%20height%3D%22450%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22g%22%20cx%3D%2250%25%22%20cy%3D%2250%25%22%20r%3D%2270%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23c8ff00%22%20stop-opacity%3D%220.25%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2306000e%22%20stop-opacity%3D%220%22/%3E%0A%20%20%20%20%3C/radialGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22200%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2296%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.4%22%3E%E2%98%A0%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22310%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-weight%3D%22bold%22%20font-size%3D%2242%22%20fill%3D%22%23c8ff00%22%20letter-spacing%3D%224%22%3EDEAD%20CROSSING%3C/text%3E%0A%20%20%3Ctext%20x%3D%22400%22%20y%3D%22355%22%20text-anchor%3D%22middle%22%20font-family%3D%22Courier%20New%22%20font-size%3D%2216%22%20fill%3D%22%23c8ff00%22%20opacity%3D%220.6%22%20letter-spacing%3D%225%22%3EA%20JURN%20ARCADE%20GAME%3C/text%3E%0A%3C/svg%3E" alt="Dead Crossing – JURN Frogger" loading="lazy">
+  <!-- ══ CLASSICS SHELF ══ -->
+  <section class="shelf-section fade-in" style="animation-delay:0.25s">
+    <div class="shelf-header">
+      <span class="shelf-label">Arcade Classics</span>
+      <span class="shelf-sublabel">JURN-ified originals</span>
     </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Frogger</div>
-      <div class="showcase-title">DEAD CROSSING <span class="badge-new">NEW</span></div>
-      <div class="showcase-desc">Guide a skull across a six-lane highway of hearses and semis, then hop bone rafts across a river of molten lava. Score a slot in the death zone or perish. The tour doesn't stop for anyone.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Arrow Keys / WASD</span>
-        <span class="feature-tag">Leaderboard</span>
-        <span class="feature-tag">Lava River</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
+    <div class="shelf-row">
+      <a href="games/jurnbreaker/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/jurnbreaker/jurnbreaker_card.jpg" alt="JURNBREAKER" loading="lazy">
+          
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Brick Breaker</div>
+            <div class="shelf-title">JURNBREAKER</div>
+            <div class="shelf-features"><span class="ft">Original Music</span><span class="ft">Custom Sprites</span><span class="ft">Power-ups</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/bone-stack/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/bone-stack/gutstackers_card.jpg" alt="GUT STACKERS" loading="lazy">
+          
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Tetris</div>
+            <div class="shelf-title">GUT STACKERS</div>
+            <div class="shelf-features"><span class="ft">Organ Tiles</span><span class="ft">Dripping Gore</span><span class="ft">Ghost Piece</span><span class="ft">High Scores</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/whack-a-ghoul/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/whack-a-ghoul/whack_a_ghoul_title.jpg" alt="WHACK-A-GHOUL" loading="lazy">
+          
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Whack-a-Mole</div>
+            <div class="shelf-title">WHACK-A-GHOUL</div>
+            <div class="shelf-features"><span class="ft">Combo System</span><span class="ft">Bonus Ghouls</span><span class="ft">60s Timer</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/grave-crawler/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/grave-crawler/grave_crawler_title.jpg" alt="GRAVE CRAWLER" loading="lazy">
+          
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Snake</div>
+            <div class="shelf-title">GRAVE CRAWLER</div>
+            <div class="shelf-features"><span class="ft">Classic Arcade</span><span class="ft">Neon Glow</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/skull-pong/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/skull-pong/skull_pong_title.jpg" alt="SKULL PONG" loading="lazy">
+          
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Pong</div>
+            <div class="shelf-title">SKULL PONG</div>
+            <div class="shelf-features"><span class="ft">VS AI</span><span class="ft">Tombstone Paddles</span><span class="ft">Touch Support</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
+      <a href="games/flappy-skull/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/flappy-skull/flappy_skull_title.jpg" alt="FLAPPY SKULL" loading="lazy">
+          
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Flappy Bird</div>
+            <div class="shelf-title">FLAPPY SKULL</div>
+            <div class="shelf-features"><span class="ft">One-Tap Controls</span><span class="ft">Bone Pillars</span><span class="ft">High Scores</span></div>
+            <span class="shelf-play">▶ Play Now</span>
+          </div>
+        </div>
+      </a>
     </div>
-  </a>
-
-
-  <a href="games/arcana-solitaire/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/arcana-solitaire/assets/arcana_title.jpg" alt="JURN Minor Arcana Solitaire" loading="lazy">
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Card Game</div>
-      <div class="showcase-title">ARCANA SOLITAIRE</div>
-      <div class="showcase-desc">Classic Klondike solitaire with all 56 Minor Arcana cards. Stack Wands, Cups, Swords, and Pentacles Ace to King. Timer tracks your fastest solve — beat your best time.</div>
-      <div class="feature-tags">
-        <span class="feature-tag">Klondike Rules</span>
-        <span class="feature-tag">56 Tarot Cards</span>
-        <span class="feature-tag">Speed Leaderboard</span>
-        <span class="feature-tag">JURN Theme</span>
-      </div>
-      <span class="showcase-play">&#9654; Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/jurn-rhythm/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/jurn-rhythm/images/pit_fury_title_art.jpg" alt="Pit Fury - Rhythm Attack by JURN" loading="lazy">
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Rhythm Game</div>
-      <div class="showcase-title">PIT FURY</div>
-      <div class="showcase-desc">Hit notes in time with original JURN tracks. 4 lanes, 3 difficulties — A/S/D/F keys map to Taz, Sir Bonecrush, Riff-Rot, and Vox. Miss a note and that instrument drops out of the mix. Nail it back and it returns. More songs coming soon.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Original Music</span>
-        <span class="feature-tag">Stem Audio</span>
-        <span class="feature-tag">4-Key</span>
-        <span class="feature-tag">3 Difficulties</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-
-
-
-
-  <a href="games/jurnbreaker/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/jurnbreaker/jurnbreaker_card.jpg" alt="JURNBREAKER - Skeleton punk crew at Resurrection Cemetery" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Brick Breaker</div>
-      <div class="showcase-title">JURNBREAKER</div>
-      <div class="showcase-desc">Classic brick-breaker with a skull twist. Launch the skull ball, smash bone bricks, and dodge chaos. Features custom JURN character sprites and horror-punk soundtrack.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Original Music</span>
-        <span class="feature-tag">Custom Sprites</span>
-        <span class="feature-tag">Power-ups</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/afterverse-invaders/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/afterverse-invaders/titlescreen_bg.jpg" alt="AFTERVERSE INVADERS" loading="lazy">
-      <span class="badge-new">NEW</span>
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Space Invaders</div>
-      <div class="showcase-title">AFTERVERSE INVADERS</div>
-      <div class="showcase-desc">Pilot The JURN's tour van against waves of skulls, ghosts, bats, and spiders. Rescue parachuting humans for shield power, battle the Skull Boss, and survive the horde. 8-bit horror punk soundtrack and animated background.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Boss Fights</span>
-        <span class="feature-tag">Shield System</span>
-        <span class="feature-tag">High Scores</span>
-        <span class="feature-tag">Original Music</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/bone-stack/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/bone-stack/gutstackers_card.jpg" alt="Gut Stackers" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Tetris</div>
-      <div class="showcase-title">GUT STACKERS</div>
-      <div class="showcase-desc">Stack organs, clear gore, survive. A graveyard ghoul shovels fleshy organ blocks into the pit — each piece a different shade of viscera with dripping gore that oozes down the pile. Wet smoosh sound effects and triple the slime.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Organ Tiles</span>
-        <span class="feature-tag">Dripping Gore</span>
-        <span class="feature-tag">Ghost Piece</span>
-        <span class="feature-tag">High Scores</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/whack-a-ghoul/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/whack-a-ghoul/whack_a_ghoul_title.jpg" alt="Whack-a-Ghoul arcade title screen" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Whack-a-Mole</div>
-      <div class="showcase-title">WHACK-A-GHOUL</div>
-      <div class="showcase-desc">Skulls, ghosts, bats, and spiders pop from their graves — whack them before they disappear! Build combos for bonus points. Watch out for tombstones — hitting those costs you. 60 seconds of chaos.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Combo System</span>
-        <span class="feature-tag">Bonus Ghouls</span>
-        <span class="feature-tag">60s Timer</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/grave-crawler/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/grave-crawler/grave_crawler_title.jpg" alt="Grave Crawler - Snake in the graveyard" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Snake</div>
-      <div class="showcase-title">GRAVE CRAWLER</div>
-      <div class="showcase-desc">Slither through the graveyard collecting skulls. Your bone chain grows with every kill. Don't hit the walls or yourself — the dead don't get second chances.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Classic Arcade</span>
-        <span class="feature-tag">Neon Glow</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/skull-pong/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/skull-pong/skull_pong_title.jpg" alt="Skull Pong - Arcade of Doom" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Pong</div>
-      <div class="showcase-title">SKULL PONG</div>
-      <div class="showcase-desc">Classic pong with tombstone paddles and a flaming skull ball. Face off against the AI in a battle to 7. The dead play dirty — the AI gets faster as the score climbs.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">VS AI</span>
-        <span class="feature-tag">Tombstone Paddles</span>
-        <span class="feature-tag">Touch Support</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-  <a href="games/flappy-skull/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/flappy-skull/flappy_skull_title.jpg" alt="Flappy Skull - Tap to Float" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Flappy Bird</div>
-      <div class="showcase-title">FLAPPY SKULL</div>
-      <div class="showcase-desc">Tap to float through bone pillars under a haunted sky. Bats circle overhead, stars flicker, and the moon watches. One hit and you're done — classic one-life arcade pain.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">One-Tap Controls</span>
-        <span class="feature-tag">Bone Pillars</span>
-        <span class="feature-tag">High Scores</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-<!-- CRYPT CHOMPER HIDDEN - map under repair
-  <a href="games/crypt-chomper/" class="showcase-card fade-in">
-    <div class="showcase-thumb">
-      <img src="games/crypt-chomper/crypt_chomper_title.jpg" alt="Crypt Chomper - Horror Pac-Man" loading="lazy">
-    </div>
-    <div class="showcase-body">
-      <div class="showcase-genre">Pac-Man</div>
-      <div class="showcase-title">CRYPT CHOMPER</div>
-      <div class="showcase-desc">Navigate the haunted crypt eating bone pellets while dodging ghosts, bats, and spiders. Grab glowing power pellets to turn the tables and eat them back. Classic arcade maze action with a horror twist.</div>
-      <div class="showcase-features">
-        <span class="feature-tag">Classic Maze</span>
-        <span class="feature-tag">Ghost AI</span>
-        <span class="feature-tag">Power Pellets</span>
-        <span class="feature-tag">Multiple Levels</span>
-      </div>
-      <span class="showcase-play">▶ Play Now</span>
-    </div>
-  </a>
-
-
--->
-
-</div>
+  </section>
 
 </main>
+
 <footer>
   <div class="footer-links">
     <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
@@ -462,20 +574,5 @@
   <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
 </footer>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var targets = document.querySelectorAll('.fade-in');
-    if (!targets.length) return;
-    var observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-    targets.forEach(function(el) { observer.observe(el); });
-  });
-</script>
 </body>
 </html>
