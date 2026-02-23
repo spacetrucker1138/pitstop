@@ -54,6 +54,135 @@
       z-index: 10;
     }
     #fps { display:none; }
+
+    /* ── TITLE OVERLAY ── */
+    #titleOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 640px; height: 480px;
+      background: rgba(0,0,0,0.78);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      font-family: 'Courier New', monospace;
+    }
+    #titleOverlay h1 {
+      font-size: 2.4rem;
+      color: #c8ff00;
+      text-shadow: 0 0 18px #c8ff00, 0 0 40px #c8ff00;
+      letter-spacing: 0.18em;
+      margin-bottom: 4px;
+    }
+    #titleOverlay .sub {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      margin-bottom: 22px;
+    }
+    #titleOverlay .press-key {
+      color: #fff;
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      animation: blink 1.1s step-end infinite;
+      margin-bottom: 28px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .title-lb-row {
+      font-family: 'Courier New', monospace;
+      font-size: 0.78rem;
+      padding: 2px 0;
+      display: flex;
+      justify-content: space-between;
+      width: 240px;
+    }
+    .title-lb-row.gold   { color: #ffd700; }
+    .title-lb-row.silver { color: #c0c0c0; }
+    .title-lb-row.bronze { color: #cd7f32; }
+    .title-lb-row.normal { color: rgba(255,255,255,0.5); }
+    #titleLbHeader {
+      color: rgba(255,255,255,0.35);
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      margin-bottom: 5px;
+    }
+    /* ── END OVERLAY ── */
+    #endOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 640px; height: 480px;
+      background: rgba(0,0,0,0.82);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      font-family: 'Courier New', monospace;
+    }
+    #endOverlay h2 {
+      font-size: 1.6rem;
+      color: #c8ff00;
+      text-shadow: 0 0 14px #c8ff00;
+      letter-spacing: 0.18em;
+      margin-bottom: 6px;
+    }
+    #endOverlay .lap-result {
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+    .initials-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 6px;
+    }
+    .initials-input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(200,255,0,0.5);
+      color: #c8ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 1.4rem;
+      text-align: center;
+      width: 90px;
+      letter-spacing: 0.3em;
+      padding: 4px 8px;
+      text-transform: uppercase;
+      outline: none;
+    }
+    .initials-submit {
+      margin-top: 8px;
+      background: transparent;
+      border: 1px solid rgba(200,255,0,0.5);
+      color: #c8ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      padding: 6px 16px;
+      cursor: pointer;
+    }
+    .initials-submit:hover { background: rgba(200,255,0,0.15); }
+    .lb-row {
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      padding: 3px 0;
+      display: flex;
+      justify-content: space-between;
+      width: 260px;
+    }
+    .lb-row.gold      { color: #ffd700; }
+    .lb-row.silver    { color: #c0c0c0; }
+    .lb-row.bronze    { color: #cd7f32; }
+    .lb-row.normal    { color: rgba(255,255,255,0.5); }
+    .lb-row.highlight { color: #c8ff00; font-weight: bold; }
+    .restart-hint {
+      margin-top: 18px;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+    }
 </style>
 
 <script>
@@ -141,6 +270,8 @@ var AudioEngine = (function() {
   return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech};
 })();
 </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head> 
 
 <body> 
@@ -152,6 +283,24 @@ var AudioEngine = (function() {
   <img id="bgImage" src="images/death_drive_title.jpg" alt="">
 
   <div id="racer">
+  <div id="titleOverlay">
+    <h1>DEATH DRIVE</h1>
+    <div class="sub">A JURN ARCADE GAME</div>
+    <div class="press-key">PRESS ANY KEY TO RACE</div>
+    <div id="titleLbHeader">— FASTEST LAPS —</div>
+    <div id="titleLeaderboard"></div>
+  </div>
+  <div id="endOverlay">
+    <h2>LAP COMPLETE</h2>
+    <div class="lap-result" id="endLapResult"></div>
+    <div id="initialsSection" style="display:none; flex-direction:column; align-items:center;">
+      <div class="initials-label">NEW BEST — ENTER YOUR INITIALS</div>
+      <input type="text" id="initialsInput" class="initials-input" maxlength="3" autocomplete="off">
+      <button class="initials-submit" id="initialsSubmit">SUBMIT</button>
+    </div>
+    <div id="leaderboardSection"></div>
+    <div class="restart-hint">PRESS ANY KEY TO RACE AGAIN</div>
+  </div>
     <div id="hud">
       <span id="speed"            class="hud"><span id="speed_value" class="value">0</span> mph</span>
       <span id="current_lap_time" class="hud">Time: <span id="current_lap_time_value" class="value">0.0</span></span> 
@@ -885,6 +1034,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
             updateHud('fast_lap_time', formatTime(lastLapTime));
             Dom.addClassName('fast_lap_time', 'fastest');
             Dom.addClassName('last_lap_time', 'fastest');
+            if (typeof showLapComplete === 'function') showLapComplete(lastLapTime);
           }
           else {
             Dom.removeClassName('fast_lap_time', 'fastest');
@@ -1268,11 +1418,6 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
     // THE GAME LOOP
     //=========================================================================
 
-    document.addEventListener('keydown', function _ae() {
-  AudioEngine.init(); AudioEngine.startEngine();
-  document.removeEventListener('keydown', _ae);
-}, {once:true});
-
 Game.run({
       canvas: canvas, render: render, update: update, stats: stats, step: step,
       images: ["background", "sprites"],
@@ -1328,6 +1473,126 @@ Game.run({
     }
 
     //=========================================================================
+
+  // ── FIREBASE GLOBAL LEADERBOARD ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+    authDomain: "pitstop-wall.firebaseapp.com",
+    databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+    projectId: "pitstop-wall",
+    storageBucket: "pitstop-wall.firebasestorage.app",
+    messagingSenderId: "767668528451",
+    appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const hsRef = firebase.database().ref('highscores/death-drive');
+  let cachedScores = [];
+
+  hsRef.orderByChild('lapTime').limitToFirst(10).on('value', snap => {
+    const data = snap.val();
+    // lower lap time = better; sort ascending
+    cachedScores = data ? Object.values(data).sort((a, b) => a.lapTime - b.lapTime) : [];
+    updateTitleLeaderboard();
+  });
+
+  function fmtTime(t) {
+    const s = parseFloat(t) || 0;
+    const m = Math.floor(s / 60);
+    const sec = (s % 60).toFixed(2).padStart(5, '0');
+    return m > 0 ? m + ':' + sec : sec + 's';
+  }
+
+  function updateTitleLeaderboard() {
+    const el = document.getElementById('titleLeaderboard');
+    if (!el) return;
+    if (cachedScores.length === 0) { el.innerHTML = ''; return; }
+    const medals = ['🥇','🥈','🥉'];
+    const colors = ['gold','silver','bronze'];
+    el.innerHTML = cachedScores.slice(0, 5).map((s, i) =>
+      '<div class="title-lb-row ' + (colors[i]||'normal') + '">' +
+      '<span>' + (medals[i]||((i+1)+'.')) + ' ' + (s.name||'???') + '</span>' +
+      '<span>' + fmtTime(s.lapTime) + '</span></div>'
+    ).join('');
+  }
+
+  function isHighScore(lapTime) {
+    if (cachedScores.length < 10) return true;
+    return lapTime < cachedScores[cachedScores.length - 1].lapTime;
+  }
+
+  function saveHighScore(name, lapTime) {
+    hsRef.push({ name: name.toUpperCase().slice(0,3), lapTime: lapTime, timestamp: Date.now() });
+  }
+
+  function renderLeaderboard(myTime) {
+    const section = document.getElementById('leaderboardSection');
+    if (!section) return;
+    const colors = ['gold','silver','bronze'];
+    section.innerHTML = cachedScores.slice(0, 10).map((s, i) => {
+      const isMe = s.lapTime === myTime && s.timestamp > Date.now() - 8000;
+      const cls = isMe ? 'highlight' : (colors[i] || 'normal');
+      return '<div class="lb-row ' + cls + '"><span>' + (i+1) + '. ' + (s.name||'???') + '</span><span>' + fmtTime(s.lapTime) + '</span></div>';
+    }).join('');
+    section.style.display = 'block';
+  }
+
+  // ── TITLE OVERLAY: dismiss on any key ──
+  var _gameStarted = false;
+  document.addEventListener('keydown', function _titleDismiss(ev) {
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    if (_gameStarted) return;
+    _gameStarted = true;
+    var ov = document.getElementById('titleOverlay');
+    if (ov) ov.style.display = 'none';
+    AudioEngine.init(); AudioEngine.startEngine();
+    document.removeEventListener('keydown', _titleDismiss);
+  });
+
+  // ── END OVERLAY: lap complete trigger ──
+  var _lastRecordedLap = 0;
+  function showLapComplete(lapTime) {
+    if (lapTime <= 0) return;
+    if (lapTime === _lastRecordedLap) return; // debounce
+    _lastRecordedLap = lapTime;
+
+    var ov = document.getElementById('endOverlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+
+    document.getElementById('endLapResult').textContent = 'LAP TIME: ' + fmtTime(lapTime);
+    document.getElementById('initialsSection').style.display = 'none';
+    document.getElementById('leaderboardSection').innerHTML = '';
+
+    if (isHighScore(lapTime)) {
+      var initSec = document.getElementById('initialsSection');
+      initSec.style.display = 'flex';
+      var input = document.getElementById('initialsInput');
+      input.value = '';
+      setTimeout(() => { if(input) input.focus(); }, 80);
+
+      function submitFn() {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT' && input.value.trim().length === 0) return;
+        var name = input.value.trim().toUpperCase().slice(0,3) || 'AAA';
+        saveHighScore(name, lapTime);
+        initSec.style.display = 'none';
+        setTimeout(() => renderLeaderboard(lapTime), 600);
+      }
+      document.getElementById('initialsSubmit').onclick = submitFn;
+      input.onkeydown = function(e) { if (e.key === 'Enter') submitFn(); };
+    } else {
+      renderLeaderboard(lapTime);
+    }
+
+    // Press any key to restart (guard INPUT fields)
+    function _restart(e) {
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+      ov.style.display = 'none';
+      _lastRecordedLap = 0;
+      document.removeEventListener('keydown', _restart);
+    }
+    setTimeout(() => document.addEventListener('keydown', _restart), 800);
+  }
+
 
   </script>
 
