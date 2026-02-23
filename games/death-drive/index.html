@@ -791,11 +791,18 @@ var Render = {
     if (clipH < destH) {
       ctx.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
       if (tint) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.fillStyle = tint;
-        ctx.fillRect(destX, destY, destW, drawH);
-        ctx.restore();
+        // Tint via offscreen canvas so color only touches sprite pixels (not transparent bg)
+        var oc = document.createElement('canvas');
+        oc.width = destW; oc.height = drawH;
+        var ox = oc.getContext('2d');
+        var srcH = sprite.h - (sprite.h * clipH / destH);
+        ox.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, srcH, 0, 0, destW, drawH);
+        ox.globalCompositeOperation = 'multiply';
+        ox.fillStyle = tint;
+        ox.fillRect(0, 0, destW, drawH);
+        ox.globalCompositeOperation = 'destination-in';
+        ox.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, srcH, 0, 0, destW, drawH);
+        ctx.drawImage(oc, destX, destY);
       }
     }
     if (window.showHitboxes) { ctx.save();
