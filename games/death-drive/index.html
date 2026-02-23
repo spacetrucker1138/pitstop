@@ -788,12 +788,12 @@ var Render = {
     var clipH = clipY ? Math.max(0, destY+destH-clipY) : 0;
     var drawH = destH - clipH;
     var srcSheet = sprite.sheet || sprites;
-    if (clipH < destH) {
+    if (clipH < destH && destW > 0 && drawH > 0) {
       ctx.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, sprite.h - (sprite.h*clipH/destH), destX, destY, destW, drawH);
-      if (tint) {
+      if (tint && destW > 0 && drawH > 0) {
         // Tint via offscreen canvas so color only touches sprite pixels (not transparent bg)
         var oc = document.createElement('canvas');
-        oc.width = destW; oc.height = drawH;
+        oc.width = Math.ceil(destW); oc.height = Math.ceil(drawH);
         var ox = oc.getContext('2d');
         var srcH = sprite.h - (sprite.h * clipH / destH);
         ox.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, srcH, 0, 0, destW, drawH);
