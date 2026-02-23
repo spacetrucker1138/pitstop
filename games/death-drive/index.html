@@ -310,6 +310,7 @@ var AudioEngine = (function() {
     </div>
     <div id="leaderboardSection"></div>
     <div class="restart-hint">PRESS ANY KEY TO RACE AGAIN</div>
+    <button class="initials-submit" id="titleBtn" style="margin-top:10px; font-size:13px; padding:6px 18px; letter-spacing:2px;">RETURN TO TITLE</button>
   </div>
     <div id="hud">
       <span id="speed"            class="hud"><span id="speed_value" class="value">0</span> mph</span>
@@ -1671,6 +1672,18 @@ Game.run({
       document.removeEventListener('keydown', _restart);
     }
     setTimeout(() => document.addEventListener('keydown', _restart), 800);
+
+    var _titleBtn = document.getElementById('titleBtn');
+    if (_titleBtn) {
+      _titleBtn.onclick = function() {
+        ov.style.display = 'none';
+        _lastRecordedLap = 0;
+        document.removeEventListener('keydown', _restart);
+        var _rm3 = document.getElementById('roadMusic');
+        if (_rm3 && !_rm3.paused) { _rm3.pause(); _rm3.currentTime = 0; }
+        document.getElementById('titleOverlay').style.display = 'flex';
+      };
+    }
   }
 
 
