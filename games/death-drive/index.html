@@ -318,6 +318,14 @@ var AudioEngine = (function() {
       <span id="last_lap_time"    class="hud">Last Lap: <span id="last_lap_time_value" class="value">0.0</span></span>
       <span id="fast_lap_time"    class="hud">Fastest Lap: <span id="fast_lap_time_value" class="value">0.0</span></span>
     </div>
+    <div id="lap1Flash" style="
+      position:absolute; top:52px; left:50%; transform:translateX(-50%);
+      font-family:'Courier New',monospace; font-size:18px; font-weight:bold;
+      color:#c8ff00; letter-spacing:4px; text-shadow:0 0 12px #c8ff00;
+      pointer-events:none; opacity:0;
+      transition:opacity 0.6s ease;
+      white-space:nowrap;
+    "></div>
     <canvas id="canvas" width="640" height="480">
       Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
     </canvas>
@@ -972,8 +980,11 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
     var offRoadDecel   = -maxSpeed/2;             // off road deceleration is somewhere in between
     var offRoadLimit   =  maxSpeed/4;             // limit when off road deceleration no longer applies (e.g. you can always go at least this speed even when off road)
     var totalCars      = 200;                     // total number of cars on the road
-    var currentLapTime = 0;                       // current lap time
-    var lastLapTime    = null;                    // last lap time
+    var currentLapTime  = 0;                       // current lap time
+    var lastLapTime     = null;                    // last lap time
+    var lapCount        = 0;                       // laps completed this race
+    var totalRaceTime   = 0;                       // cumulative race time
+    var raceFinished    = false;                   // freeze loop when race ends
 
     var keyLeft        = false;
     var keyRight       = false;
@@ -992,6 +1003,7 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
     //=========================================================================
 
     function update(dt) {
+      if (raceFinished) return;
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
@@ -1063,12 +1075,14 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
         if (currentLapTime && (startPosition < playerZ)) {
           lastLapTime    = currentLapTime;
           currentLapTime = 0;
+          totalRaceTime += lastLapTime;
+          lapCount++;
+
           if (lastLapTime <= Util.toFloat(Dom.storage.fast_lap_time)) {
             Dom.storage.fast_lap_time = lastLapTime;
             updateHud('fast_lap_time', formatTime(lastLapTime));
             Dom.addClassName('fast_lap_time', 'fastest');
             Dom.addClassName('last_lap_time', 'fastest');
-            if (typeof showLapComplete === 'function') showLapComplete(lastLapTime);
           }
           else {
             Dom.removeClassName('fast_lap_time', 'fastest');
@@ -1076,6 +1090,13 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
           }
           updateHud('last_lap_time', formatTime(lastLapTime));
           Dom.show('last_lap_time');
+
+          if (lapCount >= 2) {
+            raceFinished = true;
+            if (typeof showRaceComplete === 'function') showRaceComplete(lastLapTime, totalRaceTime);
+          } else {
+            if (typeof showLap1Flash === 'function') showLap1Flash(lastLapTime);
+          }
         }
         else {
           currentLapTime += dt;
@@ -1627,22 +1648,40 @@ Game.run({
     document.removeEventListener('keydown', _titleDismiss);
   });
 
-  // ── END OVERLAY: lap complete trigger ──
+  // ── END OVERLAY: lap flash + race complete ──
+
+  // Brief on-screen lap-1 flash (non-blocking)
+  var _lap1FlashTimer = null;
+  function showLap1Flash(lapTime) {
+    var el = document.getElementById('lap1Flash');
+    if (!el) return;
+    el.textContent = 'LAP 1 — ' + fmtTime(lapTime);
+    el.style.opacity = '1';
+    clearTimeout(_lap1FlashTimer);
+    _lap1FlashTimer = setTimeout(function() {
+      el.style.opacity = '0';
+    }, 2800);
+  }
+
+  // Race-complete overlay (shown after lap 2)
   var _lastRecordedLap = 0;
-  function showLapComplete(lapTime) {
-    if (lapTime <= 0) return;
-    if (lapTime === _lastRecordedLap) return; // debounce
-    _lastRecordedLap = lapTime;
+  function showRaceComplete(lap2Time, totalTime) {
+    if (totalTime === _lastRecordedLap) return; // debounce
+    _lastRecordedLap = totalTime;
 
     var ov = document.getElementById('endOverlay');
     if (!ov) return;
     ov.style.display = 'flex';
 
-    document.getElementById('endLapResult').textContent = 'LAP TIME: ' + fmtTime(lapTime);
+    document.getElementById('endLapResult').textContent =
+      'RACE COMPLETE  •  2 LAPS  •  ' + fmtTime(totalTime);
     document.getElementById('initialsSection').style.display = 'none';
     document.getElementById('leaderboardSection').innerHTML = '';
 
-    if (isHighScore(lapTime)) {
+    // Score on best lap time (lap2 or lap1 — use the faster of the two)
+    var bestLap = Math.min(lap2Time, totalTime - lap2Time);
+
+    if (isHighScore(bestLap)) {
       var initSec = document.getElementById('initialsSection');
       initSec.style.display = 'flex';
       var input = document.getElementById('initialsInput');
@@ -1652,21 +1691,25 @@ Game.run({
       function submitFn() {
         if (document.activeElement && document.activeElement.tagName === 'INPUT' && input.value.trim().length === 0) return;
         var name = input.value.trim().toUpperCase().slice(0,3) || 'AAA';
-        saveHighScore(name, lapTime);
+        saveHighScore(name, bestLap);
         initSec.style.display = 'none';
-        setTimeout(() => renderLeaderboard(lapTime), 600);
+        setTimeout(() => renderLeaderboard(bestLap), 600);
       }
       document.getElementById('initialsSubmit').onclick = submitFn;
       input.onkeydown = function(e) { if (e.key === 'Enter') submitFn(); };
     } else {
-      renderLeaderboard(lapTime);
+      renderLeaderboard(bestLap);
     }
 
-    // Press any key to restart (guard INPUT fields)
+    // Press any key to race again
     function _restart(e) {
       if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
       ov.style.display = 'none';
       _lastRecordedLap = 0;
+      raceFinished = false;
+      lapCount = 0;
+      totalRaceTime = 0;
+      currentLapTime = 0;
       var _rm2 = document.getElementById('roadMusic');
       if (_rm2 && _rm2.paused) { _rm2.play().catch(function(){}); }
       document.removeEventListener('keydown', _restart);
@@ -1678,6 +1721,10 @@ Game.run({
       _titleBtn.onclick = function() {
         ov.style.display = 'none';
         _lastRecordedLap = 0;
+        raceFinished = false;
+        lapCount = 0;
+        totalRaceTime = 0;
+        currentLapTime = 0;
         document.removeEventListener('keydown', _restart);
         var _rm3 = document.getElementById('roadMusic');
         if (_rm3 && !_rm3.paused) { _rm3.pause(); _rm3.currentTime = 0; }
