@@ -111,7 +111,7 @@ var PROJ_CLIPS=[
   {sx:587,sy:444,sw:96, sh:204}
 ];
 
-var AMP_POS=[65,175,320,465,575];
+var AMP_POS=[65,160,255,455,545,610];
 var C={accent:'#ff6600',note:'#c8ff00',red:'#ff2d2d',bone:'#e8dcc8',dark:'#1a0a00',dim:'#555'};
 
 // ─── IMAGES ───────────────────────────────────────────────────────────────────
@@ -247,7 +247,7 @@ function drawBackground(){
   ctx.textAlign='center'; ctx.fillText('LVL: '+level, W/2, 21);
   ctx.textAlign='right';
   var alive=amps?amps.filter(function(a){return a.alive;}).length:5;
-  ctx.fillText('AMPS: '+alive+'/5', W-10, 21);
+  ctx.fillText('AMPS: '+alive+'/6', W-10, 21);
   ctx.textAlign='left';
 
   // Stage divider (transition strip)
@@ -519,14 +519,6 @@ function triggerGameOver(){
     tctx.save(); tctx.fillStyle=p[0];
     tctx.beginPath(); tctx.moveTo(p[1],0); tctx.lineTo(p[1]-40,th); tctx.lineTo(p[1]+40,th);
     tctx.closePath(); tctx.fill(); tctx.restore();
-  });
-  var bp=[45,100,160,220,275], bc=['#ff44aa','#44ff44','#ff4444','#cccccc','#ff8800'];
-  bp.forEach(function(bx,bi){
-    tctx.fillStyle='#0d0400'; tctx.fillRect(bx-7,th*0.38,14,th*0.45);
-    tctx.fillStyle='#d8c8a0'; tctx.beginPath(); tctx.arc(bx,th*0.34,7,0,Math.PI*2); tctx.fill();
-    tctx.fillStyle=bc[bi%bc.length]; tctx.fillRect(bx-3,th*0.1,6,th*0.22);
-    tctx.fillStyle='#000'; tctx.beginPath(); tctx.arc(bx-2.5,th*0.33,2,0,Math.PI*2); tctx.fill();
-    tctx.beginPath(); tctx.arc(bx+2.5,th*0.33,2,0,Math.PI*2); tctx.fill();
   });
   tctx.fillStyle='#5c3010'; tctx.fillRect(0,th*0.78,tw,th*0.22);
   tctx.font='bold 13px "Courier New"'; tctx.textAlign='center';
