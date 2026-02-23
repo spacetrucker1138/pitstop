@@ -267,7 +267,17 @@ var AudioEngine = (function() {
     src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t);
   }
 
-  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech};
+
+  var _lastHornTime = 0;
+  function playHorn() {
+    var now = Date.now() / 1000;
+    if (now - _lastHornTime < 1.2) return;
+    _lastHornTime = now;
+    var horn = document.getElementById('truckHorn');
+    if (horn) { horn.currentTime = 0; horn.volume = 1.0; horn.play().catch(function(){}); }
+  }
+
+  return {init:init,startEngine:startEngine,setEngineSpeed:setEngineSpeed,playCollision:playCollision,playScreech:playScreech,playHorn:playHorn};
 })();
 </script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -823,6 +833,7 @@ var Render = {
 // RACING GAME CONSTANTS
 //=============================================================================
 var KEY = {
+  SPACE: 32,
   LEFT:  37,
   UP:    38,
   RIGHT: 39,
@@ -1431,6 +1442,7 @@ Game.run({
         { keys: [KEY.RIGHT, KEY.D], mode: 'up',   action: function() { keyRight  = false; } },
         { keys: [KEY.UP,    KEY.W], mode: 'up',   action: function() { keyFaster = false; } },
         { keys: [KEY.DOWN,  KEY.S], mode: 'up',   action: function() { keySlower = false; } }
+        ,{ keys: [KEY.SPACE],      mode: 'down', action: function() { if (typeof AudioEngine !== 'undefined') AudioEngine.playHorn(); } }
       ],
       ready: function(images) {
         background = images[0];
@@ -1549,6 +1561,8 @@ Game.run({
     var ov = document.getElementById('titleOverlay');
     if (ov) ov.style.display = 'none';
     AudioEngine.init(); AudioEngine.startEngine();
+    var _rm = document.getElementById('roadMusic');
+    if (_rm) { _rm.volume = 0.3; _rm.play().catch(function(){}); }
     document.removeEventListener('keydown', _titleDismiss);
   });
 
@@ -1592,6 +1606,8 @@ Game.run({
       if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
       ov.style.display = 'none';
       _lastRecordedLap = 0;
+      var _rm2 = document.getElementById('roadMusic');
+      if (_rm2 && _rm2.paused) { _rm2.play().catch(function(){}); }
       document.removeEventListener('keydown', _restart);
     }
     setTimeout(() => document.addEventListener('keydown', _restart), 800);
@@ -1600,5 +1616,7 @@ Game.run({
 
   </script>
 
+  <audio id="roadMusic" src="audio/roadmusic.mp3" loop preload="auto"></audio>
+  <audio id="truckHorn" src="audio/truckhorn.mp3" preload="auto"></audio>
 </body> 
 </html>
