@@ -405,7 +405,7 @@ function spawnBottle(){
     pos:{x:sx,y:sy}, target:target, targetY:ty,
     dx:spd*Math.sin(angle), dy:spd*-Math.cos(angle),
     alive:true, wobble:Math.random()*Math.PI*2,
-    projType:Math.floor(Math.random()*PROJ_CLIPS.length)
+    projType:Math.floor(Math.random()*throwImgs.length)
   });
 }
 
