@@ -428,7 +428,7 @@ function startWave(){
   waveStartTime=performance.now();
   if(gameMode==='highscore'){
     // ammo = wave enemy count + 3
-    ammoLeft=waveTotal+3;
+    ammoLeft+=waveTotal+3;  // accumulate — don't reset, let players stockpile
   }
 }
 
@@ -548,13 +548,13 @@ function gameLoop(ts){
     explosions.forEach(function(ex){if(dist(ex,btl.pos)<5+ex.size)btl.alive=false;});
     var d=dist(btl.pos,{x:btl.target.x,y:btl.targetY});
     if(d<6){
-      btl.alive=false;btl.target.alive=false;playAmpDestroyed();
+      btl.alive=false;btl._counted=true;btl.target.alive=false;playAmpDestroyed();
       explosions.push({x:btl.pos.x,y:btl.pos.y,size:2,dir:1,alive:true,enemy:true});
       waveDefeated++; // counts as "resolved" even if it hit the amp
-      if(!amps.some(function(a){return a.alive;})){triggerGameOver(false);return;}
+      if(!amps.some(function(a){return a.alive;})){setTimeout(function(){triggerGameOver(false);},50);return;}
     }
     if(btl.alive)drawProjectile(btl.pos.x,btl.pos.y,btl.projType,btl.wobble);
-    else{playGlassBreak();waveDefeated++;explosions.push({x:btl.pos.x,y:btl.pos.y,size:2,dir:1,alive:true,enemy:true});}
+    else if(!btl._counted){btl._counted=true;playGlassBreak();waveDefeated++;explosions.push({x:btl.pos.x,y:btl.pos.y,size:2,dir:1,alive:true,enemy:true});}
   });
 
   // ── Update notes ────────────────────────────────────────────────────────────
