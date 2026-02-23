@@ -13,7 +13,9 @@
       flex-direction:column; align-items:center; justify-content:center;
       background:rgba(0,0,0,0.88); color:#c8ff00; text-align:center; z-index:10;
     }
-    #titleOverlay { display:flex; }
+    #titleOverlay { display:flex; background-image:url('assets/title_art.jpg'); background-size:cover; background-position:center; }
+    #titleOverlay::before { content:''; position:absolute; inset:0; background:rgba(0,0,0,0.55); z-index:0; }
+    #titleOverlay > * { position:relative; z-index:1; }
     h1 { font-size:36px; margin:0 0 2px; letter-spacing:4px; color:#c8ff00; text-shadow:0 0 20px #c8ff00, 0 0 5px #fff; }
     h2 { font-size:26px; margin:0 0 4px; letter-spacing:4px; color:#ff2d2d; text-shadow:0 0 14px #ff2d2d; }
     .sub  { font-size:11px; letter-spacing:4px; color:#888; margin-bottom:10px; }
@@ -83,6 +85,8 @@ var imgTourvan  = new Image(); imgTourvan.src  = ASSET_BASE+'tourvan.png';
 var imgRoad     = new Image(); imgRoad.src     = ASSET_BASE+'road_tile.png';
 var imgWater    = new Image(); imgWater.src    = ASSET_BASE+'water_new.png';
 var imgDock     = new Image(); imgDock.src     = ASSET_BASE+'dock_tile.png';
+var imgTitleArt = new Image(); imgTitleArt.src = ASSET_BASE+'title_art.jpg';
+var imgGameBg   = new Image(); imgGameBg.src   = ASSET_BASE+'game_bg.jpg';
 
 // Track load state
 var spritesLoaded = 0;
@@ -241,7 +245,12 @@ function moveLanes(){
 }
 
 function drawBg(){
-  ctx.fillStyle='#06000e';ctx.fillRect(0,0,W,H);
+  // Base: game background image or solid fallback
+  if(imgGameBg.complete&&imgGameBg.naturalWidth>0){
+    ctx.drawImage(imgGameBg,0,0,W,H);
+  } else {
+    ctx.fillStyle='#06000e';ctx.fillRect(0,0,W,H);
+  }
 
   // Goal zone rows 12-13 — dock texture
   if(spritesReady&&imgDock.complete&&imgDock.naturalWidth>0){
