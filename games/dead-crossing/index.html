@@ -93,14 +93,11 @@ var spritesReady  = false;
 // Side-profile row: y=284, h=142, 3 vehicles at x=160,320,480 each w=160
 // Top-down rows: y=0 and y=142, 3 per row, each ~213x142
 var V = {
-  // side-profile cars for road lanes — 3 variants
-  car0:   {sx:160, sy:284, sw:160, sh:142},  // small car
-  car1:   {sx:320, sy:284, sw:160, sh:142},  // mid car
-  car2:   {sx:480, sy:284, sw:160, sh:142},  // big car / truck
-  // top-down for variety on odd lanes
-  td0:    {sx:0,   sy:0,   sw:213, sh:142},
-  td1:    {sx:213, sy:0,   sw:213, sh:142},
-  td2:    {sx:426, sy:0,   sw:160, sh:142},
+  // side-profile row: y=214, h=106, 4 vehicles at x=0,160,320,480 each w=160
+  car0:   {sx:0,   sy:214, sw:160, sh:106},  // small van (facing left)
+  car1:   {sx:160, sy:214, sw:160, sh:106},  // utility truck
+  car2:   {sx:320, sy:214, sw:160, sh:106},  // delivery van
+  car3:   {sx:480, sy:214, sw:160, sh:106},  // fire truck (facing right)
 };
 
 // logs.png 550x366 — 4 rows h≈91 each
@@ -109,9 +106,9 @@ var V = {
 // Row 2: 3 medium logs
 // Row 3: 4 short logs
 var L = {
-  long:   {sx:0,   sy:0,   sw:550, sh:91},
-  medium: {sx:0,   sy:183, sw:270, sh:91},
-  short:  {sx:280, sy:91,  sw:180, sh:91},
+  long:   {sx:0,   sy:0,  sw:550, sh:91},  // row 0: single full-width log
+  medium: {sx:0,   sy:91, sw:330, sh:91},  // row 1: left (longer) log
+  short:  {sx:330, sy:91, sw:165, sh:91},  // row 1: right (shorter) log
 };
 
 // band.png 512x341 — 4 characters, each 128x341
@@ -125,7 +122,7 @@ var BAND_FRAMES = [
 var BAND_NAMES = ['VOX','BONECRUSH','RIFF-ROT','TAZ'];
 
 // tourvan.png 480x320 — single van, transparent bg
-var TOURVAN_W = 160, TOURVAN_H = Math.round(320 * 160/480); // ≈107px tall
+var TOURVAN_W = 120, TOURVAN_H = Math.round(320 * 120/480); // ≈107px tall
 
 // ── Row types ──
 var ROW_TYPES = ['start','road','road','road','road','road','median','water','water','water','water','water','goal_safe','goal'];
@@ -137,7 +134,7 @@ var LANES = [
   null,
   { sprKey:'car0', tint:'rgba(200,0,40,0.35)',  size:GRID*2.2, speed:-1.4, spacing:[3,5]   },
   { sprKey:'car1', tint:'rgba(20,80,220,0.35)', size:GRID*1.4, speed: 2.0, spacing:[4,3,6] },
-  { sprKey:'car2', tint:'rgba(140,60,0,0.35)',  size:GRID*3.5, speed:-1.0, spacing:[4]     },
+  { sprKey:'car3', tint:'rgba(140,60,0,0.35)',  size:GRID*3.5, speed:-1.0, spacing:[4]     },
   { sprKey:'car1', tint:'rgba(180,120,0,0.35)', size:GRID*1.4, speed: 1.6, spacing:[3,4]   },
   { sprKey:'car0', tint:'rgba(80,0,100,0.35)',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },
   null,
@@ -152,7 +149,7 @@ var LANES = [
 
 // Sprite rect lookup
 var SPRITE_RECTS = {
-  car0: V.car0, car1: V.car1, car2: V.car2,
+  car0: V.car0, car1: V.car1, car2: V.car2, car3: V.car3,
   log_l: L.long, log_m: L.medium, log_s: L.short,
 };
 
