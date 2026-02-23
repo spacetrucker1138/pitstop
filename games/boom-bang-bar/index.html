@@ -111,7 +111,7 @@ var PROJ_CLIPS=[
   {sx:587,sy:444,sw:96, sh:204}
 ];
 
-var AMP_POS=[65,160,255,455,545,610];
+var AMP_POS=[65,160,255,440,545,610];
 var C={accent:'#ff6600',note:'#c8ff00',red:'#ff2d2d',bone:'#e8dcc8',dark:'#1a0a00',dim:'#555'};
 
 // ─── IMAGES ───────────────────────────────────────────────────────────────────
@@ -383,7 +383,6 @@ function gameLoop(ts){
   raf=requestAnimationFrame(gameLoop);
   ctx.clearRect(0,0,W,H);
   drawBackground();
-  drawBand(ts);
 
   // Spawn
   if(ts-lastSpawn>spawnInterval){
@@ -512,18 +511,26 @@ function triggerGameOver(){
 (function(){
   var tc=document.getElementById('titleCard'), tctx=tc.getContext('2d');
   var tw=tc.width, th=tc.height;
-  var bg=tctx.createLinearGradient(0,0,tw,th);
-  bg.addColorStop(0,'#200800'); bg.addColorStop(1,'#3a1500');
-  tctx.fillStyle=bg; tctx.fillRect(0,0,tw,th);
-  [['rgba(255,80,0,0.18)',55],['rgba(255,200,0,0.14)',155],['rgba(255,80,0,0.18)',260]].forEach(function(p){
-    tctx.save(); tctx.fillStyle=p[0];
-    tctx.beginPath(); tctx.moveTo(p[1],0); tctx.lineTo(p[1]-40,th); tctx.lineTo(p[1]+40,th);
-    tctx.closePath(); tctx.fill(); tctx.restore();
-  });
-  tctx.fillStyle='#5c3010'; tctx.fillRect(0,th*0.78,tw,th*0.22);
-  tctx.font='bold 13px "Courier New"'; tctx.textAlign='center';
-  tctx.fillStyle='#ff6600'; tctx.shadowColor='#ff6600'; tctx.shadowBlur=10;
-  tctx.fillText('THE BANG BOOM BAR',tw/2,th-8);
+  // Draw concert art background
+  var tcImg=new Image();
+  tcImg.onload=function(){
+    tctx.drawImage(tcImg,0,0,tw,th);
+    // Subtle dark overlay so title text pops
+    tctx.fillStyle='rgba(0,0,0,0.38)'; tctx.fillRect(0,0,tw,th);
+    tctx.font='bold 13px "Courier New"'; tctx.textAlign='center';
+    tctx.fillStyle='#ff6600'; tctx.shadowColor='#ff6600'; tctx.shadowBlur=12;
+    tctx.fillText('THE BANG BOOM BAR',tw/2,th-8);
+  };
+  tcImg.onerror=function(){
+    // Fallback: procedural gradient
+    var bg=tctx.createLinearGradient(0,0,tw,th);
+    bg.addColorStop(0,'#200800'); bg.addColorStop(1,'#3a1500');
+    tctx.fillStyle=bg; tctx.fillRect(0,0,tw,th);
+    tctx.font='bold 13px "Courier New"'; tctx.textAlign='center';
+    tctx.fillStyle='#ff6600'; tctx.shadowColor='#ff6600'; tctx.shadowBlur=10;
+    tctx.fillText('THE BANG BOOM BAR',tw/2,th-8);
+  };
+  tcImg.src='assets/title-card.png';
 })();
 
 // ─── INITIAL STATIC RENDER ────────────────────────────────────────────────────
