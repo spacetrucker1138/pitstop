@@ -360,6 +360,72 @@
       to { opacity: 1; transform: none; }
     }
 
+
+    /* ── SCROLL ARROWS ── */
+    .shelf-scroller {
+      position: relative;
+    }
+
+    .scroll-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      width: 48px;
+      height: 80px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(10, 5, 20, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #fff;
+      font-size: 2.4rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      opacity: 0.85;
+      padding: 0;
+    }
+
+    .scroll-arrow:hover {
+      background: rgba(168, 85, 247, 0.3);
+      border-color: rgba(168, 85, 247, 0.5);
+      opacity: 1;
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .scroll-arrow:active {
+      transform: translateY(-50%) scale(0.97);
+    }
+
+    .scroll-left {
+      left: -20px;
+    }
+
+    .scroll-right {
+      right: -20px;
+    }
+
+    .scroll-arrow.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 700px) {
+      .scroll-left { left: 0; }
+      .scroll-right { right: 0; }
+      .scroll-arrow {
+        width: 36px;
+        height: 60px;
+        font-size: 1.8rem;
+        background: rgba(10, 5, 20, 0.9);
+      }
+    }
+
   </style>
 </head>
 
@@ -403,7 +469,9 @@
       <span class="shelf-label">New Arrivals</span>
       <span class="shelf-sublabel">Just dropped</span>
     </div>
-    <div class="shelf-row">
+        <div class="shelf-scroller">
+      <button class="scroll-arrow scroll-left" onclick="scrollShelf(this,-1)">&#8249;</button>
+      <div class="shelf-row">
       <a href="games/tarot/" class="shelf-card">
         <div class="shelf-thumb">
           <img src="assets/tarot-game/splash.jpg" alt="TRASH QUEEN TAROT" loading="lazy">
@@ -477,6 +545,9 @@
         </div>
       </a>
     </div>
+      <button class="scroll-arrow scroll-right" onclick="scrollShelf(this,1)">&#8250;</button>
+    </div>
+
   </section>
 
   <!-- ══ CLASSICS SHELF ══ -->
@@ -485,7 +556,9 @@
       <span class="shelf-label">Arcade Classics</span>
       <span class="shelf-sublabel">JURN-ified originals</span>
     </div>
-    <div class="shelf-row">
+        <div class="shelf-scroller">
+      <button class="scroll-arrow scroll-left" onclick="scrollShelf(this,-1)">&#8249;</button>
+      <div class="shelf-row">
       <a href="games/jurnbreaker/" class="shelf-card">
         <div class="shelf-thumb">
           <img src="games/jurnbreaker/jurnbreaker_card.jpg" alt="JURNBREAKER" loading="lazy">
@@ -559,6 +632,9 @@
         </div>
       </a>
     </div>
+      <button class="scroll-arrow scroll-right" onclick="scrollShelf(this,1)">&#8250;</button>
+    </div>
+
   </section>
 
 </main>
@@ -573,6 +649,36 @@
   </div>
   <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
 </footer>
+
+
+<script>
+  function scrollShelf(btn, dir) {
+    var scroller = btn.closest('.shelf-scroller');
+    var row = scroller.querySelector('.shelf-row');
+    var scrollAmt = row.clientWidth * 0.75;
+    row.scrollBy({ left: dir * scrollAmt, behavior: 'smooth' });
+    setTimeout(function() { updateArrows(scroller); }, 350);
+  }
+
+  function updateArrows(scroller) {
+    var row = scroller.querySelector('.shelf-row');
+    var leftBtn  = scroller.querySelector('.scroll-left');
+    var rightBtn = scroller.querySelector('.scroll-right');
+    if (leftBtn)  leftBtn.classList.toggle('hidden', row.scrollLeft <= 4);
+    if (rightBtn) rightBtn.classList.toggle('hidden', row.scrollLeft + row.clientWidth >= row.scrollWidth - 4);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.shelf-scroller').forEach(function(sc) {
+      var row = sc.querySelector('.shelf-row');
+      updateArrows(sc);
+      row.addEventListener('scroll', function() { updateArrows(sc); });
+      // Hide left arrow initially
+      var leftBtn = sc.querySelector('.scroll-left');
+      if (leftBtn) leftBtn.classList.add('hidden');
+    });
+  });
+</script>
 
 </body>
 </html>
