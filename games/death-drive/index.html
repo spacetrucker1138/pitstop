@@ -994,7 +994,7 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
-      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * (window.vanRenderScale||1.0);
+      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * (window.vanRenderScale||1.0) * 0.75; // 25% hitbox reduction
       var speedPercent  = speed/maxSpeed;
       AudioEngine.setEngineSpeed(speedPercent);
       var dx            = dt * 2 * speedPercent; // at top speed, should be able to cross from left to right (-1 to 1) in 1 second
@@ -1040,7 +1040,7 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
 
       for(n = 0 ; n < playerSegment.cars.length ; n++) {
         car  = playerSegment.cars[n];
-        carW = car.sprite.w * SPRITES.SCALE;
+        carW = car.sprite.w * SPRITES.SCALE * 0.75; // 25% hitbox reduction
         if (speed > car.speed) {
           if (Util.overlap(playerX, playerW, car.offset, carW, 0.8)) {
             AudioEngine.playCollision();
