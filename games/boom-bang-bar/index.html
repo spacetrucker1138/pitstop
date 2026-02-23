@@ -363,9 +363,14 @@ function drawNote(x,y,r){
 function drawProjectile(x,y,type,wobble){
   ctx.save();
   ctx.translate(x,y); ctx.rotate(wobble);
-  var img=throwImgs[type%throwImgs.length];
+  var idx=type%throwImgs.length;
+  var img=throwImgs[idx];
   if(img && img.complete && img.naturalWidth>0){
-    var dh=36, dw=Math.round(dh*img.naturalWidth/img.naturalHeight);
+    // Per-sprite size overrides: baseball1(-20%), bottle1/2/3(+50%)
+    var dh=36;
+    if(idx===1) dh=Math.round(36*0.80);          // baseball1
+    else if(idx===2||idx===3||idx===4) dh=Math.round(36*1.50); // bottles
+    var dw=Math.round(dh*img.naturalWidth/img.naturalHeight);
     ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
   } else {
     // Fallback: pill shape
