@@ -124,7 +124,7 @@ miscImg.src='assets/misc-sprites.png';
 
 var bgVideo=document.getElementById('bgVideo');
 var bgVideoReady=false;
-bgVideo.addEventListener('canplay',function(){bgVideoReady=true;});
+bgVideo.addEventListener('canplay',function(){bgVideoReady=true;bgVideo.play().catch(function(){});});
 
 // ─── AUDIO ────────────────────────────────────────────────────────────────────
 var AudioCtx=window.AudioContext||window.webkitAudioContext;
