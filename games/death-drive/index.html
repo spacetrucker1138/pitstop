@@ -1092,6 +1092,24 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
       for(n = 0 ; n < cars.length ; n++) {
         car         = cars[n];
         oldSegment  = findSegment(car.z);
+        // Lane changing — 10% chance per car, on a cooldown timer
+        car.laneTimer = (car.laneTimer || 0) - dt;
+        if (car.laneTimer <= 0) {
+          if (Math.random() < 0.10) {
+            var lanes = [-0.65, -0.33, 0.33, 0.65];
+            // pick a lane that's meaningfully different from where we are
+            var farLanes = lanes.filter(function(l) { return Math.abs(l - car.offset) > 0.25; });
+            if (farLanes.length > 0)
+              car.laneTarget = farLanes[Math.floor(Math.random() * farLanes.length)];
+          }
+          car.laneTimer = 4 + Math.random() * 4; // 4–8s cooldown
+        }
+        // Drift toward laneTarget
+        if (car.laneTarget !== undefined) {
+          var diff = car.laneTarget - car.offset;
+          if (Math.abs(diff) > 0.01)
+            car.offset += diff * Math.min(0.04, Math.abs(diff)); // gentle drift, faster when far
+        }
         car.offset  = car.offset + updateCarOffset(car, oldSegment, playerSegment, playerW);
         car.z       = Util.increase(car.z, dt * car.speed, trackLength);
         car.percent = Util.percentRemaining(car.z, segmentLength); // useful for interpolation during rendering phase
@@ -1456,7 +1474,7 @@ SPRITES.CARS_R     = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES
         }
         var tintHues = [0, 30, 60, 120, 180, 210, 270, 300]; // red,orange,yellow,green,cyan,blue,purple,magenta
         var h = tintHues[Math.floor(Math.random() * tintHues.length)];
-        car = { offset: offset, z: z, sprite: sprite, typeIndex: typeIndex, speed: speed, tint: 'hsl(' + h + ',70%,52%)' };
+        car = { offset: offset, z: z, sprite: sprite, typeIndex: typeIndex, speed: speed, tint: 'hsl(' + h + ',70%,52%)' , laneTarget: offset, laneTimer: Math.random() * 5 };
         segment = findSegment(car.z);
         segment.cars.push(car);
         cars.push(car);
