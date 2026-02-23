@@ -223,9 +223,6 @@ function drawBackground(){
   ctx.textAlign='left';
 
   // Stage divider (transition strip)
-  ctx.strokeStyle='#8B5e3c'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(0,CROWD_BOT); ctx.lineTo(W,CROWD_BOT); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,STAGE_TOP);  ctx.lineTo(W,STAGE_TOP);  ctx.stroke();
 
   // Wooden stage planks
   for(var py=STAGE_TOP; py<STAGE_BOT; py+=14){
@@ -488,8 +485,6 @@ function triggerGameOver(){
     tctx.beginPath(); tctx.arc(bx+2.5,th*0.33,2,0,Math.PI*2); tctx.fill();
   });
   tctx.fillStyle='#5c3010'; tctx.fillRect(0,th*0.78,tw,th*0.22);
-  tctx.strokeStyle='#8B5e3c'; tctx.lineWidth=2;
-  tctx.beginPath(); tctx.moveTo(0,th*0.78); tctx.lineTo(tw,th*0.78); tctx.stroke();
   tctx.font='bold 13px "Courier New"'; tctx.textAlign='center';
   tctx.fillStyle='#ff6600'; tctx.shadowColor='#ff6600'; tctx.shadowBlur=10;
   tctx.fillText('THE BANG BOOM BAR',tw/2,th-8);
