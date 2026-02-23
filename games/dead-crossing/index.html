@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dead Crossing – JURN Arcade</title>
+  <meta charset="UTF-8">
+  <style>
+    html, body { height:100%; margin:0; background:#000; display:flex; align-items:center; justify-content:center; font-family:'Courier New',monospace; }
+    #wrapper { position:relative; width:480px; height:560px; overflow:hidden; }
+    canvas { display:block; }
+    #titleOverlay, #gameOverOverlay {
+      display:none; position:absolute; top:0; left:0; width:480px; height:560px;
+      flex-direction:column; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.85); color:#c8ff00; text-align:center; z-index:10;
+    }
+    #titleOverlay { display:flex; }
+    h1 { font-size:44px; margin:0 0 4px; letter-spacing:5px; color:#c8ff00; text-shadow:0 0 20px #c8ff00, 0 0 5px #fff; }
+    h2 { font-size:28px; margin:0 0 4px; letter-spacing:4px; color:#ff2d2d; text-shadow:0 0 14px #ff2d2d; }
+    .sub { font-size:12px; letter-spacing:4px; color:#888; margin-bottom:14px; }
+    .press-key { font-size:13px; letter-spacing:3px; color:#c8ff00; animation:blink 1s step-end infinite; margin-top:12px; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .lb-title { font-size:11px; letter-spacing:3px; color:#888; margin:14px 0 5px; }
+    .lb-row { font-size:12px; color:#c8ff00; letter-spacing:2px; margin:2px 0; }
+    .go-row { font-size:13px; color:#c8ff00; letter-spacing:2px; margin:3px 0; }
+    .btn { background:transparent; border:1px solid #c8ff00; color:#c8ff00; font-family:'Courier New',monospace; font-size:12px; letter-spacing:3px; padding:7px 20px; cursor:pointer; margin-top:9px; }
+    .btn:hover { background:rgba(200,255,0,0.15); }
+    .initials-label { font-size:11px; letter-spacing:3px; color:#888; margin:9px 0 5px; }
+    .initials-input { background:transparent; border-bottom:2px solid #c8ff00; color:#c8ff00; font-family:'Courier New',monospace; font-size:20px; letter-spacing:8px; width:76px; text-align:center; outline:none; }
+  </style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="game" width="480" height="560"></canvas>
+
+  <!-- TITLE -->
+  <div id="titleOverlay">
+    <h1>☠ DEAD CROSSING ☠</h1>
+    <div class="sub">A JURN ARCADE GAME</div>
+    <div class="press-key">PRESS ANY KEY TO CROSS</div>
+    <div class="lb-title">— HIGH SCORES —</div>
+    <div id="titleLb"></div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameOverOverlay">
+    <h2>DEAD END</h2>
+    <div class="go-row" id="goScore"></div>
+    <div id="goInitialsSection" style="display:none; flex-direction:column; align-items:center;">
+      <div class="initials-label">NEW HIGH SCORE — ENTER YOUR INITIALS</div>
+      <input type="text" id="goInitialsInput" class="initials-input" maxlength="3" autocomplete="off">
+      <button class="btn" id="goSubmitBtn">SUBMIT</button>
+    </div>
+    <div class="lb-title" style="margin-top:12px;">— HIGH SCORES —</div>
+    <div id="goLb"></div>
+    <button class="btn" id="playAgainBtn" style="margin-top:16px;">PLAY AGAIN</button>
+    <button class="btn" id="goTitleBtn">RETURN TO TITLE</button>
+  </div>
+</div>
+
+<script>
+// ── Firebase ──
+var FB_URL = 'https://pitstop-wall-default-rtdb.firebaseio.com/highscores/dead-crossing';
+function fbGet(cb) {
+  var x = new XMLHttpRequest();
+  x.open('GET', FB_URL + '.json');
+  x.onload = function() { cb(JSON.parse(x.responseText) || {}); };
+  x.onerror = function() { cb({}); };
+  x.send();
+}
+function fbPush(name, score) {
+  var x = new XMLHttpRequest();
+  x.open('POST', FB_URL + '.json');
+  x.setRequestHeader('Content-Type','application/json');
+  x.send(JSON.stringify({ name: name, score: score }));
+}
+function getSorted(data) {
+  return Object.values(data).filter(e => e && e.name && typeof e.score==='number')
+    .sort((a,b) => b.score - a.score).slice(0,10);
+}
+function isHighScore(score, sorted) { return sorted.length < 10 || score > sorted[sorted.length-1].score; }
+function renderLb(id, sorted, hi) {
+  var el = document.getElementById(id); if (!el) return;
+  el.innerHTML = sorted.slice(0,6).map((e,i) =>
+    '<div class="lb-row" style="' + (e.score===hi?'color:#fff;font-weight:bold;':'') + '">'
+    + (i+1) + '. ' + e.name + ' &nbsp; ' + e.score + '</div>'
+  ).join('');
+}
+function loadTitleLb() { fbGet(function(d){ renderLb('titleLb', getSorted(d), -1); }); }
+loadTitleLb();
+
+// ── Canvas ──
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d');
+var W = 480, H = 560;
+
+// Grid
+var GRID = 40;
+var ROWS = H / GRID; // 14 rows
+var COLS = W / GRID; // 12 cols
+
+// JURN colours
+var COL = {
+  skull:   '#e8dcc8',
+  road:    '#1a1a2a',
+  lava:    '#2a0018',
+  bone:    '#3d2200',
+  safe:    '#0d1a00',
+  safeL:   '#162600',
+  goal:    '#0a0f00',
+  goalL:   '#1a2200',
+  glow:    '#c8ff00',
+  red:     '#ff2d2d',
+  orange:  '#ff7700',
+  purple:  '#8a2be2',
+  dark:    '#06000e'
+};
+
+// Row layout (bottom=row 0, top=row 13)
+// row 0: start safe
+// rows 1-5: road (vehicles)
+// row 6: median safe
+// rows 7-11: lava river (floaters)
+// rows 12-13: goal bank
+var ROW_TYPES = [
+  'start',   // 0 — bottom
+  'road','road','road','road','road', // 1-5
+  'median',  // 6
+  'lava','lava','lava','lava','lava', // 7-11
+  'goal_safe', // 12
+  'goal',    // 13 — top
+];
+
+// Lane patterns — each row from bottom
+var LANES = [
+  null, // start
+  { color:'#c8002a', shape:'rect', size:GRID*2.2, speed:-1.4, spacing:[3,5], type:'hearse' },
+  { color:'#2255cc', shape:'rect', size:GRID*1.4, speed: 2.0, spacing:[4,3,6], type:'car' },
+  { color:'#aa4400', shape:'rect', size:GRID*3.5, speed:-1.0, spacing:[4], type:'truck' },
+  { color:'#cc8800', shape:'rect', size:GRID*1.4, speed: 1.6, spacing:[3,4], type:'car' },
+  { color:'#550055', shape:'rect', size:GRID*2.0, speed:-2.2, spacing:[5,3], type:'car' },
+  null, // median
+  { color:'#8a2be2', shape:'rect', size:GRID*3,   speed: 1.2, spacing:[2], type:'raft' },
+  { color:'#501050', shape:'rect', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3], type:'bone_log' },
+  { color:'#6d1a6d', shape:'rect', size:GRID*5,   speed: 1.5, spacing:[3], type:'raft' },
+  { color:'#3d0050', shape:'rect', size:GRID*2,   speed:-1.2, spacing:[2], type:'bone_log' },
+  { color:'#7a0080', shape:'rect', size:GRID*2.5, speed: 0.8, spacing:[1,2], type:'raft' },
+  null, // goal_safe
+  null, // goal
+];
+
+// ── State ──
+var frogger, scoredFroggers, rows, score, lives, phase, _lastScore;
+phase = 'title';
+
+function buildRows() {
+  rows = [];
+  for (var r = 0; r < ROWS; r++) {
+    rows[r] = [];
+    var pat = LANES[r];
+    if (!pat) continue;
+    var x = 0, idx = 0;
+    var spacing = pat.spacing;
+    var totalW = spacing.reduce((a,b)=>a+b,0)*GRID + spacing.length * pat.size;
+    var endX = 0;
+    while (endX < W) endX += totalW;
+    endX += totalW;
+    while (x < endX) {
+      rows[r].push({ x, size: pat.size, speed: pat.speed, color: pat.color, shape: pat.shape, type: pat.type, index: idx });
+      x += pat.size + spacing[idx] * GRID;
+      idx = (idx + 1) % spacing.length;
+    }
+  }
+}
+
+function initGame() {
+  score = 0; lives = 3; phase = 'playing';
+  scoredFroggers = [];
+  buildRows();
+  resetFrogger();
+}
+
+function resetFrogger() {
+  frogger = { x: GRID * 5, y: GRID * 0, speed: 0 };
+}
+
+// ── AUDIO ──
+var AudioCtx = window.AudioContext || window.webkitAudioContext;
+var actx = null;
+function ensureAudio() { if (!actx) actx = new AudioCtx(); }
+
+function playHop() {
+  ensureAudio();
+  var osc = actx.createOscillator(), g = actx.createGain();
+  osc.connect(g); g.connect(actx.destination);
+  osc.type = 'square'; osc.frequency.value = 320;
+  osc.frequency.exponentialRampToValueAtTime(600, actx.currentTime + 0.06);
+  g.gain.setValueAtTime(0.12, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
+  osc.start(); osc.stop(actx.currentTime + 0.1);
+}
+
+function playSplat() {
+  ensureAudio();
+  var buf = actx.createBuffer(1, actx.sampleRate * 0.4, actx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
+  var src = actx.createBufferSource(), g = actx.createGain();
+  src.buffer = buf; src.connect(g); g.connect(actx.destination);
+  g.gain.setValueAtTime(0.5, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.4);
+  src.start(); src.stop(actx.currentTime + 0.45);
+}
+
+function playScore() {
+  ensureAudio();
+  [440,550,660].forEach(function(f, i) {
+    var osc = actx.createOscillator(), g = actx.createGain();
+    osc.connect(g); g.connect(actx.destination);
+    osc.frequency.value = f; osc.type = 'square';
+    g.gain.setValueAtTime(0, actx.currentTime + i*0.08);
+    g.gain.linearRampToValueAtTime(0.15, actx.currentTime + i*0.08 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i*0.08 + 0.12);
+    osc.start(actx.currentTime + i*0.08);
+    osc.stop(actx.currentTime + i*0.08 + 0.15);
+  });
+}
+
+// ── DRAW ──
+function rowY(r) { return H - (r + 1) * GRID; }
+
+function drawBg() {
+  // sky (top)
+  ctx.fillStyle = '#06000e'; ctx.fillRect(0,0,W,H);
+
+  // goal bank (rows 12-13)
+  ctx.fillStyle = COL.goal;
+  ctx.fillRect(0, rowY(13), W, GRID*2);
+  // goal highlights
+  ctx.fillStyle = COL.goalL;
+  for (var g=0; g<4; g++) {
+    ctx.fillRect(GRID*0.5 + g*GRID*3, rowY(13) + GRID*0.25, GRID*2, GRID*0.5);
+  }
+  // goal line glow
+  ctx.strokeStyle = COL.glow; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, rowY(12)+GRID); ctx.lineTo(W, rowY(12)+GRID); ctx.stroke();
+
+  // goal safe (row 12)
+  ctx.fillStyle = COL.safeL;
+  ctx.fillRect(0, rowY(12), W, GRID);
+
+  // lava river (rows 7-11)
+  for (var r=7; r<=11; r++) {
+    var t = (Date.now() / 4000 + r * 0.3) % 1;
+    var lgrad = ctx.createLinearGradient(0, rowY(r), 0, rowY(r)+GRID);
+    lgrad.addColorStop(0, '#2a0008');
+    lgrad.addColorStop(0.5, '#4a0018');
+    lgrad.addColorStop(1, '#1a0008');
+    ctx.fillStyle = lgrad;
+    ctx.fillRect(0, rowY(r), W, GRID);
+  }
+  // lava shimmer
+  ctx.fillStyle = 'rgba(255,40,0,0.06)';
+  for (var s=0; s<6; s++) {
+    ctx.fillRect(s*80 + (Date.now()/40 % 80), rowY(7), 24, GRID*5);
+  }
+
+  // median (row 6)
+  ctx.fillStyle = COL.safeL;
+  ctx.fillRect(0, rowY(6), W, GRID);
+  // skull row decoration
+  ctx.fillStyle = 'rgba(200,255,0,0.12)';
+  for (var m=0; m<12; m++) ctx.fillRect(m*GRID + 14, rowY(6)+8, 12, 24);
+
+  // road rows (1-5)
+  for (var rd=1; rd<=5; rd++) {
+    ctx.fillStyle = rd%2===0 ? '#131320' : '#181828';
+    ctx.fillRect(0, rowY(rd), W, GRID);
+    // lane dashes
+    ctx.strokeStyle = 'rgba(200,255,0,0.08)'; ctx.lineWidth = 1;
+    ctx.setLineDash([16,12]);
+    ctx.beginPath(); ctx.moveTo(0, rowY(rd)+GRID); ctx.lineTo(W, rowY(rd)+GRID); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // start (row 0)
+  ctx.fillStyle = COL.safe;
+  ctx.fillRect(0, rowY(0), W, GRID);
+
+  // HUD
+  ctx.fillStyle = COL.glow;
+  ctx.font = 'bold 13px "Courier New"';
+  ctx.fillText('SCORE: ' + score, 8, 16);
+  ctx.fillText('LIVES: ' + lives, W - 88, 16);
+}
+
+function drawVehicle(spr) {
+  ctx.save();
+  var y = rowY(0); // will use spr.y set below
+  // actual y stored on sprite
+  ctx.fillStyle = spr.color;
+  var ry = spr._y !== undefined ? spr._y : rowY(0);
+
+  if (spr.type === 'hearse') {
+    // hearse: dark with roof cross
+    ctx.fillRect(spr.x, ry + 4, spr.size, GRID - 8);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(spr.x + spr.size*0.5 - 2, ry + 6, 4, 12);
+    ctx.fillRect(spr.x + spr.size*0.5 - 6, ry + 10, 12, 4);
+  } else if (spr.type === 'truck') {
+    ctx.fillRect(spr.x, ry + 3, spr.size, GRID - 6);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(spr.x + 4, ry + 8, spr.size - 8, GRID - 18);
+    // JURN text
+    ctx.fillStyle = COL.glow;
+    ctx.font = 'bold 8px "Courier New"';
+    ctx.fillText('JURN', spr.x + spr.size*0.35, ry + GRID*0.55);
+  } else if (spr.type === 'raft') {
+    // bone raft on lava
+    ctx.fillStyle = '#3a1a00';
+    ctx.fillRect(spr.x, ry + 8, spr.size, GRID - 16);
+    ctx.fillStyle = '#d4c090';
+    for (var i=0; i<Math.floor(spr.size/GRID); i++) {
+      ctx.fillRect(spr.x + i*GRID + 4, ry + 10, GRID - 8, GRID - 20);
+    }
+  } else if (spr.type === 'bone_log') {
+    ctx.fillStyle = '#4a2800';
+    ctx.fillRect(spr.x, ry + 10, spr.size, GRID - 20);
+    ctx.fillStyle = '#c8a870';
+    ctx.fillRect(spr.x + 2, ry + 12, spr.size - 4, GRID - 24);
+    // bone knobs
+    ctx.fillStyle = '#e8d0a0';
+    ctx.beginPath(); ctx.arc(spr.x + 10, ry + GRID/2, 8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(spr.x + spr.size - 10, ry + GRID/2, 8, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillRect(spr.x, ry + 4, spr.size, GRID - 8);
+    // windows
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(spr.x + 4, ry + 7, spr.size * 0.35, GRID - 16);
+  }
+  ctx.restore();
+}
+
+function drawFrogger(x, y) {
+  var cx = x + GRID/2, cy = y + GRID/2;
+  ctx.save();
+  // skull body
+  ctx.fillStyle = COL.skull;
+  ctx.beginPath(); ctx.arc(cx, cy - 2, GRID*0.34, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(cx - GRID*0.22, cy + GRID*0.04, GRID*0.44, GRID*0.28);
+  // eyes
+  ctx.fillStyle = '#1a0030';
+  ctx.beginPath(); ctx.arc(cx - 5, cy - 5, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 5, cy - 5, 4, 0, Math.PI*2); ctx.fill();
+  // nose
+  ctx.beginPath(); ctx.arc(cx, cy - 1, 2, 0, Math.PI*2); ctx.fill();
+  // denim vest
+  ctx.fillStyle = '#2244aa';
+  ctx.fillRect(cx - GRID*0.18, cy + GRID*0.14, GRID*0.36, GRID*0.2);
+  ctx.restore();
+}
+
+// ── GAME LOOP ──
+var raf;
+function gameLoop() {
+  if (phase !== 'playing') return;
+  raf = requestAnimationFrame(gameLoop);
+
+  ctx.clearRect(0,0,W,H);
+  drawBg();
+
+  // update + draw lanes
+  for (var r = 0; r < ROWS; r++) {
+    var pat = LANES[r];
+    if (!pat) continue;
+    var row = rows[r];
+    for (var i = 0; i < row.length; i++) {
+      var spr = row[i];
+      spr.x += spr.speed;
+      spr._y = rowY(r);
+      drawVehicle(spr);
+
+      // wrap
+      if (spr.speed < 0 && spr.x < -spr.size) {
+        var rightmost = row.reduce(function(a,b){ return b.x > a.x ? b : a; });
+        var sp = pat.spacing;
+        spr.x = rightmost.x + rightmost.size + sp[rightmost.index] * GRID;
+        spr.index = (rightmost.index + 1) % sp.length;
+      }
+      if (spr.speed > 0 && spr.x > W) {
+        var leftmost = row.reduce(function(a,b){ return b.x < a.x ? b : a; });
+        var sp = pat.spacing;
+        var idx2 = leftmost.index - 1; if (idx2 < 0) idx2 = sp.length - 1;
+        spr.x = leftmost.x - sp[idx2] * GRID - spr.size;
+        spr.index = idx2;
+      }
+    }
+  }
+
+  // move frogger with log
+  frogger.x += frogger.speed;
+  frogger.speed = 0;
+
+  // draw scored skulls (goal slots)
+  scoredFroggers.forEach(function(sf) { drawFrogger(sf.x, sf.y); });
+
+  // draw frogger
+  var fy = rowY(frogger.y);
+  drawFrogger(frogger.x, fy);
+
+  // collision
+  var fr = frogger.y;
+  var collision = false;
+  if (rows[fr]) {
+    for (var i = 0; i < rows[fr].length; i++) {
+      var spr = rows[fr][i];
+      if (frogger.x < spr.x + spr.size - 4 &&
+          frogger.x + GRID - 4 > spr.x) {
+        collision = true;
+        var rtype = ROW_TYPES[fr];
+        if (rtype === 'road') {
+          // splat
+          playSplat();
+          loseLife(); return;
+        } else if (rtype === 'lava') {
+          // riding floater
+          frogger.speed = spr.speed;
+        }
+      }
+    }
+  }
+
+  if (!collision) {
+    var rtype = ROW_TYPES[fr];
+    if (rtype === 'lava') {
+      playSplat(); loseLife(); return;
+    }
+  }
+
+  // clamp
+  if (frogger.x < 0) frogger.x = 0;
+  if (frogger.x > W - GRID) frogger.x = W - GRID;
+
+  // reached goal
+  if (frogger.y === ROWS - 1) {
+    var col = Math.floor((frogger.x + GRID/2) / GRID);
+    var slotX = Math.floor(col / 3) * GRID * 3 + GRID;
+    if (!scoredFroggers.find(function(sf){ return sf.x === slotX; })) {
+      scoredFroggers.push({ x: slotX, y: ROWS - 1 });
+      score += 200;
+      playScore();
+    }
+    resetFrogger();
+    if (scoredFroggers.length >= 4) {
+      // all slots filled — bonus + reset
+      score += 1000;
+      scoredFroggers = [];
+    }
+  }
+}
+
+function loseLife() {
+  lives--;
+  if (lives <= 0) { triggerGameOver(); return; }
+  resetFrogger();
+  gameLoop();
+}
+
+// ── GAME OVER ──
+function triggerGameOver() {
+  if (phase === 'gameover') return;
+  phase = 'gameover';
+  cancelAnimationFrame(raf);
+  _lastScore = score;
+
+  fbGet(function(data) {
+    var sorted = getSorted(data);
+    document.getElementById('goScore').textContent = 'FINAL SCORE: ' + score;
+
+    if (isHighScore(score, sorted)) {
+      var initSec = document.getElementById('goInitialsSection');
+      initSec.style.display = 'flex';
+      var inp = document.getElementById('goInitialsInput');
+      inp.value = '';
+      setTimeout(function(){ inp.focus(); }, 80);
+      function submitScore() {
+        if (document.activeElement && document.activeElement.tagName==='INPUT' && inp.value.trim().length===0) return;
+        var name = inp.value.trim().toUpperCase().slice(0,3) || 'AAA';
+        fbPush(name, score);
+        initSec.style.display = 'none';
+        fbGet(function(d2){ renderLb('goLb', getSorted(d2), score); });
+      }
+      document.getElementById('goSubmitBtn').onclick = submitScore;
+      inp.onkeydown = function(e){ if(e.key==='Enter') submitScore(); };
+    } else {
+      renderLb('goLb', sorted, score);
+    }
+    document.getElementById('gameOverOverlay').style.display = 'flex';
+  });
+}
+
+// ── CONTROLS ──
+document.addEventListener('keydown', function(e) {
+  // title dismiss
+  if (phase === 'title') {
+    ensureAudio();
+    document.getElementById('titleOverlay').style.display = 'none';
+    initGame();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+  if (phase !== 'playing') return;
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
+  if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { frogger.x -= GRID; playHop(); }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { frogger.x += GRID; playHop(); }
+  if (e.key === 'ArrowUp'    || e.key === 'w' || e.key === 'W') { if (frogger.y < ROWS-1) frogger.y++; playHop(); }
+  if (e.key === 'ArrowDown'  || e.key === 's' || e.key === 'S') { if (frogger.y > 0) frogger.y--; playHop(); }
+
+  frogger.x = Math.min(Math.max(0, frogger.x), W - GRID);
+});
+
+// ── PLAY AGAIN ──
+document.getElementById('playAgainBtn').addEventListener('click', function() {
+  document.getElementById('gameOverOverlay').style.display = 'none';
+  initGame();
+  requestAnimationFrame(gameLoop);
+});
+
+// ── RETURN TO TITLE ──
+document.getElementById('goTitleBtn').addEventListener('click', function() {
+  document.getElementById('gameOverOverlay').style.display = 'none';
+  loadTitleLb();
+  document.getElementById('titleOverlay').style.display = 'flex';
+  phase = 'title';
+});
+
+// idle bg draw
+(function() {
+  ctx.fillStyle = '#06000e'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = COL.safeL; ctx.fillRect(0, rowY(0), W, GRID);
+})();
+
+phase = 'title';
+</script>
+</body>
+</html>
