@@ -297,7 +297,7 @@ var AudioEngine = (function() {
     <h1>DEATH DRIVE</h1>
     <div class="sub">A JURN ARCADE GAME</div>
     <div class="press-key">PRESS ANY KEY TO RACE</div>
-    <div id="titleLbHeader">— FASTEST LAPS —</div>
+    <div id="titleLbHeader">— FASTEST RACES —</div>
     <div id="titleLeaderboard"></div>
   </div>
   <div id="endOverlay">
@@ -1586,10 +1586,10 @@ Game.run({
   const hsRef = firebase.database().ref('highscores/death-drive');
   let cachedScores = [];
 
-  hsRef.orderByChild('lapTime').limitToFirst(10).on('value', snap => {
+  hsRef.orderByChild('raceTime').limitToFirst(10).on('value', snap => {
     const data = snap.val();
     // lower lap time = better; sort ascending
-    cachedScores = data ? Object.values(data).sort((a, b) => a.lapTime - b.lapTime) : [];
+    cachedScores = data ? Object.values(data).sort((a, b) => a.raceTime - b.raceTime) : [];
     updateTitleLeaderboard();
   });
 
@@ -1609,17 +1609,17 @@ Game.run({
     el.innerHTML = cachedScores.slice(0, 5).map((s, i) =>
       '<div class="title-lb-row ' + (colors[i]||'normal') + '">' +
       '<span>' + (medals[i]||((i+1)+'.')) + ' ' + (s.name||'???') + '</span>' +
-      '<span>' + fmtTime(s.lapTime) + '</span></div>'
+      '<span>' + fmtTime(s.raceTime) + '</span></div>'
     ).join('');
   }
 
-  function isHighScore(lapTime) {
+  function isHighScore(raceTime) {
     if (cachedScores.length < 10) return true;
-    return lapTime < cachedScores[cachedScores.length - 1].lapTime;
+    return raceTime < cachedScores[cachedScores.length - 1].raceTime;
   }
 
-  function saveHighScore(name, lapTime) {
-    hsRef.push({ name: name.toUpperCase().slice(0,3), lapTime: lapTime, timestamp: Date.now() });
+  function saveHighScore(name, raceTime) {
+    hsRef.push({ name: name.toUpperCase().slice(0,3), raceTime: raceTime, timestamp: Date.now() });
   }
 
   function renderLeaderboard(myTime) {
@@ -1627,9 +1627,9 @@ Game.run({
     if (!section) return;
     const colors = ['gold','silver','bronze'];
     section.innerHTML = cachedScores.slice(0, 10).map((s, i) => {
-      const isMe = s.lapTime === myTime && s.timestamp > Date.now() - 8000;
+      const isMe = s.raceTime === myTime && s.timestamp > Date.now() - 8000;
       const cls = isMe ? 'highlight' : (colors[i] || 'normal');
-      return '<div class="lb-row ' + cls + '"><span>' + (i+1) + '. ' + (s.name||'???') + '</span><span>' + fmtTime(s.lapTime) + '</span></div>';
+      return '<div class="lb-row ' + cls + '"><span>' + (i+1) + '. ' + (s.name||'???') + '</span><span>' + fmtTime(s.raceTime) + '</span></div>';
     }).join('');
     section.style.display = 'block';
   }
@@ -1679,9 +1679,7 @@ Game.run({
     document.getElementById('leaderboardSection').innerHTML = '';
 
     // Score on best lap time (lap2 or lap1 — use the faster of the two)
-    var bestLap = Math.min(lap2Time, totalTime - lap2Time);
-
-    if (isHighScore(bestLap)) {
+    if (isHighScore(totalTime)) {
       var initSec = document.getElementById('initialsSection');
       initSec.style.display = 'flex';
       var input = document.getElementById('initialsInput');
@@ -1691,14 +1689,14 @@ Game.run({
       function submitFn() {
         if (document.activeElement && document.activeElement.tagName === 'INPUT' && input.value.trim().length === 0) return;
         var name = input.value.trim().toUpperCase().slice(0,3) || 'AAA';
-        saveHighScore(name, bestLap);
+        saveHighScore(name, totalTime);
         initSec.style.display = 'none';
-        setTimeout(() => renderLeaderboard(bestLap), 600);
+        setTimeout(() => renderLeaderboard(totalTime), 600);
       }
       document.getElementById('initialsSubmit').onclick = submitFn;
       input.onkeydown = function(e) { if (e.key === 'Enter') submitFn(); };
     } else {
-      renderLeaderboard(bestLap);
+      renderLeaderboard(totalTime);
     }
 
     // Press any key to race again
