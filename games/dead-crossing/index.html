@@ -4,6 +4,7 @@
   <title>Band on the Run – JURN Arcade</title>
   <meta charset="UTF-8">
   <style>
+@import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
     html, body { height:100%; margin:0; background:#000; display:flex; align-items:center; justify-content:center; font-family:'Courier New',monospace; }
     #wrapper { position:relative; width:480px; height:560px; overflow:hidden; }
     canvas { display:block; }
@@ -77,10 +78,11 @@ var ASSET_BASE = 'assets/';
 
 var imgVehicles = new Image(); imgVehicles.src = ASSET_BASE+'vehicles_new.png';
 var imgLogs     = new Image(); imgLogs.src     = ASSET_BASE+'logs_new.png';
-var imgBand     = new Image(); imgBand.src     = ASSET_BASE+'band.png';
+var imgBand     = new Image(); imgBand.src     = ASSET_BASE+'band_new.png';
 var imgTourvan  = new Image(); imgTourvan.src  = ASSET_BASE+'tourvan.png';
 var imgRoad     = new Image(); imgRoad.src     = ASSET_BASE+'road_tile.png';
 var imgWater    = new Image(); imgWater.src    = ASSET_BASE+'water_new.png';
+var imgDock     = new Image(); imgDock.src     = ASSET_BASE+'dock_tile.png';
 
 // Track load state
 var spritesLoaded = 0;
@@ -114,13 +116,13 @@ var L = {
   short:  {sx:0, sy:160, sw:160, sh:80},  // logs_new.png row 2: short log
 };
 
-// band.png 512x341 — 4 characters, each 128x341
-// 0=Vox(blue eyes+mic), 1=Viking helmet, 2=green mohawk, 3=pink mohawk
+// band_new.png 512×128 — 4 top-down full-body sprites, each 128×128
+// 0=Vox(blue eyes+mic), 1=Bonecrush(Viking), 2=Riff-Rot(green mohawk), 3=Trash Queen(pink mohawk)
 var BAND_FRAMES = [
-  {sx:0,   sy:0, sw:128, sh:341},  // Vox
-  {sx:128, sy:0, sw:128, sh:341},  // Bonecrush (Viking)
-  {sx:256, sy:0, sw:128, sh:341},  // Riff-Rot (green mohawk)
-  {sx:384, sy:0, sw:128, sh:341},  // Trash Queen / Taz (pink mohawk)
+  {sx:0,   sy:0, sw:128, sh:128},  // Vox
+  {sx:128, sy:0, sw:128, sh:128},  // Bonecrush (Viking)
+  {sx:256, sy:0, sw:128, sh:128},  // Riff-Rot (green mohawk)
+  {sx:384, sy:0, sw:128, sh:128},  // Trash Queen
 ];
 var BAND_NAMES = ['VOX','BONECRUSH','RIFF-ROT','TAZ'];
 
@@ -241,12 +243,21 @@ function moveLanes(){
 function drawBg(){
   ctx.fillStyle='#06000e';ctx.fillRect(0,0,W,H);
 
-  // Goal zone rows 12-13
-  ctx.fillStyle='#110008';ctx.fillRect(0,rowY(13),W,GRID*2);
+  // Goal zone rows 12-13 — dock texture
+  if(spritesReady&&imgDock.complete&&imgDock.naturalWidth>0){
+    var goalY=rowY(13);
+    for(var dy=0;dy<GRID*2;dy+=GRID){
+      for(var dx=0;dx<W;dx+=imgDock.naturalWidth){
+        ctx.drawImage(imgDock,dx,goalY+dy,Math.min(imgDock.naturalWidth,W-dx),GRID);
+      }
+    }
+  } else {
+    ctx.fillStyle='#3d2b1a';ctx.fillRect(0,rowY(13),W,GRID*2);
+  }
   for(var s=0;s<12;s++){var sx=(s+0.5)*(W/12),pulse=0.5+0.5*Math.sin(Date.now()/600+s*0.9);ctx.fillStyle='rgba(200,255,0,'+(0.08+pulse*0.18)+')';ctx.beginPath();ctx.arc(sx,rowY(13)+5,3,0,Math.PI*2);ctx.fill();}
 
-  // 4 cubby slots row 12 — no outlines, subtle glow on floor
-  ctx.fillStyle='#1a0a00';ctx.fillRect(0,rowY(12),W,GRID);
+  // 4 cubby slots row 12 — dock texture, subtle glow on floor
+  // (dock already drawn by goal zone above)
   var slotW=W/4;
   for(var c=0;c<4;c++){
     ctx.fillStyle='rgba(200,255,0,0.06)';
@@ -301,15 +312,24 @@ function drawBg(){
   });
   ctx.setLineDash([]);
 
-  // Start row 0
-  ctx.fillStyle='#0d1a06';ctx.fillRect(0,rowY(0),W,GRID);
+  // Start row 0 — dock/pier texture
+  if(spritesReady&&imgDock.complete&&imgDock.naturalWidth>0){
+    for(var dx=0;dx<W;dx+=imgDock.naturalWidth){
+      ctx.drawImage(imgDock,dx,rowY(0),Math.min(imgDock.naturalWidth,W-dx),GRID);
+    }
+  } else {
+    ctx.fillStyle='#3d2b1a';ctx.fillRect(0,rowY(0),W,GRID);
+  }
 
   // HUD
   ctx.fillStyle='#c8ff00';ctx.font='bold 12px "Courier New"';ctx.fillText('SCORE: '+score,8,15);
   // Mini band sprite life icons
   for(var lv=0;lv<lives;lv++) drawMiniMember(W-112+lv*28,2,memberIdx);
   // Member name
-  ctx.fillStyle='rgba(200,255,0,0.45)';ctx.font='8px "Courier New"';ctx.fillText(BAND_NAMES[memberIdx%4],8,H-4);
+  ctx.fillStyle='rgba(200,255,0,0.45)';ctx.font='bold 22px Creepster, "Courier New"';
+  ctx.fillStyle='#ff3a1a';ctx.strokeStyle='#000';ctx.lineWidth=3;
+  ctx.strokeText(BAND_NAMES[memberIdx%4],10,H-8);
+  ctx.fillText(BAND_NAMES[memberIdx%4],10,H-8);
 }
 
 // ── Tour van (sprite if loaded, canvas fallback) ──
@@ -377,13 +397,11 @@ function drawLaneSprites(){
 function drawMember(x,y,idx){
   var frame=BAND_FRAMES[idx%4];
   if(spritesReady&&imgBand.complete&&imgBand.naturalWidth>0){
-    // band.png has white background — key it out
-    // Draw to offscreen, then use threshold keying
-    var sprW=GRID, sprH=GRID;
-    // Direct draw with white as bg — use destination-out trick
+    // band_new.png — transparent PNG, draw directly (bigger: 1.5×GRID)
+    var sprW=Math.round(GRID*1.5), sprH=Math.round(GRID*1.5);
+    var ox=Math.round((sprW-GRID)/2), oy=Math.round((sprH-GRID)/2);
     ctx.save();
-    // Step 1: draw sprite
-    ctx.drawImage(imgBand,frame.sx,frame.sy,frame.sw,frame.sh,x,y,sprW,sprH);
+    ctx.drawImage(imgBand,frame.sx,frame.sy,frame.sw,frame.sh,x-ox,y-oy,sprW,sprH);
     ctx.restore();
     return;
   }
