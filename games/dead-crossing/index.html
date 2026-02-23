@@ -76,11 +76,11 @@ var W=480, H=560, GRID=40, ROWS=14, COLS=12;
 var ASSET_BASE = 'assets/';
 
 var imgVehicles = new Image(); imgVehicles.src = ASSET_BASE+'vehicles_new.png';
-var imgLogs     = new Image(); imgLogs.src     = ASSET_BASE+'logs.png';
+var imgLogs     = new Image(); imgLogs.src     = ASSET_BASE+'logs_new.png';
 var imgBand     = new Image(); imgBand.src     = ASSET_BASE+'band.png';
 var imgTourvan  = new Image(); imgTourvan.src  = ASSET_BASE+'tourvan.png';
 var imgRoad     = new Image(); imgRoad.src     = ASSET_BASE+'road_tile.png';
-var imgWater    = new Image(); imgWater.src    = ASSET_BASE+'water_tile.png';
+var imgWater    = new Image(); imgWater.src    = ASSET_BASE+'water_new.png';
 
 // Track load state
 var spritesLoaded = 0;
@@ -109,9 +109,9 @@ var V = {
 // Row 2: 3 medium logs
 // Row 3: 4 short logs
 var L = {
-  long:   {sx:0,   sy:0,  sw:550, sh:91},  // row 0: single full-width log
-  medium: {sx:0,   sy:91, sw:330, sh:91},  // row 1: left (longer) log
-  short:  {sx:330, sy:91, sw:165, sh:91},  // row 1: right (shorter) log
+  long:   {sx:0, sy:0,   sw:480, sh:80},  // logs_new.png row 0: full-width log
+  medium: {sx:0, sy:80,  sw:288, sh:80},  // logs_new.png row 1: medium log
+  short:  {sx:0, sy:160, sw:160, sh:80},  // logs_new.png row 2: short log
 };
 
 // band.png 512x341 — 4 characters, each 128x341
@@ -134,11 +134,11 @@ var ROW_TYPES = ['start','road','road','road','road','road','median','water','wa
 // type codes: 'car0','car1','car2' = road vehicles; 'log_l','log_m','log_s' = logs
 var LANES = [
   null,
-  { sprKey:'car0',  size:GRID*2.2, speed:-1.4, spacing:[3,5]   },  // police (rows 1,5 — go left)
+  { sprKey:'car2',  size:GRID*2.4, speed:-1.4, spacing:[3,5]   },  // hearse (row 1 — goes left)
   { sprKey:'car3',  size:GRID*2.0, speed: 2.0, spacing:[4,3,6] },  // muscle (rows 2,4 — go right)
   { sprKey:'car1',  size:GRID*3.5, speed:-1.0, spacing:[4]     },  // firetruck (row 3 — big, goes left)
   { sprKey:'car3',  size:GRID*2.0, speed: 1.6, spacing:[3,4]   },  // muscle (rows 2,4 — go right)
-  { sprKey:'car0',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },  // police (rows 1,5 — go left)
+  { sprKey:'car0',  size:GRID*2.0, speed:-2.2, spacing:[5,3]   },  // police (row 5 — goes left)
   null,
   { sprKey:'log_l', size:GRID*3,   speed: 1.2, spacing:[2]       },
   { sprKey:'log_s', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3] },
