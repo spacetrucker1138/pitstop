@@ -117,10 +117,16 @@ var C={accent:'#ff6600',note:'#c8ff00',red:'#ff2d2d',bone:'#e8dcc8',dark:'#1a0a0
 // ─── IMAGES ───────────────────────────────────────────────────────────────────
 var bandImg=new Image(), miscImg=new Image();
 var bandReady=false, miscReady=false;
+var ampImg=new Image(), ampReady=false;
+var dampImg=new Image(), dampReady=false;
 bandImg.onload=function(){bandReady=true;};
 miscImg.onload=function(){miscReady=true;};
+ampImg.onload=function(){ampReady=true;};
+dampImg.onload=function(){dampReady=true;};
 bandImg.src='assets/band-sprites.png';
 miscImg.src='assets/misc-sprites.png';
+ampImg.src='assets/amp.png';
+dampImg.src='assets/destroyedamp.png';
 
 var bgVideo=document.getElementById('bgVideo');
 var bgVideoReady=false;
@@ -180,14 +186,36 @@ function playGlassBreak(){
 
 function playAmpDestroyed(){
   if(!audioCtx)return;
-  var osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.type='sawtooth';
-  osc.frequency.setValueAtTime(440,audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(55,audioCtx.currentTime+0.5);
-  gain.gain.setValueAtTime(0.5,audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.5);
-  osc.start(); osc.stop(audioCtx.currentTime+0.55);
+  var now=audioCtx.currentTime;
+  // Layer 1: feedback screech — high square wave ripping down
+  var osc1=audioCtx.createOscillator(), g1=audioCtx.createGain();
+  osc1.type='square';
+  osc1.frequency.setValueAtTime(880,now);
+  osc1.frequency.exponentialRampToValueAtTime(40,now+0.6);
+  g1.gain.setValueAtTime(0.4,now);
+  g1.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+  osc1.connect(g1); g1.connect(audioCtx.destination);
+  osc1.start(now); osc1.stop(now+0.65);
+  // Layer 2: low thud body impact
+  var osc2=audioCtx.createOscillator(), g2=audioCtx.createGain();
+  osc2.type='sine';
+  osc2.frequency.setValueAtTime(120,now);
+  osc2.frequency.exponentialRampToValueAtTime(25,now+0.25);
+  g2.gain.setValueAtTime(0.7,now);
+  g2.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+  osc2.connect(g2); g2.connect(audioCtx.destination);
+  osc2.start(now); osc2.stop(now+0.35);
+  // Layer 3: noise crackle burst (white noise shaped)
+  var bufLen=Math.round(audioCtx.sampleRate*0.18);
+  var buf=audioCtx.createBuffer(1,bufLen,audioCtx.sampleRate);
+  var d=buf.getChannelData(0);
+  for(var i=0;i<bufLen;i++) d[i]=(Math.random()*2-1)*(1-i/bufLen);
+  var noise=audioCtx.createBufferSource(), gn=audioCtx.createGain();
+  noise.buffer=buf;
+  gn.gain.setValueAtTime(0.35,now);
+  gn.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+  noise.connect(gn); gn.connect(audioCtx.destination);
+  noise.start(now);
 }
 
 function startBGMusic(){var el=document.getElementById('bgAudio');if(el){el.currentTime=0;el.volume=0.45;el.play().catch(function(){});}}
@@ -264,22 +292,28 @@ function drawBand(ts){
 
 // ─── DRAW AMP ─────────────────────────────────────────────────────────────────
 function drawAmp(amp){
-  if(!amp.alive)return;
   var x=amp.x, y=AMP_Y;
-  ctx.save();
-  ctx.fillStyle='#100500'; ctx.strokeStyle='#663300'; ctx.lineWidth=2;
-  ctx.fillRect(x-AMP_W/2, y-AMP_H/2, AMP_W, AMP_H);
-  ctx.strokeRect(x-AMP_W/2, y-AMP_H/2, AMP_W, AMP_H);
-  // Speaker cone
-  ctx.fillStyle='#2a1400'; ctx.beginPath(); ctx.arc(x, y-2, 13, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle='#664400'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x, y-2, 13, 0, Math.PI*2); ctx.stroke();
-  ctx.fillStyle='#3d2200'; ctx.beginPath(); ctx.arc(x, y-2, 9, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle='#1a0a00'; ctx.beginPath(); ctx.arc(x, y-2, 3.5, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle='#553300';
-  for(var di=-8;di<=8;di+=3){for(var dj=-8;dj<=8;dj+=3){if(di*di+dj*dj<75){ctx.beginPath();ctx.arc(x+di,y-2+dj,0.7,0,Math.PI*2);ctx.fill();}}}
-  ctx.fillStyle=C.accent; ctx.font='bold 6px "Courier New"'; ctx.textAlign='center';
-  ctx.fillText('JURN', x, y+AMP_H/2-3);
-  ctx.restore();
+  var dw=80, dh=54;
+  var img=amp.alive?ampImg:dampImg;
+  var imgReady=amp.alive?ampReady:dampReady;
+  if(imgReady){
+    // Draw sprite bottom-anchored at y+AMP_H/2
+    ctx.drawImage(img, x-dw/2, y-dh+AMP_H/2, dw, dh);
+  } else {
+    // Procedural fallback
+    ctx.save();
+    ctx.fillStyle=amp.alive?'#100500':'#300000';
+    ctx.strokeStyle=amp.alive?'#663300':'#550000';
+    ctx.lineWidth=2;
+    ctx.fillRect(x-AMP_W/2, y-AMP_H/2, AMP_W, AMP_H);
+    ctx.strokeRect(x-AMP_W/2, y-AMP_H/2, AMP_W, AMP_H);
+    if(!amp.alive){
+      ctx.strokeStyle='#ff2200'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x-10,y-8); ctx.lineTo(x+10,y+8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+10,y-8); ctx.lineTo(x-10,y+8); ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 // ─── DRAW NOTE ────────────────────────────────────────────────────────────────
@@ -384,9 +418,19 @@ function gameLoop(ts){
     if(dist(n.pos,n.target)<NOTE_SPD){
       n.alive=false; explosions.push({x:n.pos.x,y:n.pos.y,size:3,dir:1,alive:true,player:true});
     } else {
-      ctx.save(); ctx.strokeStyle=C.note; ctx.globalAlpha=0.4; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(n.start.x,n.start.y); ctx.lineTo(n.pos.x,n.pos.y); ctx.stroke(); ctx.restore();
-      drawNote(n.pos.x,n.pos.y,7);
+      // Stream of staggered notes along the flight path
+      ctx.save();
+      var tdx=n.pos.x-n.start.x, tdy=n.pos.y-n.start.y;
+      var tlen=Math.sqrt(tdx*tdx+tdy*tdy)||1;
+      var tux=tdx/tlen, tuy=tdy/tlen;
+      var STREAM_N=4, STREAM_GAP=20;
+      for(var si=0;si<STREAM_N;si++){
+        var frac=si*STREAM_GAP/tlen;
+        if(frac>0.92) break;
+        ctx.globalAlpha=(1-si*0.2)*0.95;
+        drawNote(n.pos.x-tux*si*STREAM_GAP, n.pos.y-tuy*si*STREAM_GAP, 7-si*0.9);
+      }
+      ctx.restore();
     }
   });
 
