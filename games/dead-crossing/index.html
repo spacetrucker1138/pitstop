@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Dead Crossing – JURN Arcade</title>
+  <title>Band on the Run – JURN Arcade</title>
   <meta charset="UTF-8">
   <style>
     html, body { height:100%; margin:0; background:#000; display:flex; align-items:center; justify-content:center; font-family:'Courier New',monospace; }
@@ -10,21 +10,23 @@
     #titleOverlay, #gameOverOverlay {
       display:none; position:absolute; top:0; left:0; width:480px; height:560px;
       flex-direction:column; align-items:center; justify-content:center;
-      background:rgba(0,0,0,0.85); color:#c8ff00; text-align:center; z-index:10;
+      background:rgba(0,0,0,0.88); color:#c8ff00; text-align:center; z-index:10;
     }
     #titleOverlay { display:flex; }
-    h1 { font-size:44px; margin:0 0 4px; letter-spacing:5px; color:#c8ff00; text-shadow:0 0 20px #c8ff00, 0 0 5px #fff; }
-    h2 { font-size:28px; margin:0 0 4px; letter-spacing:4px; color:#ff2d2d; text-shadow:0 0 14px #ff2d2d; }
-    .sub { font-size:12px; letter-spacing:4px; color:#888; margin-bottom:14px; }
-    .press-key { font-size:13px; letter-spacing:3px; color:#c8ff00; animation:blink 1s step-end infinite; margin-top:12px; }
+    h1 { font-size:36px; margin:0 0 2px; letter-spacing:4px; color:#c8ff00; text-shadow:0 0 20px #c8ff00, 0 0 5px #fff; }
+    h2 { font-size:26px; margin:0 0 4px; letter-spacing:4px; color:#ff2d2d; text-shadow:0 0 14px #ff2d2d; }
+    .sub  { font-size:11px; letter-spacing:4px; color:#888; margin-bottom:10px; }
+    .sub2 { font-size:10px; letter-spacing:2px; color:#555; margin-bottom:14px; }
+    .press-key { font-size:13px; letter-spacing:3px; color:#c8ff00; animation:blink 1s step-end infinite; margin-top:10px; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .lb-title { font-size:11px; letter-spacing:3px; color:#888; margin:14px 0 5px; }
-    .lb-row { font-size:12px; color:#c8ff00; letter-spacing:2px; margin:2px 0; }
-    .go-row { font-size:13px; color:#c8ff00; letter-spacing:2px; margin:3px 0; }
+    .lb-title { font-size:11px; letter-spacing:3px; color:#888; margin:12px 0 5px; }
+    .lb-row   { font-size:12px; color:#c8ff00; letter-spacing:2px; margin:2px 0; }
+    .go-row   { font-size:13px; color:#c8ff00; letter-spacing:2px; margin:3px 0; }
     .btn { background:transparent; border:1px solid #c8ff00; color:#c8ff00; font-family:'Courier New',monospace; font-size:12px; letter-spacing:3px; padding:7px 20px; cursor:pointer; margin-top:9px; }
     .btn:hover { background:rgba(200,255,0,0.15); }
     .initials-label { font-size:11px; letter-spacing:3px; color:#888; margin:9px 0 5px; }
     .initials-input { background:transparent; border-bottom:2px solid #c8ff00; color:#c8ff00; font-family:'Courier New',monospace; font-size:20px; letter-spacing:8px; width:76px; text-align:center; outline:none; }
+    #rosterLine { font-size:10px; letter-spacing:2px; color:#8a6; margin-bottom:6px; }
   </style>
 </head>
 <body>
@@ -33,8 +35,10 @@
 
   <!-- TITLE -->
   <div id="titleOverlay">
-    <h1>☠ DEAD CROSSING ☠</h1>
+    <h1>☠ BAND ON THE RUN ☠</h1>
     <div class="sub">A JURN ARCADE GAME</div>
+    <div id="rosterLine">VOX · TRASH QUEEN · RIFF-ROT · TAZ · BONECRUSH</div>
+    <div class="sub2">GET THE BAND TO THE TOUR BUS</div>
     <div class="press-key">PRESS ANY KEY TO CROSS</div>
     <div class="lb-title">— HIGH SCORES —</div>
     <div id="titleLb"></div>
@@ -42,7 +46,7 @@
 
   <!-- GAME OVER -->
   <div id="gameOverOverlay">
-    <h2>DEAD END</h2>
+    <h2>SHOW'S CANCELLED</h2>
     <div class="go-row" id="goScore"></div>
     <div id="goInitialsSection" style="display:none; flex-direction:column; align-items:center;">
       <div class="initials-label">NEW HIGH SCORE — ENTER YOUR INITIALS</div>
@@ -58,7 +62,7 @@
 
 <script>
 // ── Firebase ──
-var FB_URL = 'https://pitstop-wall-default-rtdb.firebaseio.com/highscores/dead-crossing';
+var FB_URL = 'https://pitstop-wall-default-rtdb.firebaseio.com/highscores/band-on-the-run';
 function fbGet(cb) {
   var x = new XMLHttpRequest();
   x.open('GET', FB_URL + '.json');
@@ -91,64 +95,67 @@ loadTitleLb();
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var W = 480, H = 560;
-
-// Grid
 var GRID = 40;
 var ROWS = H / GRID; // 14 rows
 var COLS = W / GRID; // 12 cols
+
+// Band roster — 5 members
+var BAND = [
+  { name:'VOX',        eyeColor:'#44aaff', hairColor:null,       hairType:'none',   vestColor:'#2244aa', extra:'mic'   },
+  { name:'TRASH QUEEN',eyeColor:'#00ffee', hairColor:'#ff33cc',  hairType:'long',   vestColor:'#cc0033', extra:'dress' },
+  { name:'RIFF-ROT',   eyeColor:'#88ff44', hairColor:'#44ff00',  hairType:'mohawk', vestColor:'#333',    extra:'guitar'},
+  { name:'TAZ',        eyeColor:'#ff4444', hairColor:'#ff2200',  hairType:'mohawk', vestColor:'#1a1a1a', extra:'bass'  },
+  { name:'BONECRUSH',  eyeColor:'#ddbbff', hairColor:null,       hairType:'helmet', vestColor:'#553300', extra:'drum'  },
+];
 
 // JURN colours
 var COL = {
   skull:   '#e8dcc8',
   road:    '#1a1a2a',
-  lava:    '#2a0018',
-  bone:    '#3d2200',
+  mud:     '#3d2200',
+  mudDark: '#2a1800',
+  water:   '#2a4a1a',
   safe:    '#0d1a00',
   safeL:   '#162600',
-  goal:    '#0a0f00',
-  goalL:   '#1a2200',
+  goal:    '#0a0000',
+  goalL:   '#1a0800',
   glow:    '#c8ff00',
   red:     '#ff2d2d',
   orange:  '#ff7700',
-  purple:  '#8a2be2',
-  dark:    '#06000e'
+  dark:    '#06000e',
+  bus:     '#220033',
+  busGold: '#cc9900',
 };
 
-// Row layout (bottom=row 0, top=row 13)
-// row 0: start safe
-// rows 1-5: road (vehicles)
-// row 6: median safe
-// rows 7-11: lava river (floaters)
-// rows 12-13: goal bank
+// Row layout
 var ROW_TYPES = [
-  'start',   // 0 — bottom
-  'road','road','road','road','road', // 1-5
-  'median',  // 6
-  'lava','lava','lava','lava','lava', // 7-11
-  'goal_safe', // 12
-  'goal',    // 13 — top
+  'start',
+  'road','road','road','road','road',
+  'median',
+  'water','water','water','water','water',
+  'goal_safe',
+  'goal',
 ];
 
-// Lane patterns — each row from bottom
 var LANES = [
   null, // start
-  { color:'#c8002a', shape:'rect', size:GRID*2.2, speed:-1.4, spacing:[3,5], type:'hearse' },
-  { color:'#2255cc', shape:'rect', size:GRID*1.4, speed: 2.0, spacing:[4,3,6], type:'car' },
-  { color:'#aa4400', shape:'rect', size:GRID*3.5, speed:-1.0, spacing:[4], type:'truck' },
-  { color:'#cc8800', shape:'rect', size:GRID*1.4, speed: 1.6, spacing:[3,4], type:'car' },
-  { color:'#550055', shape:'rect', size:GRID*2.0, speed:-2.2, spacing:[5,3], type:'car' },
+  { color:'#555', tint:'#cc0033', size:GRID*2.2, speed:-1.4, spacing:[3,5],   type:'car'   },
+  { color:'#666', tint:'#1144aa', size:GRID*1.4, speed: 2.0, spacing:[4,3,6], type:'sedan' },
+  { color:'#444', tint:'#884400', size:GRID*3.5, speed:-1.0, spacing:[4],     type:'truck' },
+  { color:'#777', tint:'#aa7700', size:GRID*1.4, speed: 1.6, spacing:[3,4],   type:'sedan' },
+  { color:'#555', tint:'#440055', size:GRID*2.0, speed:-2.2, spacing:[5,3],   type:'car'   },
   null, // median
-  { color:'#8a2be2', shape:'rect', size:GRID*3,   speed: 1.2, spacing:[2], type:'raft' },
-  { color:'#501050', shape:'rect', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3], type:'bone_log' },
-  { color:'#6d1a6d', shape:'rect', size:GRID*5,   speed: 1.5, spacing:[3], type:'raft' },
-  { color:'#3d0050', shape:'rect', size:GRID*2,   speed:-1.2, spacing:[2], type:'bone_log' },
-  { color:'#7a0080', shape:'rect', size:GRID*2.5, speed: 0.8, spacing:[1,2], type:'raft' },
+  { color:'#7a5a30', size:GRID*3,   speed: 1.2, spacing:[2],      type:'log' },
+  { color:'#5a4020', size:GRID*1.5, speed:-0.9, spacing:[0,2,0,3],type:'log' },
+  { color:'#8a6a3a', size:GRID*5,   speed: 1.5, spacing:[3],      type:'log' },
+  { color:'#6a4a28', size:GRID*2,   speed:-1.2, spacing:[2],      type:'log' },
+  { color:'#7a5a30', size:GRID*2.5, speed: 0.8, spacing:[1,2],    type:'log' },
   null, // goal_safe
   null, // goal
 ];
 
 // ── State ──
-var frogger, scoredFroggers, rows, score, lives, phase, _lastScore;
+var frogger, scoredMembers, rows, score, lives, phase, _lastScore, memberIdx;
 phase = 'title';
 
 function buildRows() {
@@ -164,7 +171,7 @@ function buildRows() {
     while (endX < W) endX += totalW;
     endX += totalW;
     while (x < endX) {
-      rows[r].push({ x, size: pat.size, speed: pat.speed, color: pat.color, shape: pat.shape, type: pat.type, index: idx });
+      rows[r].push({ x, size: pat.size, speed: pat.speed, color: pat.color, tint: pat.tint, type: pat.type, index: idx });
       x += pat.size + spacing[idx] * GRID;
       idx = (idx + 1) % spacing.length;
     }
@@ -172,14 +179,15 @@ function buildRows() {
 }
 
 function initGame() {
-  score = 0; lives = 3; phase = 'playing';
-  scoredFroggers = [];
+  score = 0; lives = 4; phase = 'playing';
+  memberIdx = 0;
+  scoredMembers = [];
   buildRows();
   resetFrogger();
 }
 
 function resetFrogger() {
-  frogger = { x: GRID * 5, y: GRID * 0, speed: 0 };
+  frogger = { x: GRID * 5, y: 0, speed: 0 };
 }
 
 // ── AUDIO ──
@@ -191,170 +199,383 @@ function playHop() {
   ensureAudio();
   var osc = actx.createOscillator(), g = actx.createGain();
   osc.connect(g); g.connect(actx.destination);
-  osc.type = 'square'; osc.frequency.value = 320;
-  osc.frequency.exponentialRampToValueAtTime(600, actx.currentTime + 0.06);
-  g.gain.setValueAtTime(0.12, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
-  osc.start(); osc.stop(actx.currentTime + 0.1);
+  osc.type = 'square'; osc.frequency.value = 280;
+  osc.frequency.exponentialRampToValueAtTime(520, actx.currentTime + 0.06);
+  g.gain.setValueAtTime(0.1, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.09);
+  osc.start(); osc.stop(actx.currentTime + 0.12);
 }
 
 function playSplat() {
   ensureAudio();
-  var buf = actx.createBuffer(1, actx.sampleRate * 0.4, actx.sampleRate);
+  var buf = actx.createBuffer(1, actx.sampleRate * 0.45, actx.sampleRate);
   var d = buf.getChannelData(0);
-  for (var i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
+  for (var i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length,1.4);
   var src = actx.createBufferSource(), g = actx.createGain();
   src.buffer = buf; src.connect(g); g.connect(actx.destination);
   g.gain.setValueAtTime(0.5, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.4);
-  src.start(); src.stop(actx.currentTime + 0.45);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.45);
+  src.start(); src.stop(actx.currentTime + 0.5);
 }
 
 function playScore() {
   ensureAudio();
-  [440,550,660].forEach(function(f, i) {
+  [330,440,550,660].forEach(function(f, i) {
     var osc = actx.createOscillator(), g = actx.createGain();
     osc.connect(g); g.connect(actx.destination);
     osc.frequency.value = f; osc.type = 'square';
-    g.gain.setValueAtTime(0, actx.currentTime + i*0.08);
-    g.gain.linearRampToValueAtTime(0.15, actx.currentTime + i*0.08 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i*0.08 + 0.12);
-    osc.start(actx.currentTime + i*0.08);
-    osc.stop(actx.currentTime + i*0.08 + 0.15);
+    g.gain.setValueAtTime(0, actx.currentTime + i*0.07);
+    g.gain.linearRampToValueAtTime(0.12, actx.currentTime + i*0.07 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i*0.07 + 0.12);
+    osc.start(actx.currentTime + i*0.07);
+    osc.stop(actx.currentTime + i*0.07 + 0.15);
   });
 }
 
-// ── DRAW ──
+function playWin() {
+  ensureAudio();
+  var melody = [330,392,440,523,587,659,784];
+  melody.forEach(function(f,i) {
+    var osc = actx.createOscillator(), g = actx.createGain();
+    osc.connect(g); g.connect(actx.destination);
+    osc.frequency.value = f; osc.type = 'square';
+    g.gain.setValueAtTime(0, actx.currentTime + i*0.1);
+    g.gain.linearRampToValueAtTime(0.15, actx.currentTime + i*0.1 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i*0.1 + 0.18);
+    osc.start(actx.currentTime + i*0.1);
+    osc.stop(actx.currentTime + i*0.1 + 0.2);
+  });
+}
+
+// ── DRAW HELPERS ──
 function rowY(r) { return H - (r + 1) * GRID; }
 
 function drawBg() {
-  // sky (top)
-  ctx.fillStyle = '#06000e'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = COL.dark; ctx.fillRect(0,0,W,H);
 
-  // goal bank (rows 12-13)
-  ctx.fillStyle = COL.goal;
+  // Goal zone (rows 12-13) — tour bus parking
+  ctx.fillStyle = '#110008';
   ctx.fillRect(0, rowY(13), W, GRID*2);
-  // goal highlights
-  ctx.fillStyle = COL.goalL;
-  for (var g=0; g<4; g++) {
-    ctx.fillRect(GRID*0.5 + g*GRID*3, rowY(13) + GRID*0.25, GRID*2, GRID*0.5);
+  // Stars / stage lights across top
+  for (var s=0; s<12; s++) {
+    var sx = (s+0.5) * (W/12);
+    var pulse = 0.5 + 0.5*Math.sin(Date.now()/600 + s*0.9);
+    ctx.fillStyle = 'rgba(200,255,0,' + (0.15 + pulse*0.25) + ')';
+    ctx.beginPath(); ctx.arc(sx, rowY(13) + 6, 3, 0, Math.PI*2); ctx.fill();
   }
-  // goal line glow
-  ctx.strokeStyle = COL.glow; ctx.lineWidth = 1;
+  // "TOUR BUS LOADING" label
+  ctx.fillStyle = 'rgba(200,255,0,0.55)';
+  ctx.font = 'bold 8px "Courier New"';
+  ctx.fillText('◄ TOUR BUS LOADING ZONE ►', 68, rowY(13) + 30);
+
+  // Goal safe (row 12) — stage edge
+  ctx.fillStyle = '#1a0a00';
+  ctx.fillRect(0, rowY(12), W, GRID);
+  // Glow line
+  ctx.strokeStyle = COL.glow; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(0, rowY(12)+GRID); ctx.lineTo(W, rowY(12)+GRID); ctx.stroke();
 
-  // goal safe (row 12)
-  ctx.fillStyle = COL.safeL;
-  ctx.fillRect(0, rowY(12), W, GRID);
-
-  // lava river (rows 7-11)
+  // Muddy water (rows 7-11)
   for (var r=7; r<=11; r++) {
-    var t = (Date.now() / 4000 + r * 0.3) % 1;
-    var lgrad = ctx.createLinearGradient(0, rowY(r), 0, rowY(r)+GRID);
-    lgrad.addColorStop(0, '#2a0008');
-    lgrad.addColorStop(0.5, '#4a0018');
-    lgrad.addColorStop(1, '#1a0008');
-    ctx.fillStyle = lgrad;
+    var wgrad = ctx.createLinearGradient(0, rowY(r), 0, rowY(r)+GRID);
+    wgrad.addColorStop(0, '#2a1a08');
+    wgrad.addColorStop(0.5, '#3d2810');
+    wgrad.addColorStop(1, '#1e1208');
+    ctx.fillStyle = wgrad;
     ctx.fillRect(0, rowY(r), W, GRID);
+    // water ripples
+    ctx.strokeStyle = 'rgba(120,90,40,0.18)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([8,6]);
+    var rippleOff = (Date.now()/60 + r*30) % W;
+    ctx.beginPath();
+    ctx.moveTo(-rippleOff, rowY(r) + GRID*0.5);
+    ctx.lineTo(W - rippleOff + W, rowY(r) + GRID*0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
-  // lava shimmer
-  ctx.fillStyle = 'rgba(255,40,0,0.06)';
-  for (var s=0; s<6; s++) {
-    ctx.fillRect(s*80 + (Date.now()/40 % 80), rowY(7), 24, GRID*5);
-  }
+  // "MUDDY WATER" label
+  ctx.fillStyle = 'rgba(160,120,60,0.35)';
+  ctx.font = '7px "Courier New"';
+  ctx.fillText('~ MUDDY WATER ~', 170, rowY(9) + 24);
 
-  // median (row 6)
-  ctx.fillStyle = COL.safeL;
+  // Median (row 6)
+  ctx.fillStyle = '#111822';
   ctx.fillRect(0, rowY(6), W, GRID);
-  // skull row decoration
-  ctx.fillStyle = 'rgba(200,255,0,0.12)';
-  for (var m=0; m<12; m++) ctx.fillRect(m*GRID + 14, rowY(6)+8, 12, 24);
+  ctx.fillStyle = 'rgba(200,255,0,0.10)';
+  for (var m=0; m<6; m++) {
+    ctx.fillRect(m*GRID*2 + 8, rowY(6)+10, GRID - 16, 20);
+  }
+  ctx.fillStyle = 'rgba(200,255,0,0.35)';
+  ctx.font = '7px "Courier New"';
+  ctx.fillText('— MEDIAN —', 188, rowY(6)+24);
 
-  // road rows (1-5)
+  // Road rows (1-5)
   for (var rd=1; rd<=5; rd++) {
-    ctx.fillStyle = rd%2===0 ? '#131320' : '#181828';
+    ctx.fillStyle = rd%2===0 ? '#141424' : '#1a1a2e';
     ctx.fillRect(0, rowY(rd), W, GRID);
-    // lane dashes
-    ctx.strokeStyle = 'rgba(200,255,0,0.08)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(200,255,0,0.06)'; ctx.lineWidth = 1;
     ctx.setLineDash([16,12]);
     ctx.beginPath(); ctx.moveTo(0, rowY(rd)+GRID); ctx.lineTo(W, rowY(rd)+GRID); ctx.stroke();
     ctx.setLineDash([]);
   }
 
-  // start (row 0)
-  ctx.fillStyle = COL.safe;
+  // Start (row 0)
+  ctx.fillStyle = '#0d1a06';
+  ctx.fillRect(0, rowY(0), W, GRID);
+  ctx.fillStyle = 'rgba(100,180,60,0.18)';
   ctx.fillRect(0, rowY(0), W, GRID);
 
   // HUD
   ctx.fillStyle = COL.glow;
-  ctx.font = 'bold 13px "Courier New"';
-  ctx.fillText('SCORE: ' + score, 8, 16);
-  ctx.fillText('LIVES: ' + lives, W - 88, 16);
+  ctx.font = 'bold 12px "Courier New"';
+  ctx.fillText('SCORE: ' + score, 8, 15);
+
+  // Lives: draw mini skulls
+  var member = BAND[memberIdx % BAND.length];
+  ctx.font = '9px "Courier New"';
+  ctx.fillStyle = '#aaa';
+  ctx.fillText('NEXT:', W - 140, 15);
+  for (var lv=0; lv<lives; lv++) {
+    drawMiniMember(W - 112 + lv*24, 4, member);
+  }
 }
 
-function drawVehicle(spr) {
+function drawMiniMember(x, y, member) {
   ctx.save();
-  var y = rowY(0); // will use spr.y set below
-  // actual y stored on sprite
-  ctx.fillStyle = spr.color;
-  var ry = spr._y !== undefined ? spr._y : rowY(0);
-
-  if (spr.type === 'hearse') {
-    // hearse: dark with roof cross
-    ctx.fillRect(spr.x, ry + 4, spr.size, GRID - 8);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(spr.x + spr.size*0.5 - 2, ry + 6, 4, 12);
-    ctx.fillRect(spr.x + spr.size*0.5 - 6, ry + 10, 12, 4);
-  } else if (spr.type === 'truck') {
-    ctx.fillRect(spr.x, ry + 3, spr.size, GRID - 6);
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillRect(spr.x + 4, ry + 8, spr.size - 8, GRID - 18);
-    // JURN text
-    ctx.fillStyle = COL.glow;
-    ctx.font = 'bold 8px "Courier New"';
-    ctx.fillText('JURN', spr.x + spr.size*0.35, ry + GRID*0.55);
-  } else if (spr.type === 'raft') {
-    // bone raft on lava
-    ctx.fillStyle = '#3a1a00';
-    ctx.fillRect(spr.x, ry + 8, spr.size, GRID - 16);
-    ctx.fillStyle = '#d4c090';
-    for (var i=0; i<Math.floor(spr.size/GRID); i++) {
-      ctx.fillRect(spr.x + i*GRID + 4, ry + 10, GRID - 8, GRID - 20);
+  ctx.fillStyle = COL.skull;
+  ctx.beginPath(); ctx.arc(x+8, y+8, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = member.eyeColor;
+  ctx.beginPath(); ctx.arc(x+6, y+6, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+10, y+6, 1.5, 0, Math.PI*2); ctx.fill();
+  if (member.hairColor) {
+    ctx.fillStyle = member.hairColor;
+    if (member.hairType === 'mohawk') {
+      ctx.fillRect(x+6, y, 4, 6);
+    } else if (member.hairType === 'long') {
+      ctx.fillRect(x+2, y+2, 3, 10);
+      ctx.fillRect(x+11, y+2, 3, 10);
     }
-  } else if (spr.type === 'bone_log') {
-    ctx.fillStyle = '#4a2800';
-    ctx.fillRect(spr.x, ry + 10, spr.size, GRID - 20);
-    ctx.fillStyle = '#c8a870';
-    ctx.fillRect(spr.x + 2, ry + 12, spr.size - 4, GRID - 24);
-    // bone knobs
-    ctx.fillStyle = '#e8d0a0';
-    ctx.beginPath(); ctx.arc(spr.x + 10, ry + GRID/2, 8, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(spr.x + spr.size - 10, ry + GRID/2, 8, 0, Math.PI*2); ctx.fill();
-  } else {
-    ctx.fillRect(spr.x, ry + 4, spr.size, GRID - 8);
-    // windows
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(spr.x + 4, ry + 7, spr.size * 0.35, GRID - 16);
+  }
+  if (member.hairType === 'helmet') {
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x+2, y, 12, 7);
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(x+0, y+2, 2, 4);
+    ctx.fillRect(x+14, y+2, 2, 4);
   }
   ctx.restore();
 }
 
-function drawFrogger(x, y) {
+function drawVehicle(spr) {
+  ctx.save();
+  var ry = spr._y !== undefined ? spr._y : rowY(0);
+
+  if (spr.type === 'log') {
+    // Log in muddy water
+    var lgrad = ctx.createLinearGradient(spr.x, ry+10, spr.x, ry+GRID-10);
+    lgrad.addColorStop(0, '#9a7040');
+    lgrad.addColorStop(0.3, '#7a5830');
+    lgrad.addColorStop(0.7, '#5a4020');
+    lgrad.addColorStop(1, '#7a5830');
+    ctx.fillStyle = lgrad;
+    // main log body
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(spr.x+2, ry+10, spr.size-4, GRID-20, 6)
+                  : ctx.fillRect(spr.x+2, ry+10, spr.size-4, GRID-20);
+    ctx.fill();
+    // bark texture lines
+    ctx.strokeStyle = 'rgba(40,20,5,0.3)'; ctx.lineWidth = 1;
+    for (var bk=0; bk<Math.floor(spr.size/20); bk++) {
+      ctx.beginPath();
+      ctx.moveTo(spr.x + bk*20 + 10, ry+12);
+      ctx.lineTo(spr.x + bk*20 + 14, ry+GRID-12);
+      ctx.stroke();
+    }
+    // end circles (wood grain)
+    ctx.fillStyle = '#c8a050';
+    ctx.beginPath(); ctx.arc(spr.x+10, ry+GRID/2, 7, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#8a6030'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(spr.x+10, ry+GRID/2, 5, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(spr.x+10, ry+GRID/2, 3, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#c8a050';
+    ctx.beginPath(); ctx.arc(spr.x+spr.size-10, ry+GRID/2, 7, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#8a6030';
+    ctx.beginPath(); ctx.arc(spr.x+spr.size-10, ry+GRID/2, 5, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(spr.x+spr.size-10, ry+GRID/2, 3, 0, Math.PI*2); ctx.stroke();
+    // moss on top
+    ctx.fillStyle = 'rgba(60,120,20,0.4)';
+    ctx.fillRect(spr.x+16, ry+10, spr.size-32, 5);
+  } else if (spr.type === 'truck') {
+    // Grayscale tinted truck (tour bus style)
+    ctx.fillStyle = spr.tint || '#445';
+    ctx.fillRect(spr.x, ry+3, spr.size, GRID-6);
+    // cab
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    if (spr.speed < 0) {
+      ctx.fillRect(spr.x, ry+5, spr.size*0.2, GRID-10);
+    } else {
+      ctx.fillRect(spr.x + spr.size*0.8, ry+5, spr.size*0.2, GRID-10);
+    }
+    // windows
+    ctx.fillStyle = 'rgba(180,220,255,0.15)';
+    ctx.fillRect(spr.x+4, ry+7, spr.size*0.28, GRID-16);
+    // JURN tag
+    ctx.fillStyle = COL.glow; ctx.font = 'bold 8px "Courier New"';
+    ctx.fillText('JURN', spr.x + spr.size*0.35, ry+GRID*0.58);
+  } else {
+    // Grayscale car / sedan — tinted version
+    ctx.fillStyle = spr.tint || '#445';
+    ctx.fillRect(spr.x, ry+6, spr.size, GRID-12);
+    // roof
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(spr.x + spr.size*0.2, ry+4, spr.size*0.6, GRID-10);
+    // windshield
+    ctx.fillStyle = 'rgba(180,220,255,0.2)';
+    ctx.fillRect(spr.x + spr.size*0.22, ry+6, spr.size*0.22, GRID-14);
+    // headlights
+    ctx.fillStyle = spr.speed < 0 ? 'rgba(255,50,0,0.7)' : 'rgba(255,255,180,0.7)';
+    var lx = spr.speed < 0 ? spr.x + spr.size - 4 : spr.x;
+    ctx.fillRect(lx, ry+8, 4, 6);
+    ctx.fillRect(lx, ry+GRID-14, 4, 6);
+  }
+  ctx.restore();
+}
+
+// Draw tour bus at goal top
+function drawTourBus(x, w) {
+  var y = rowY(13) + 2;
+  var h = GRID - 4;
+  // body
+  var bg = ctx.createLinearGradient(x, y, x, y+h);
+  bg.addColorStop(0, '#330022');
+  bg.addColorStop(0.5, '#220033');
+  bg.addColorStop(1, '#110022');
+  ctx.fillStyle = bg;
+  ctx.fillRect(x, y, w, h);
+  // skull grille
+  ctx.fillStyle = '#c8a050';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('☠', x + w*0.5 - 10, y + h*0.7);
+  // windows
+  ctx.fillStyle = 'rgba(100,200,255,0.2)';
+  for (var wi=0; wi<3; wi++) {
+    ctx.fillRect(x + 8 + wi*18, y + 6, 12, h-16);
+  }
+  // JURN label
+  ctx.fillStyle = COL.glow; ctx.font = 'bold 7px "Courier New"';
+  ctx.fillText('JURN TOUR', x + w*0.5 - 18, y + h - 4);
+  // wheels
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(x+12, y+h, 5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+w-12, y+h, 5, 0, Math.PI*2); ctx.fill();
+  // outline glow
+  ctx.strokeStyle = COL.glow; ctx.lineWidth = 1;
+  ctx.strokeRect(x+1, y+1, w-2, h-2);
+}
+
+function drawMember(x, y, memberIdx) {
+  var member = BAND[memberIdx % BAND.length];
   var cx = x + GRID/2, cy = y + GRID/2;
   ctx.save();
-  // skull body
+
+  // Hair / helmet BEHIND skull
+  if (member.hairColor && member.hairType === 'mohawk') {
+    ctx.fillStyle = member.hairColor;
+    // mohawk spikes
+    for (var sp=0; sp<3; sp++) {
+      ctx.beginPath();
+      ctx.moveTo(cx - 4 + sp*4, cy - 12);
+      ctx.lineTo(cx - 1 + sp*4, cy - 20 - sp*2);
+      ctx.lineTo(cx + 2 + sp*4, cy - 12);
+      ctx.fill();
+    }
+  }
+  if (member.hairType === 'helmet') {
+    ctx.fillStyle = '#777';
+    ctx.beginPath(); ctx.arc(cx, cy-6, 14, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#999';
+    ctx.fillRect(cx-16, cy-8, 4, 10);
+    ctx.fillRect(cx+12, cy-8, 4, 10);
+  }
+  if (member.hairType === 'long') {
+    ctx.fillStyle = member.hairColor;
+    ctx.beginPath();
+    ctx.moveTo(cx-8, cy-12);
+    ctx.quadraticCurveTo(cx-14, cy+4, cx-10, cy+12);
+    ctx.lineTo(cx-6, cy+12);
+    ctx.quadraticCurveTo(cx-10, cy+4, cx-4, cy-10);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx+8, cy-12);
+    ctx.quadraticCurveTo(cx+14, cy+4, cx+10, cy+12);
+    ctx.lineTo(cx+6, cy+12);
+    ctx.quadraticCurveTo(cx+10, cy+4, cx+4, cy-10);
+    ctx.fill();
+  }
+
+  // Skull
   ctx.fillStyle = COL.skull;
-  ctx.beginPath(); ctx.arc(cx, cy - 2, GRID*0.34, 0, Math.PI*2); ctx.fill();
-  ctx.fillRect(cx - GRID*0.22, cy + GRID*0.04, GRID*0.44, GRID*0.28);
-  // eyes
-  ctx.fillStyle = '#1a0030';
-  ctx.beginPath(); ctx.arc(cx - 5, cy - 5, 4, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + 5, cy - 5, 4, 0, Math.PI*2); ctx.fill();
-  // nose
-  ctx.beginPath(); ctx.arc(cx, cy - 1, 2, 0, Math.PI*2); ctx.fill();
-  // denim vest
-  ctx.fillStyle = '#2244aa';
-  ctx.fillRect(cx - GRID*0.18, cy + GRID*0.14, GRID*0.36, GRID*0.2);
+  ctx.beginPath(); ctx.arc(cx, cy-4, 12, 0, Math.PI*2); ctx.fill();
+  // jaw
+  ctx.fillRect(cx-8, cy+2, 16, 10);
+  // eye sockets
+  ctx.fillStyle = member.eyeColor;
+  ctx.beginPath(); ctx.arc(cx-4, cy-6, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+4, cy-6, 4, 0, Math.PI*2); ctx.fill();
+  // pupils
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath(); ctx.arc(cx-4, cy-6, 2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+4, cy-6, 2, 0, Math.PI*2); ctx.fill();
+  // nose cavity
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.arc(cx, cy-2, 2, 0, Math.PI*2); ctx.fill();
+  // teeth
+  ctx.fillStyle = '#d0c8b0';
+  for (var t=0; t<4; t++) ctx.fillRect(cx-7+t*4, cy+4, 3, 6);
+
+  // Outfit
+  if (member.extra === 'dress') {
+    ctx.fillStyle = member.vestColor;
+    // ruffle dress
+    ctx.beginPath();
+    ctx.moveTo(cx-10, cy+12);
+    ctx.lineTo(cx-14, cy+28);
+    ctx.lineTo(cx+14, cy+28);
+    ctx.lineTo(cx+10, cy+12);
+    ctx.fill();
+    // ruffles
+    for (var rf=0; rf<4; rf++) {
+      ctx.beginPath();
+      ctx.arc(cx-8+rf*5, cy+24, 4, 0, Math.PI); ctx.fill();
+    }
+  } else {
+    // Vest / tee
+    ctx.fillStyle = member.vestColor;
+    ctx.fillRect(cx-8, cy+12, 16, 10);
+    if (member.extra === 'mic') {
+      // mic stand
+      ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx+10, cy+10); ctx.lineTo(cx+14, cy+22); ctx.stroke();
+      ctx.fillStyle = '#bbb';
+      ctx.beginPath(); ctx.arc(cx+10, cy+9, 3, 0, Math.PI*2); ctx.fill();
+    }
+    if (member.extra === 'guitar') {
+      ctx.fillStyle = '#aa6600';
+      ctx.fillRect(cx+8, cy+8, 4, 14);
+      ctx.beginPath(); ctx.arc(cx+10, cy+20, 5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#eee'; ctx.lineWidth = 0.8;
+      for (var str=0; str<3; str++) {
+        ctx.beginPath(); ctx.moveTo(cx+8+str, cy+8); ctx.lineTo(cx+8+str, cy+22); ctx.stroke();
+      }
+    }
+    if (member.extra === 'bass') {
+      ctx.fillStyle = '#cc2200';
+      ctx.fillRect(cx-14, cy+10, 4, 12);
+      ctx.beginPath(); ctx.arc(cx-12, cy+20, 4, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
   ctx.restore();
 }
 
@@ -367,7 +588,13 @@ function gameLoop() {
   ctx.clearRect(0,0,W,H);
   drawBg();
 
-  // update + draw lanes
+  // Tour buses at top
+  drawTourBus(10, GRID*2.5);
+  drawTourBus(GRID*3.5 + 10, GRID*2.5);
+  drawTourBus(GRID*7 + 10, GRID*2.5);
+  drawTourBus(GRID*10 + 10, GRID*2.5);
+
+  // Update + draw lanes
   for (var r = 0; r < ROWS; r++) {
     var pat = LANES[r];
     if (!pat) continue;
@@ -382,7 +609,7 @@ function gameLoop() {
       if (spr.speed < 0 && spr.x < -spr.size) {
         var rightmost = row.reduce(function(a,b){ return b.x > a.x ? b : a; });
         var sp = pat.spacing;
-        spr.x = rightmost.x + rightmost.size + sp[rightmost.index] * GRID;
+        spr.x = rightmost.x + rightmost.size + sp[rightmost.index % sp.length] * GRID;
         spr.index = (rightmost.index + 1) % sp.length;
       }
       if (spr.speed > 0 && spr.x > W) {
@@ -395,64 +622,62 @@ function gameLoop() {
     }
   }
 
-  // move frogger with log
+  // Move member with log
   frogger.x += frogger.speed;
   frogger.speed = 0;
 
-  // draw scored skulls (goal slots)
-  scoredFroggers.forEach(function(sf) { drawFrogger(sf.x, sf.y); });
+  // Draw scored members (reached bus)
+  scoredMembers.forEach(function(sm) {
+    drawMember(sm.x, rowY(ROWS-1), sm.mIdx);
+  });
 
-  // draw frogger
+  // Draw active member
   var fy = rowY(frogger.y);
-  drawFrogger(frogger.x, fy);
+  drawMember(frogger.x, fy, memberIdx);
 
-  // collision
+  // Collision
   var fr = frogger.y;
-  var collision = false;
+  var onFloater = false;
   if (rows[fr]) {
     for (var i = 0; i < rows[fr].length; i++) {
       var spr = rows[fr][i];
-      if (frogger.x < spr.x + spr.size - 4 &&
-          frogger.x + GRID - 4 > spr.x) {
-        collision = true;
+      if (frogger.x < spr.x + spr.size - 4 && frogger.x + GRID - 4 > spr.x) {
         var rtype = ROW_TYPES[fr];
         if (rtype === 'road') {
-          // splat
-          playSplat();
-          loseLife(); return;
-        } else if (rtype === 'lava') {
-          // riding floater
+          playSplat(); loseLife(); return;
+        } else if (rtype === 'water') {
+          onFloater = true;
           frogger.speed = spr.speed;
         }
       }
     }
   }
 
-  if (!collision) {
-    var rtype = ROW_TYPES[fr];
-    if (rtype === 'lava') {
-      playSplat(); loseLife(); return;
-    }
+  if (!onFloater && ROW_TYPES[fr] === 'water') {
+    playSplat(); loseLife(); return;
   }
 
-  // clamp
+  // Clamp
   if (frogger.x < 0) frogger.x = 0;
   if (frogger.x > W - GRID) frogger.x = W - GRID;
 
-  // reached goal
+  // Reached goal row
   if (frogger.y === ROWS - 1) {
-    var col = Math.floor((frogger.x + GRID/2) / GRID);
-    var slotX = Math.floor(col / 3) * GRID * 3 + GRID;
-    if (!scoredFroggers.find(function(sf){ return sf.x === slotX; })) {
-      scoredFroggers.push({ x: slotX, y: ROWS - 1 });
+    var slot = Math.floor(frogger.x / (W/4));
+    var slotX = slot * (W/4) + (W/4 - GRID)/2;
+    if (!scoredMembers.find(function(sm){ return sm.slot === slot; })) {
+      scoredMembers.push({ x: slotX, y: ROWS-1, mIdx: memberIdx, slot: slot });
+      memberIdx++;
       score += 200;
       playScore();
     }
     resetFrogger();
-    if (scoredFroggers.length >= 4) {
-      // all slots filled — bonus + reset
+    if (scoredMembers.length >= 4) {
+      // All 4 on the bus!
       score += 1000;
-      scoredFroggers = [];
+      playWin();
+      scoredMembers = [];
+      memberIdx = 0;
     }
   }
 }
@@ -499,7 +724,6 @@ function triggerGameOver() {
 
 // ── CONTROLS ──
 document.addEventListener('keydown', function(e) {
-  // title dismiss
   if (phase === 'title') {
     ensureAudio();
     document.getElementById('titleOverlay').style.display = 'none';
@@ -516,16 +740,43 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'ArrowDown'  || e.key === 's' || e.key === 'S') { if (frogger.y > 0) frogger.y--; playHop(); }
 
   frogger.x = Math.min(Math.max(0, frogger.x), W - GRID);
+
+  e.preventDefault();
 });
 
-// ── PLAY AGAIN ──
+// Touch controls
+var touchStartX, touchStartY;
+canvas.addEventListener('touchstart', function(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchend', function(e) {
+  var dx = e.changedTouches[0].clientX - touchStartX;
+  var dy = e.changedTouches[0].clientY - touchStartY;
+  if (phase === 'title') {
+    ensureAudio();
+    document.getElementById('titleOverlay').style.display = 'none';
+    initGame(); requestAnimationFrame(gameLoop); return;
+  }
+  if (phase !== 'playing') return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 20) { frogger.x += GRID; playHop(); }
+    else if (dx < -20) { frogger.x -= GRID; playHop(); }
+  } else {
+    if (dy < -20) { if (frogger.y < ROWS-1) frogger.y++; playHop(); }
+    else if (dy > 20) { if (frogger.y > 0) frogger.y--; playHop(); }
+  }
+  frogger.x = Math.min(Math.max(0, frogger.x), W - GRID);
+  e.preventDefault();
+}, { passive: false });
+
+// ── BUTTONS ──
 document.getElementById('playAgainBtn').addEventListener('click', function() {
   document.getElementById('gameOverOverlay').style.display = 'none';
   initGame();
   requestAnimationFrame(gameLoop);
 });
-
-// ── RETURN TO TITLE ──
 document.getElementById('goTitleBtn').addEventListener('click', function() {
   document.getElementById('gameOverOverlay').style.display = 'none';
   loadTitleLb();
@@ -533,12 +784,10 @@ document.getElementById('goTitleBtn').addEventListener('click', function() {
   phase = 'title';
 });
 
-// idle bg draw
+// Idle bg
 (function() {
   ctx.fillStyle = '#06000e'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = COL.safeL; ctx.fillRect(0, rowY(0), W, GRID);
 })();
-
 phase = 'title';
 </script>
 </body>
