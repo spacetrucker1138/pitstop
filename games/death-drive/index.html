@@ -783,6 +783,7 @@ var SPRITES = {
 };
 
 SPRITES.SCALE = 0.3 * (1/SPRITES.PLAYER_STRAIGHT.w) // the reference sprite width should be 1/3rd the (half-)roadWidth
+window.vanRenderScale = 1.0; // per-van render scale multiplier (independent of SPRITES.SCALE)
 
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS     = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
@@ -856,8 +857,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
       var n, car, carW, sprite, spriteW;
       var playerSegment = findSegment(position+playerZ);
-      var vanRenderScale = 1.0;                    // per-van render scale (independent of SPRITES.SCALE)
-      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * vanRenderScale;
+      var playerW       = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * (window.vanRenderScale||1.0);
       var speedPercent  = speed/maxSpeed;
       AudioEngine.setEngineSpeed(speedPercent);
       var dx            = dt * 2 * speedPercent; // at top speed, should be able to cross from left to right (-1 to 1) in 1 second
@@ -1107,7 +1107,7 @@ SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04
 
         if (segment == playerSegment) {
           Render.player(ctx, width, height, resolution, roadWidth, sprites, speed/maxSpeed,
-                        (cameraDepth/playerZ) * vanRenderScale,
+                        (cameraDepth/playerZ) * (window.vanRenderScale||1.0),
                         width/2,
                         (height/2) - (cameraDepth/playerZ * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height/2),
                         speed * (keyLeft ? -1 : keyRight ? 1 : 0),
@@ -1362,7 +1362,7 @@ Game.run({
         else if (key === 'fogDensity')    { fogDensity    = val; }
         else if (key === 'roadWidth')     { roadWidth     = val; }
         else if (key === 'centrifugal')   { centrifugal   = val; }
-        else if (key === 'vanScale')      { vanRenderScale = val; playerW = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * vanRenderScale; }
+        else if (key === 'vanScale')      { window.vanRenderScale = val; }
       };
       resolution             = height/480;
       refreshTweakUI();
