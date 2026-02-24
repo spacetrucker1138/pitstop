@@ -340,11 +340,46 @@ function drawAmp(amp){
     ctx.restore();
   }
 }
-function drawNote(x,y,r){
-  ctx.save();ctx.fillStyle=C.note;ctx.shadowColor=C.note;ctx.shadowBlur=8;
-  ctx.beginPath();ctx.ellipse(x,y+r*0.4,r*0.55,r*0.4,-0.4,0,Math.PI*2);ctx.fill();
-  ctx.fillRect(x+r*0.2,y-r*0.7,r*0.18,r*1.1);
-  ctx.beginPath();ctx.moveTo(x+r*0.38,y-r*0.7);ctx.quadraticCurveTo(x+r,y-r*0.35,x+r*0.38,y-r*0.05);ctx.fill();
+function drawNote(x,y,r,col,shape){
+  // col = hex string, shape = 0..4
+  ctx.save();
+  ctx.fillStyle=col; ctx.strokeStyle=col;
+  ctx.shadowColor=col; ctx.shadowBlur=10;
+  var s=shape||0;
+  if(s===0){
+    // Quarter note — filled oval head + stem + single flag
+    ctx.beginPath();ctx.ellipse(x,y+r*0.4,r*0.6,r*0.42,-0.4,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(x+r*0.22,y-r*0.85,r*0.20,r*1.25);
+    ctx.beginPath();ctx.moveTo(x+r*0.42,y-r*0.85);ctx.quadraticCurveTo(x+r*1.1,y-r*0.4,x+r*0.42,y-r*0.05);ctx.fill();
+  } else if(s===1){
+    // Eighth note — filled oval + stem + curved flag downward
+    ctx.beginPath();ctx.ellipse(x,y+r*0.4,r*0.6,r*0.42,-0.4,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(x+r*0.22,y-r*0.85,r*0.20,r*1.25);
+    ctx.lineWidth=r*0.22; ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x+r*0.42,y-r*0.85);ctx.bezierCurveTo(x+r*1.2,y-r*0.6,x+r*1.1,y+r*0.2,x+r*0.5,y+r*0.4);ctx.stroke();
+  } else if(s===2){
+    // Double-beam (two eighth notes joined) — two heads, shared beam
+    // Left head
+    ctx.beginPath();ctx.ellipse(x-r*0.5,y+r*0.4,r*0.52,r*0.36,-0.4,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(x-r*0.28,y-r*0.65,r*0.18,r*1.05);
+    // Right head
+    ctx.beginPath();ctx.ellipse(x+r*0.5,y+r*0.4,r*0.52,r*0.36,-0.4,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(x+r*0.72,y-r*0.65,r*0.18,r*1.05);
+    // Beam connecting tops
+    ctx.lineWidth=r*0.22;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-r*0.28,y-r*0.65);ctx.lineTo(x+r*0.9,y-r*0.65);ctx.stroke();
+  } else if(s===3){
+    // Half note — open oval head + stem
+    ctx.lineWidth=r*0.20;
+    ctx.beginPath();ctx.ellipse(x,y+r*0.4,r*0.6,r*0.42,-0.4,0,Math.PI*2);ctx.stroke();
+    ctx.fillRect(x+r*0.22,y-r*0.85,r*0.20,r*1.25);
+  } else {
+    // Whole note — open oval, no stem, wider
+    ctx.lineWidth=r*0.22;
+    ctx.beginPath();ctx.ellipse(x,y+r*0.1,r*0.75,r*0.46,0,0,Math.PI*2);ctx.stroke();
+    // Inner hole hint
+    ctx.beginPath();ctx.ellipse(x,y+r*0.1,r*0.3,r*0.18,0,0,Math.PI*2);ctx.stroke();
+  }
   ctx.restore();
 }
 function drawProjectile(x,y,type,wobble){
@@ -367,6 +402,9 @@ function drawProjectile(x,y,type,wobble){
 var bottles,notes,explosions,amps;
 var score,waveNum,gamePhase,gameMode;
 var ammoLeft;
+var shotCounter=0; // cycles note colors/shapes per shot
+// Cartoon music note palette — cycles per shot fired
+var NOTE_COLORS=['#c8ff00','#ff44cc','#44eeff','#ff8800','#ffffff'];
 
 // ── Wave / spawn queue ──────────────────────────────────────────────────────
 // Instead of spawning based on intervals that re-evaluate moving targets,
@@ -413,7 +451,7 @@ function resetAmps(){amps=AMP_POS.map(function(x){return{x:x,alive:true};});}
 function initGame(mode){
   gameMode=mode;
   score=0; waveNum=1; bottles=[]; notes=[]; explosions=[];
-  gamePhase='playing'; ammoLeft=0;
+  gamePhase='playing'; ammoLeft=0; shotCounter=0;
   waveDefeated=0;
   resetAmps();
   startWave();
@@ -567,10 +605,15 @@ function gameLoop(ts){
       var tdx=n.pos.x-n.start.x,tdy=n.pos.y-n.start.y;
       var tlen=Math.sqrt(tdx*tdx+tdy*tdy)||1;
       var tux=tdx/tlen,tuy=tdy/tlen;
-      for(var si=0;si<4;si++){
-        if((si*20/tlen)>0.92)break;
-        ctx.globalAlpha=(1-si*0.2)*0.95;
-        drawNote(n.pos.x-tux*si*20,n.pos.y-tuy*si*20,7-si*0.9);
+      var TAIL=6, GAP=24; // longer cartoon music tail
+      var baseR=8.4;      // +20% from original 7
+      for(var si=0;si<TAIL;si++){
+        if((si*GAP/tlen)>0.92)break;
+        ctx.globalAlpha=(1-si*0.14)*0.96;
+        // Alternate shape and color through the tail for a flowing ribbon effect
+        var tailShape=(n.shape+si)%5;
+        var tailCol=NOTE_COLORS[(NOTE_COLORS.indexOf(n.col)+si)%NOTE_COLORS.length];
+        drawNote(n.pos.x-tux*si*GAP,n.pos.y-tuy*si*GAP,baseR-si*0.7,tailCol,tailShape);
       }
       ctx.restore();
     }
@@ -619,11 +662,14 @@ canvas.addEventListener('click',function(e){
   });
   if(!best)return;
   var angle=Math.atan2(my-AMP_Y,mx-best.x)+Math.PI/2;
+  var nc=NOTE_COLORS[shotCounter%NOTE_COLORS.length];
+  var ns=shotCounter%5;
+  shotCounter++;
   notes.push({
     start:{x:best.x,y:AMP_Y},target:{x:mx,y:my},
     pos:{x:best.x,y:AMP_Y},
     dx:NOTE_SPD*Math.sin(angle),dy:NOTE_SPD*-Math.cos(angle),
-    alive:true
+    alive:true, col:nc, shape:ns
   });
   playGuitarSound(bestIdx);
   score+=10;
