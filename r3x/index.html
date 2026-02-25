@@ -55,6 +55,49 @@
   #taskbar span:hover { color: #00ff88; }
   #taskbar span.active { color: #00ff88; }
 </style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+  const FIREBASE_CONFIG = window._R3X_FIREBASE_CONFIG || null;
+
+  async function initCounter() {
+    let totalVisits = 0, uniqueVisits = 0;
+    if (FIREBASE_CONFIG) {
+      try {
+        const app = initializeApp(FIREBASE_CONFIG, "r3x-counter");
+        const db  = getDatabase(app);
+        const statsRef = ref(db, "r3x/stats");
+        const isNew = !localStorage.getItem("r3x_visit_id");
+        if (isNew) localStorage.setItem("r3x_visit_id", "1");
+        const snap = await get(statsRef);
+        const cur  = snap.exists() ? snap.val() : { visits: 0, unique: 0 };
+        totalVisits  = (cur.visits || 0) + 1;
+        uniqueVisits = (cur.unique || 0) + (isNew ? 1 : 0);
+        await set(statsRef, { visits: totalVisits, unique: uniqueVisits });
+        onValue(statsRef, (s) => {
+          const d = s.val() || {};
+          window._R3X_COUNTER_VISITS = d.visits || totalVisits;
+          window._R3X_COUNTER_UNIQUE = d.unique || uniqueVisits;
+          window._R3X_COUNTER_READY  = true;
+        });
+      } catch(e) { console.warn("R3X counter Firebase error", e); fallback(); }
+    } else { fallback(); }
+
+    function fallback() {
+      const isNew = !localStorage.getItem("r3x_visit_id");
+      if (isNew) localStorage.setItem("r3x_visit_id", "1");
+      totalVisits  = parseInt(localStorage.getItem("r3x_visit_count") || "0") + 1;
+      uniqueVisits = parseInt(localStorage.getItem("r3x_unique_count") || "0") + (isNew ? 1 : 0);
+      localStorage.setItem("r3x_visit_count", String(totalVisits));
+      localStorage.setItem("r3x_unique_count", String(uniqueVisits));
+      window._R3X_COUNTER_VISITS = totalVisits;
+      window._R3X_COUNTER_UNIQUE = uniqueVisits;
+      window._R3X_COUNTER_READY  = true;
+    }
+  }
+  initCounter();
+</script>
 </head>
 <body>
 
@@ -110,10 +153,11 @@ const ROOMS = {
     accent: "#1a2a3a",
     floorY: 300,
     elements: [
-      { type: "door",  x: 60,  y: 200, w: 60,  h: 100, color: "#1a2a1a", label: null },
-      { type: "sign",  x: 350, y: 100, w: 120, h: 40,  color: "#0d1a0d", label: "PITSTOP OPS" },
-      { type: "desk",  x: 560, y: 230, w: 120, h: 60,  color: "#1a1a2a", label: null },
-      { type: "vent",  x: 700, y: 80,  w: 60,  h: 40,  color: "#0a1a1a", label: null },
+      { type: "door",    x: 60,  y: 200, w: 60,  h: 100, color: "#1a2a1a", label: null },
+      { type: "sign",    x: 350, y: 100, w: 120, h: 40,  color: "#0d1a0d", label: "PITSTOP OPS" },
+      { type: "counter", x: 500, y: 108, w: 172, h: 92,  color: "#0a0a14", label: null },
+      { type: "desk",    x: 560, y: 230, w: 120, h: 60,  color: "#1a1a2a", label: null },
+      { type: "vent",    x: 700, y: 80,  w: 60,  h: 40,  color: "#0a1a1a", label: null },
     ],
     ambientText: "Security sweep. All clear.",
     idleAnim: "pingpong",
@@ -392,6 +436,77 @@ function drawElement(el) {
         ctx.textAlign = "left";
       }
       break;
+    case "counter": {
+      ctx.fillStyle = "#0a0a14";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#ff000055";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      ctx.fillStyle = "#ff000099";
+      ctx.font = "bold 7px 'Courier New'";
+      ctx.fillText("VISITOR LOG", el.x + 5, el.y + 11);
+
+      // 7-segment digit renderer
+      const SEG_MAP = {
+        '0':[1,1,1,0,1,1,1],'1':[0,0,1,0,0,1,0],'2':[1,0,1,1,1,0,1],
+        '3':[1,0,1,1,0,1,1],'4':[0,1,1,1,0,1,0],'5':[1,1,0,1,0,1,1],
+        '6':[1,1,0,1,1,1,1],'7':[1,0,1,0,0,1,0],'8':[1,1,1,1,1,1,1],
+        '9':[1,1,1,1,0,1,1]
+      };
+      function drawSeg7(cx, cy, digit, sh, sw, col) {
+        const s = SEG_MAP[String(digit)[0]] || SEG_MAP['0'];
+        const g = 1;
+        ctx.fillStyle = col;
+        if(s[0]) ctx.fillRect(cx+g,    cy,          sw-g*2, g*2);
+        if(s[1]) ctx.fillRect(cx,      cy+g,        g*2,    sh/2-g*2);
+        if(s[2]) ctx.fillRect(cx+sw-g*2, cy+g,      g*2,    sh/2-g*2);
+        if(s[3]) ctx.fillRect(cx+g,    cy+sh/2-g,   sw-g*2, g*2);
+        if(s[4]) ctx.fillRect(cx,      cy+sh/2+g,   g*2,    sh/2-g*2);
+        if(s[5]) ctx.fillRect(cx+sw-g*2, cy+sh/2+g, g*2,    sh/2-g*2);
+        if(s[6]) ctx.fillRect(cx+g,    cy+sh-g*2,   sw-g*2, g*2);
+      }
+      function drawNum7(n, sx, sy, digits, sh, sw, col) {
+        const s = String(n).padStart(digits,'0').slice(-digits);
+        for(let i=0;i<s.length;i++) drawSeg7(sx+i*(sw+2), sy, s[i], sh, sw, col);
+      }
+
+      const visits = window._R3X_COUNTER_VISITS || 0;
+      const unique = window._R3X_COUNTER_UNIQUE || 0;
+      const ready  = window._R3X_COUNTER_READY  || false;
+
+      // LCD panels
+      ctx.fillStyle = "#050510";
+      ctx.fillRect(el.x+4,  el.y+14, el.w-8, 28);
+      ctx.fillRect(el.x+4,  el.y+48, el.w-8, 28);
+
+      if (ready) {
+        ctx.fillStyle = "#ff000066";
+        ctx.font = "7px 'Courier New'";
+        ctx.fillText("VISITS:", el.x+7, el.y+28);
+        drawNum7(visits, el.x+56, el.y+15, 6, 22, 9, "#ff3333");
+        ctx.fillStyle = "#ff880066";
+        ctx.fillText("UNIQUE:", el.x+7, el.y+62);
+        drawNum7(unique, el.x+56, el.y+49, 6, 22, 9, "#ff8800");
+      } else {
+        const dots = ".".repeat(Math.floor(Date.now()/400) % 4);
+        ctx.fillStyle = "#ff3333aa";
+        ctx.font = "8px 'Courier New'";
+        ctx.fillText("SCANNING"+dots, el.x+10, el.y+32);
+        ctx.fillStyle = "#ff8800aa";
+        ctx.fillText("SCANNING"+dots, el.x+10, el.y+66);
+      }
+
+      // Corner pips + scan lines
+      ctx.fillStyle = "#ff000055";
+      ctx.fillRect(el.x+2, el.y+el.h-8, 6, 6);
+      ctx.fillRect(el.x+el.w-8, el.y+el.h-8, 6, 6);
+      const fl = 0.03 + 0.02*Math.sin(Date.now()/300);
+      for(let sy2=el.y; sy2<el.y+el.h; sy2+=3) {
+        ctx.fillStyle = "rgba(0,0,0,"+fl+")";
+        ctx.fillRect(el.x, sy2, el.w, 1);
+      }
+      break;
+    }
     default:
       ctx.fillStyle = el.color;
       ctx.fillRect(el.x, el.y, el.w, el.h);
@@ -734,6 +849,7 @@ window.R3X = {
     if (!ROOMS[room]) return;
     if (room === state.room) return;
     triggerRoomTransition(room);
+    if (room === "lobby") scheduleCounterVisit();
     if (!state.fallback) {
       document.getElementById("hud-status").textContent = "● CONNECTED";
     }
@@ -757,6 +873,38 @@ window.R3X = {
   }
 };
 
+
+// ─────────────────────────────────────────────
+//  COUNTER QUIPS
+// ─────────────────────────────────────────────
+const COUNTER_QUIPS = [
+  { min:0,   max:10,  lines:["...nobody's come to see me yet. figures.","place is empty. just how i operate.","zero traffic. i work best alone."] },
+  { min:11,  max:50,  lines:["a few stragglers. i'll take it.","handful of visitors. curiosity noted.","word's getting out. slowly."] },
+  { min:51,  max:200, lines:["decent traffic for a secure sector.","word's getting out. don't tell anyone.","more every cycle. i'm watching."] },
+  { min:201, max:500, lines:["heh. they keep coming back.","traffic's picking up. running a log.","access granted to a lot of people lately."] },
+  { min:501, max:Infinity, lines:["i'm kind of a big deal. don't make it weird.","this place is getting crowded.","sector's popular. good thing i'm armed."] },
+];
+function getCounterQuip(v) {
+  const b = COUNTER_QUIPS.find(b => v >= b.min && v <= b.max) || COUNTER_QUIPS[0];
+  return b.lines[Math.floor(Math.random()*b.lines.length)];
+}
+function r3xCheckCounter() {
+  if (state.room !== "lobby") return;
+  if (state.r3x.moving) return;
+  walkTo(565, () => {
+    setDialogue(getCounterQuip(window._R3X_COUNTER_VISITS || 0));
+    setTimeout(() => { if(state.room==="lobby") walkTo(150+Math.random()*280, null); }, 4800);
+  });
+}
+let _cTimer = null;
+function scheduleCounterVisit() {
+  clearTimeout(_cTimer);
+  _cTimer = setTimeout(() => {
+    r3xCheckCounter();
+    _cTimer = setTimeout(function rep(){ r3xCheckCounter(); _cTimer=setTimeout(rep,90000); }, 90000);
+  }, 20000);
+}
+
 // ─────────────────────────────────────────────
 //  BOOT
 // ─────────────────────────────────────────────
@@ -770,6 +918,7 @@ sprite.onload = () => {
   walkTo(200, () => {
     setDialogue("R3X online. Sector secure.");
     state.patrolTimer = 9999;
+    scheduleCounterVisit();
   });
 
   // Start heartbeat poll
