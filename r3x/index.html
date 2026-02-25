@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>R3X — Spacetrucker's Butler</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#0a0a0a;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      min-height:100vh;
+      font-family:'Courier New', monospace;
+      color:#c8a84b;
+    }
+    #title-bar {
+      font-size:11px; letter-spacing:4px; color:#555;
+      text-transform:uppercase; margin-bottom:8px;
+    }
+    #title-bar span { color:#c8a84b; }
+    #game-container {
+      border:2px solid #2a2a2a;
+      box-shadow:0 0 30px #c8a84b22, inset 0 0 60px #00000088;
+      position:relative;
+    }
+    #status-bar {
+      display:flex; justify-content:space-between; align-items:center;
+      background:#111; border:1px solid #222; border-top:none;
+      padding:6px 14px; font-size:10px; letter-spacing:2px;
+      width:100%;
+    }
+    #current-room { color:#c8a84b; }
+    #current-task { color:#555; font-size:9px; }
+    #uptime { color:#333; }
+  </style>
+</head>
+<body>
+  <div id="title-bar">SPACETRUCKER INDUSTRIES &mdash; <span>R3X BUTLER UNIT</span> &mdash; ALWAYS WATCHING</div>
+  <div id="game-container">
+    <canvas id="r3x-world"></canvas>
+    <div id="status-bar">
+      <span id="current-room">📍 LOBBY</span>
+      <span id="current-task">IDLE — AWAITING ORDERS</span>
+      <span id="uptime">UNIT UPTIME: <span id="uptime-val">00:00:00</span></span>
+    </div>
+  </div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const W = 640, H = 400;
+const TILE = 16;
+const FRAME_W = 48, FRAME_H = 48;
+const SPRITE_URL = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_sprites.png";
+
+// Agent states — driven externally via window.R3X_STATE
+const ROOMS = {
+  lobby:   { name:"LOBBY",      x:120, y:240, color:"#1a1008", label:"🪑 LOBBY",       task:"IDLE — AWAITING ORDERS",       row:0 },
+  code:    { name:"CODE LAB",   x:480, y:140, color:"#080e18", label:"🖥️  CODE LAB",    task:"EXECUTING — GITHUB PUSH",       row:2 },
+  art:     { name:"ART STUDIO", x:160, y:120, color:"#120d18", label:"🎨 ART STUDIO",   task:"GENERATING — IMAGE SYNTHESIS",  row:2 },
+  comms:   { name:"COMMS ROOM", x:480, y:280, color:"#0a1208", label:"📡 COMMS ROOM",   task:"TRANSMITTING — EMAIL/SOCIAL",   row:2 },
+  tasks:   { name:"TASK BOARD", x:320, y:200, color:"#100f08", label:"📋 TASK BOARD",   task:"REVIEWING — MISSION QUEUE",     row:2 },
+};
+
+// ─── CANVAS + CTX ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById("r3x-world");
+canvas.width = W; canvas.height = H;
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+// ─── SPRITES ──────────────────────────────────────────────────────────────────
+const spriteImg = new Image();
+spriteImg.src = SPRITE_URL;
+let spritesLoaded = false;
+spriteImg.onload = () => { spritesLoaded = true; };
+
+// Sprite sheet layout: 4 cols x 5 rows, each frame 48x48 in a 960x960 sheet → 192x192 per cell
+// Scale factor: 960/4 = 240 per cell in actual sheet coords
+const SHEET_COLS = 4;
+const SHEET_CELL = 960 / SHEET_COLS; // 240px per cell
+
+// Rows: 0=IDLE, 1=WALK, 2=WORKING, 3=FACE, 4=REACT
+function drawSprite(row, col, dx, dy, scale=2) {
+  if (!spritesLoaded) return;
+  const sx = col * SHEET_CELL;
+  const sy = row * SHEET_CELL;
+  const drawSize = SHEET_CELL * scale * 0.2; // scale down nicely
+  ctx.drawImage(spriteImg, sx, sy, SHEET_CELL, SHEET_CELL, dx - drawSize/2, dy - drawSize, drawSize, drawSize);
+}
+
+// ─── WORLD STATE ──────────────────────────────────────────────────────────────
+let r3x = {
+  x: ROOMS.lobby.x, y: ROOMS.lobby.y,
+  targetRoom: "lobby",
+  currentRoom: "lobby",
+  walkFrame: 0,
+  idleFrame: 0,
+  animTick: 0,
+  state: "idle", // idle | walking | working
+  faceState: 0,  // 0=grin, 1=focused, 2=static, 3=flash
+  flashTimer: 0,
+};
+
+// External hook: window.R3X_STATE = "code" | "art" | "comms" | "tasks" | "lobby"
+// Defaults to lobby
+let activeRoom = "lobby";
+
+function setRoom(roomKey) {
+  if (!ROOMS[roomKey]) return;
+  if (r3x.targetRoom === roomKey) return;
+  r3x.targetRoom = roomKey;
+  r3x.state = "walking";
+  r3x.faceState = 1; // focused while walking
+  document.getElementById("current-room").textContent = ROOMS[roomKey].label;
+  document.getElementById("current-task").textContent = ROOMS[roomKey].task;
+}
+
+// ─── ROOM FLOOR TILES ─────────────────────────────────────────────────────────
+const roomRects = {
+  lobby:  { x:60,  y:190, w:180, h:140 },
+  code:   { x:400, y:80,  w:200, h:140 },
+  art:    { x:60,  y:60,  w:190, h:130 },
+  comms:  { x:400, y:220, w:200, h:130 },
+  tasks:  { x:250, y:150, w:140, h:120 },
+};
+
+// ─── DRAW WORLD ───────────────────────────────────────────────────────────────
+function drawWorld() {
+  // Floor
+  ctx.fillStyle = "#0d0d0d";
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines (subtle)
+  ctx.strokeStyle = "#161616";
+  ctx.lineWidth = 1;
+  for (let x=0; x<W; x+=TILE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0; y<H; y+=TILE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Rooms
+  Object.entries(roomRects).forEach(([key, r]) => {
+    const isActive = r3x.currentRoom === key;
+    const room = ROOMS[key];
+    // Room floor
+    ctx.fillStyle = room.color;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    // Room border
+    ctx.strokeStyle = isActive ? "#c8a84b" : "#2a2218";
+    ctx.lineWidth = isActive ? 2 : 1;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    // Room label
+    ctx.fillStyle = isActive ? "#c8a84b" : "#333";
+    ctx.font = "9px \'Courier New\', monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(key.toUpperCase(), r.x+6, r.y+14);
+
+    // Room props (simple pixel furniture)
+    ctx.fillStyle = isActive ? "#c8a84b33" : "#1a1a1a";
+    if (key === "lobby") {
+      // armchair silhouette
+      ctx.fillRect(r.x+20, r.y+60, 50, 40);
+      ctx.fillStyle = isActive ? "#c8a84b55" : "#222";
+      ctx.fillRect(r.x+18, r.y+50, 54, 14);
+    }
+    if (key === "code") {
+      // monitor
+      ctx.fillRect(r.x+30, r.y+30, 80, 50);
+      ctx.fillStyle = isActive ? "#4488ff44" : "#1a1a2a";
+      ctx.fillRect(r.x+36, r.y+36, 68, 38);
+    }
+    if (key === "art") {
+      // easel
+      ctx.fillStyle = isActive ? "#c8a84b44" : "#222";
+      ctx.fillRect(r.x+50, r.y+20, 60, 80);
+      ctx.fillStyle = isActive ? "#c8a84b22" : "#1a1a1a";
+      ctx.fillRect(r.x+55, r.y+25, 50, 50);
+    }
+    if (key === "comms") {
+      // radio/teletype
+      ctx.fillStyle = isActive ? "#44ff8844" : "#1a221a";
+      ctx.fillRect(r.x+20, r.y+30, 100, 60);
+    }
+    if (key === "tasks") {
+      // corkboard
+      ctx.fillStyle = isActive ? "#c8a84b33" : "#221a0a";
+      ctx.fillRect(r.x+10, r.y+15, 120, 85);
+      // pins
+      if (isActive) {
+        for (let i=0; i<4; i++) {
+          ctx.fillStyle = "#ff4444";
+          ctx.beginPath();
+          ctx.arc(r.x+20+i*28, r.y+30, 3, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    }
+  });
+
+  // Corridors (connecting dots)
+  ctx.setLineDash([4,4]);
+  ctx.strokeStyle = "#1e1e1e";
+  ctx.lineWidth = 1;
+  // lobby <-> tasks
+  ctx.beginPath(); ctx.moveTo(240, 260); ctx.lineTo(320, 230); ctx.stroke();
+  // tasks <-> code
+  ctx.beginPath(); ctx.moveTo(390, 210); ctx.lineTo(460, 180); ctx.stroke();
+  // tasks <-> comms
+  ctx.beginPath(); ctx.moveTo(390, 240); ctx.lineTo(460, 270); ctx.stroke();
+  // art <-> tasks
+  ctx.beginPath(); ctx.moveTo(250, 140); ctx.lineTo(320, 175); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ─── DRAW R3X ─────────────────────────────────────────────────────────────────
+function drawR3X() {
+  const x = r3x.x, y = r3x.y;
+  const col = r3x.state === "walking" ? r3x.walkFrame :
+               r3x.state === "working" ? r3x.walkFrame : r3x.idleFrame;
+  const row = r3x.state === "working" ? 2 :
+               r3x.state === "walking" ? 1 : 0;
+
+  // Shadow
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.beginPath();
+  ctx.ellipse(x, y+2, 20, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Glow aura when active
+  if (r3x.state === "working") {
+    ctx.shadowColor = "#c8a84b";
+    ctx.shadowBlur = 20;
+  }
+  drawSprite(row, col, x, y, 2);
+  ctx.shadowBlur = 0;
+
+  // CRT face overlay (tiny screen indicator above sprite head)
+  const faceColors = ["#ff8800","#ffcc00","#ff2222","#ffffff"];
+  const faceSymbols = [">:D", "=_=", "///", "!!"];
+  ctx.fillStyle = faceColors[r3x.faceState];
+  ctx.font = "bold 8px \'Courier New\'";
+  ctx.textAlign = "center";
+  ctx.fillText(faceSymbols[r3x.faceState], x, y - 46);
+
+  // Name tag
+  ctx.fillStyle = "#c8a84b88";
+  ctx.font = "7px \'Courier New\'";
+  ctx.fillText("R3X", x, y - 52);
+}
+
+// ─── CIGAR SMOKE (lobby idle) ─────────────────────────────────────────────────
+let smokeParticles = [];
+function spawnSmoke() {
+  if (r3x.currentRoom !== "lobby" || r3x.state !== "idle") return;
+  smokeParticles.push({ x:r3x.x+14, y:r3x.y-30, alpha:0.6, size:3, vx:(Math.random()-0.5)*0.3, vy:-0.4 });
+}
+function updateSmoke() {
+  smokeParticles = smokeParticles.filter(p => p.alpha > 0.02);
+  smokeParticles.forEach(p => {
+    p.y += p.vy; p.x += p.vx; p.alpha *= 0.97; p.size += 0.05;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(120,100,80,${p.alpha})`;
+    ctx.fill();
+  });
+}
+
+// ─── MOVEMENT ─────────────────────────────────────────────────────────────────
+function moveTowardTarget() {
+  const target = ROOMS[r3x.targetRoom];
+  const dx = target.x - r3x.x;
+  const dy = target.y - r3x.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist < 3) {
+    r3x.x = target.x; r3x.y = target.y;
+    r3x.currentRoom = r3x.targetRoom;
+    r3x.state = r3x.currentRoom === "lobby" ? "idle" : "working";
+    r3x.faceState = r3x.currentRoom === "lobby" ? 0 : 1;
+    r3x.flashTimer = 0;
+  } else {
+    const speed = 1.5;
+    r3x.x += (dx/dist)*speed;
+    r3x.y += (dy/dist)*speed;
+  }
+}
+
+// ─── UPTIME ───────────────────────────────────────────────────────────────────
+const startTime = Date.now();
+function updateUptime() {
+  const s = Math.floor((Date.now()-startTime)/1000);
+  const h=String(Math.floor(s/3600)).padStart(2,"0");
+  const m=String(Math.floor((s%3600)/60)).padStart(2,"0");
+  const sec=String(s%60).padStart(2,"0");
+  document.getElementById("uptime-val").textContent = `${h}:${m}:${sec}`;
+}
+
+// ─── MAIN LOOP ────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts) {
+  const dt = ts - lastTime;
+  lastTime = ts;
+
+  r3x.animTick++;
+  if (r3x.animTick % 12 === 0) {
+    r3x.walkFrame = (r3x.walkFrame+1)%4;
+    r3x.idleFrame = (r3x.idleFrame+1)%4;
+  }
+  if (r3x.animTick % 60 === 0) spawnSmoke();
+  if (r3x.animTick % 300 === 0) updateUptime();
+
+  // Flash face briefly on arrival
+  if (r3x.flashTimer > 0) {
+    r3x.flashTimer--;
+    r3x.faceState = r3x.flashTimer > 0 ? 3 : (r3x.currentRoom==="lobby" ? 0 : 1);
+  }
+
+  // Check external state
+  const extRoom = window.R3X_STATE || "lobby";
+  if (extRoom !== r3x.targetRoom) setRoom(extRoom);
+
+  moveTowardTarget();
+
+  drawWorld();
+  updateSmoke();
+  drawR3X();
+
+  requestAnimationFrame(loop);
+}
+
+// ─── DEMO CYCLE (if no external state) ───────────────────────────────────────
+const demoRooms = ["lobby","code","art","comms","tasks","lobby"];
+let demoIdx = 0;
+setInterval(() => {
+  if (!window.R3X_STATE) {
+    demoIdx = (demoIdx+1)%demoRooms.length;
+    setRoom(demoRooms[demoIdx]);
+  }
+}, 4000);
+
+// ─── PUBLIC API ───────────────────────────────────────────────────────────────
+// Set window.R3X_STATE to control R3X:
+// "lobby" | "code" | "art" | "comms" | "tasks"
+window.R3X = {
+  setRoom: (r) => { window.R3X_STATE = r; setRoom(r); },
+  getState: () => r3x.currentRoom,
+};
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
