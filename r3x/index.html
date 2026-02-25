@@ -194,8 +194,8 @@ const PATROL = ["lobby", "code", "art", "comms", "tasks", "lobby"];
 // ─────────────────────────────────────────────
 //  HEARTBEAT
 // ─────────────────────────────────────────────
-const HEARTBEAT_URL = null; // Set to your agent endpoint when wired
-const HEARTBEAT_INTERVAL_MS = 8000;
+const HEARTBEAT_URL = "https://gist.githubusercontent.com/spacetrucker1138/e92fa584a52314a180b947c309440357/raw/r3x-state.json"; // R3X agent state gist
+const HEARTBEAT_INTERVAL_MS = 5000;
 const HEARTBEAT_MISS_LIMIT = 3;
 
 // ─────────────────────────────────────────────
@@ -659,11 +659,12 @@ function heartbeat() {
       state.missCount = 0;
       setOnline(true);
       // If agent pushes a room update
-      if (data.room && ROOMS[data.room]) {
-        window.R3X.setRoom(data.room);
-      }
-      // If agent pushes dialogue
-      if (data.message) setDialogue(data.message);
+      // Route to unified setState handler
+      window.R3X.setState({
+        room: data.room,
+        message: data.message,
+        anim: data.anim
+      });
     })
     .catch(() => {
       state.missCount++;
@@ -709,6 +710,17 @@ window.R3X = {
   },
   say(text) {
     setDialogue(text);
+  },
+  setState(payload) {
+    // payload: { room?, message?, anim? }
+    if (payload.room && ROOMS[payload.room] && payload.room !== state.room) {
+      triggerRoomTransition(payload.room);
+    }
+    if (payload.message) setDialogue(payload.message);
+    if (payload.anim && ANIMS[payload.anim]) {
+      state.r3x.anim = payload.anim;
+      state.r3x.frame = 0;
+    }
   },
   getState() {
     return { room: state.room, online: state.online, fallback: state.fallback };
