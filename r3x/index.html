@@ -208,6 +208,7 @@ const ROOMS = {
     ambientText: "Security sweep. All clear.",
     idleAnim: "pingpong",
     idleAnim2: "march",
+    idleAnims: ["pingpong", "march", "sleep", "charge"],  // extended lobby idle pool
     walkAnim: "walk",
   },
   code: {
@@ -798,14 +799,23 @@ function tick() {
   if (!r.moving && !state.transitioning && state.mode === "auto") {
     state.idleCycleTimer++;
     const room = ROOMS[state.room];
-    const hasCycle = !!room.idleAnim2;
+    const hasCycle = !!(room.idleAnims || room.idleAnim2);
     if (hasCycle) {
       // Switch every ~15 seconds (900 frames at 60fps)
       const switchAt = state.idleCyclePhase === 0 ? 900 : 540;
       if (state.idleCycleTimer >= switchAt) {
         state.idleCycleTimer = 0;
-        state.idleCyclePhase = state.idleCyclePhase === 0 ? 1 : 0;
-        r.anim = state.idleCyclePhase === 0 ? room.idleAnim : room.idleAnim2;
+        if (room.idleAnims) {
+          // Extended pool: pick a random different anim
+          const cur = state.idleCyclePhase % room.idleAnims.length;
+          let next = cur;
+          while (next === cur) next = Math.floor(Math.random() * room.idleAnims.length);
+          state.idleCyclePhase = next;
+          r.anim = room.idleAnims[state.idleCyclePhase];
+        } else {
+          state.idleCyclePhase = state.idleCyclePhase === 0 ? 1 : 0;
+          r.anim = state.idleCyclePhase === 0 ? room.idleAnim : room.idleAnim2;
+        }
         r.frame = 0;
       }
     }
@@ -814,7 +824,8 @@ function tick() {
   // Fallback patrol
   if (state.mode === "auto") {  // patrol always active in auto mode
     state.patrolTimer--;
-    if (state.patrolTimer <= 0 && !r.moving && !state.transitioning) {
+    const _cleaning = state.glitches.some(g => g.cleaning && !g.cleaned);
+    if (state.patrolTimer <= 0 && !r.moving && !state.transitioning && !_cleaning) {
       state.patrolIdx = (state.patrolIdx + 1) % PATROL.length;
       triggerRoomTransition(PATROL[state.patrolIdx]);
     }
@@ -1149,7 +1160,8 @@ window.R3X = {
   },
   setState(payload) {
     // payload: { room?, message?, anim? }
-    if (payload.room && ROOMS[payload.room] && payload.room !== state.room) {
+    const isCleaning = state.glitches.some(g => g.cleaning && !g.cleaned);
+    if (payload.room && ROOMS[payload.room] && payload.room !== state.room && !isCleaning) {
       triggerRoomTransition(payload.room);
     }
     if (payload.message) setDialogue(payload.message);
