@@ -160,7 +160,7 @@
 <script>
 // ─────────────────────────────────────────────
 //  SPRITE CONFIG
-//  Sheet: 2048×512 | cell: 128×128
+//  Sheet: 2048×2304 | cell: 128×128  (rows 0-17)
 //  Row 0 = stand (1 frame)
 //  Row 1 = walk  (16 frames)
 //  Row 2 = run   (16 frames)
@@ -180,6 +180,13 @@ const ANIMS = {
   march:    { row: 8,  frames: 16, fps: 10,  scale: 1.48, yOffset: 24 },  // lobby idle 2 (+10% scale)
   sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.48, yOffset: 40 },  // taskboard (+10% scale)
   portal:   { row: 10, frames: 16, fps: 14,  scale: 1.48, yOffset: 24 },  // tasks active (+10% scale)
+  angry:    { row: 11, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // angry + steam
+  defend:   { row: 12, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // shield defense
+  code2:    { row: 13, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // holographic typing
+  celebrate:{ row: 14, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // celebration
+  point:    { row: 15, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // pointing + talking
+  sleep:    { row: 16, frames: 16, fps:  6,  scale: 1.35, yOffset: 24 },  // plugged in / good night
+  charge:   { row: 17, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // battery charging
 };
 
 // ─────────────────────────────────────────────
