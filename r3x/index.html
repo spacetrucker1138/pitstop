@@ -87,10 +87,13 @@
 // ─────────────────────────────────────────────
 const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
-  stand: { row: 0, frames: 1,  fps: 4  },
-  walk:  { row: 1, frames: 16, fps: 10 },
-  run:   { row: 2, frames: 16, fps: 22 },
-  jump:  { row: 3, frames: 16, fps: 16 },
+  stand:  { row: 0, frames: 1,  fps: 4  },
+  walk:   { row: 1, frames: 16, fps: 10 },
+  run:    { row: 2, frames: 16, fps: 22 },
+  jump:   { row: 3, frames: 16, fps: 16 },
+  comms:  { row: 4, frames: 16, fps: 12 },  // talking / comms room idle
+  art:    { row: 5, frames: 16, fps: 14 },  // painting / art room idle
+  repair: { row: 6, frames: 16, fps: 10 },  // wrenching / code room idle
 };
 
 // ─────────────────────────────────────────────
@@ -124,7 +127,7 @@ const ROOMS = {
       { type: "cable",   x: 650, y: 280, w: 120, h: 10,  color: "#1a2a1a", label: null },
     ],
     ambientText: "Build in progress.",
-    idleAnim: "stand",
+    idleAnim: "repair",
     walkAnim: "run",
   },
   art: {
@@ -139,7 +142,7 @@ const ROOMS = {
       { type: "light",  x: 680, y: 60,  w: 40,  h: 80,  color: "#2a1a00", label: null },
     ],
     ambientText: "Running the renders.",
-    idleAnim: "stand",
+    idleAnim: "art",
     walkAnim: "walk",
   },
   comms: {
@@ -154,7 +157,7 @@ const ROOMS = {
       { type: "bin",     x: 650, y: 270, w: 50,  h: 50,  color: "#0a100a",   label: null },
     ],
     ambientText: "All messages relayed.",
-    idleAnim: "stand",
+    idleAnim: "comms",
     walkAnim: "walk",
   },
   tasks: {
@@ -206,7 +209,7 @@ const ctx = canvas.getContext("2d");
 const W = canvas.width, H = canvas.height;
 
 const sprite = new Image();
-sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v2_sprites.png";
+sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v3_sprites.png";
 
 let state = {
   room: "lobby",
