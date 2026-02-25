@@ -1336,11 +1336,47 @@ class JURNRhythmGame {
   setStemActive(laneIndex, active) {
     if (laneIndex === CONFIG.VOCALS_LANE) return; // vocals never mute
     if (laneIndex >= this.stems.length) return;
+
+    // Check if this lane is section-protected (e.g., guitar during breakdown/bridge)
+    const songTime = this.getSongTime ? this.getSongTime() : 0;
+    const sec = _activeSong.sections.find(s => songTime >= s.startMs && songTime < s.endMs);
+    const protectedTypes = ['breakdown', 'bridge', 'outro'];
+    if (!active && sec && protectedTypes.includes(sec.type)) {
+      // Don't mute non-vocal lanes in sparse sections — too few notes to recover
+      return;
+    }
+
     this.laneActive[laneIndex] = active;
-    // lane 0-2 map to stems 0-2; backing vocals (stem 4) follows lane 3 but lane 3 never mutes
-    // We also mute/restore backing vocals (stem index 4) when drums (lane 1) misses — drum/bv grouping feels best
     this.stems[laneIndex].volume = active ? 1.0 : 0.0;
-    // When guitar (lane 2) is restored, also bump that's fine
+
+    // Track mute timestamp for decay restore
+    if (!active) {
+      if (!this._mutedAt) this._mutedAt = {};
+      this._mutedAt[laneIndex] = performance.now();
+    } else {
+      if (this._mutedAt) delete this._mutedAt[laneIndex];
+    }
+  }
+
+  // Called every frame — auto-restore stems muted for too long with no upcoming notes
+  _tickStemDecay() {
+    if (!this.stemsReady || !this._mutedAt) return;
+    const now = performance.now();
+    const songTime = this.getSongTime ? this.getSongTime() : 0;
+    const DECAY_MS = 4000; // restore after 4s of silence on that lane
+
+    for (const [laneStr, mutedAt] of Object.entries(this._mutedAt)) {
+      const lane = parseInt(laneStr);
+      if (now - mutedAt < DECAY_MS) continue;
+      // Check if there's an upcoming note on this lane within 3 beats
+      const lookAhead = 60000 / CONFIG.BPM * 3;
+      const hasUpcoming = this.beatmap && this.beatmap.some(
+        n => n.lane === lane && n.time > songTime && n.time < songTime + lookAhead && !n.hit && !n.missed
+      );
+      if (!hasUpcoming) {
+        this.setStemActive(lane, true);
+      }
+    }
   }
 
   playStems() {
@@ -1559,6 +1595,17 @@ class JURNRhythmGame {
 
     // Refresh backdrop clips in case song changed
     this.backdrop.clips = _activeSong.videoClips;
+
+    // Restore all stems on section change — new section = fresh start
+    if (this.stemsReady) {
+      this._mutedAt = {};
+      this.stems.forEach((stem, i) => {
+        if (i < CONFIG.LANE_COUNT) {
+          stem.volume = 1.0;
+          this.laneActive[i] = true;
+        }
+      });
+    }
 
     // Switch video based on section type
     switch (sec.type) {
@@ -1794,6 +1841,7 @@ class JURNRhythmGame {
 
     // Update video backdrop (section switch + rock meter filter)
     this._updateVideoSection();
+    this._tickStemDecay();
 
     this.render(songTime);
     this.updateHUD(songTime);
