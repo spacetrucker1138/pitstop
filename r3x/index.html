@@ -200,7 +200,7 @@ const ROOMS = {
     floorY: 300,
     elements: [
       { type: "door",    x: 60,  y: 200, w: 60,  h: 100, color: "#1a2a1a", label: null },
-      { type: "sign",    x: 350, y: 100, w: 120, h: 40,  color: "#0d1a0d", label: "PITSTOP OPS" },
+      { type: "sign",    x: 350, y: 100, w: 120, h: 40,  color: "#0d1a0d", label: "PITSTOP OPS", matrix: true },
       { type: "counter", x: 500, y: 108, w: 172, h: 92,  color: "#0a0a14", label: null },
       { type: "desk",    x: 560, y: 230, w: 120, h: 60,  color: "#1a1a2a", label: null },
       { type: "vent",    x: 700, y: 80,  w: 60,  h: 40,  color: "#0a1a1a", label: null },
@@ -217,9 +217,9 @@ const ROOMS = {
     accent: "#0a2040",
     floorY: 300,
     elements: [
-      { type: "monitor", x: 80,  y: 160, w: 180, h: 120, color: "#0a1a0a", label: "COMPILING..." },
-      { type: "monitor", x: 300, y: 180, w: 140, h: 100, color: "#0a1a0a", label: "PROCESS_ID: 4491" },
-      { type: "rack",    x: 560, y: 120, w: 80,  h: 180, color: "#101520", label: null },
+      { type: "monitor", x: 80,  y: 160, w: 180, h: 120, color: "#0a1a0a", label: "COMPILING...",     matrix: true },
+      { type: "monitor", x: 300, y: 180, w: 140, h: 100, color: "#0a1a0a", label: "PROCESS_ID: 4491", matrix: true },
+      { type: "rack",    x: 560, y: 120, w: 80,  h: 180, color: "#101520", label: null,               matrix: true },
       { type: "cable",   x: 650, y: 280, w: 120, h: 10,  color: "#1a2a1a", label: null },
     ],
     ambientText: "Build in progress.",
@@ -248,7 +248,7 @@ const ROOMS = {
     floorY: 300,
     elements: [
       { type: "antenna", x: 120, y: 60,  w: 20,  h: 140, color: "#00ff8833", label: null },
-      { type: "panel",   x: 200, y: 160, w: 200, h: 130, color: "#0a1a0a",   label: "SIGNAL: ACTIVE" },
+      { type: "panel",   x: 200, y: 160, w: 200, h: 130, color: "#0a1a0a",   label: "SIGNAL: ACTIVE", matrix: true },
       { type: "printer", x: 480, y: 250, w: 100, h: 60,  color: "#0f1a0f",   label: null },
       { type: "bin",     x: 650, y: 270, w: 50,  h: 50,  color: "#0a100a",   label: null },
     ],
@@ -262,7 +262,7 @@ const ROOMS = {
     accent: "#2a1a00",
     floorY: 300,
     elements: [
-      { type: "board",  x: 60,  y: 80,  w: 300, h: 200, color: "#1a1000", label: "TASK BOARD" },
+      { type: "board",  x: 60,  y: 80,  w: 300, h: 200, color: "#1a1000", label: "TASK BOARD",   matrix: true },
       { type: "note",   x: 80,  y: 120, w: 60,  h: 40,  color: "#2a1a00", label: "▣ SPRITE V2" },
       { type: "note",   x: 160, y: 120, w: 60,  h: 40,  color: "#2a1a00", label: "▣ WIRE STATE" },
       { type: "note",   x: 240, y: 120, w: 60,  h: 40,  color: "#2a2000", label: "▣ HEARTBEAT" },
@@ -330,6 +330,7 @@ let state = {
   patrolTimer: 0,
   idleCycleTimer: 0,
   idleCyclePhase: 0,       // 0 = primary idle, 1 = secondary idle
+  matrixRains: {},          // keyed by "room:elIdx" or "ambient:room:elIdx"
   transitioning: false,
   transitionAlpha: 0,
   transitionDir: 1,
@@ -601,6 +602,11 @@ function drawElement(el) {
         ctx.font = "9px 'Courier New'";
         ctx.fillText(el.label, el.x + 4, el.y + 14);
       }
+  }
+  // Ambient matrix rain for tagged elements
+  if (el.matrix) {
+    const ambKey = "amb:" + el.type + ":" + el.x + ":" + el.y;
+    drawMatrixRain(el, ambKey, "#00ff88", 0.9, 0.15, false);
   }
   ctx.restore();
 }
@@ -985,6 +991,65 @@ const ZALGO_UP   = ["̍","̎","̄","̅","̿","̑","̆","̐","͒","͗","͑","̇",
 const ZALGO_MID  = ["̕","̛","̀","́","͘","̡","̢","̧","̨","̴","̵","̶","͜","͝","͞","͟","͠","͢","̸","̷","͡"];
 const ZALGO_DOWN = ["̖","̗","̘","̙","̜","̝","̞","̟","̠","̤","̥","̦","̩","̪","̫","̬","̭","̮","̯","̰","̱","̲","̳","̹","̺","̻","̼","͇","͈","͉","͍","͎","͓","͔","͕","͖","͙","͚","̣"];
 
+// ─────────────────────────────────────────────
+//  MATRIX RAIN SYSTEM
+// ─────────────────────────────────────────────
+const MATRIX_CHARS = "ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789@#$%&*<>[]{}|/\\";
+
+function getMatrixRain(key, el, colWidth) {
+  if (!state.matrixRains[key]) {
+    const cols = Math.max(2, Math.floor(el.w / colWidth));
+    state.matrixRains[key] = Array.from({ length: cols }, (_, i) => ({
+      x: el.x + i * colWidth + Math.floor(colWidth / 2),
+      y: el.y + Math.random() * el.h,
+      speed: 0,
+      char: MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)],
+      charTimer: 0,
+    }));
+  }
+  return state.matrixRains[key];
+}
+
+function drawMatrixRain(el, key, color, speed, alpha, glowing) {
+  const colWidth = 8;
+  const cols = getMatrixRain(key, el, colWidth);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(el.x, el.y, el.w, el.h);
+  ctx.clip();
+  ctx.font = "7px 'Courier New'";
+  ctx.textAlign = "center";
+  if (glowing) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 4;
+  }
+  for (const col of cols) {
+    // Update position
+    col.y += speed;
+    if (col.y > el.y + el.h + 10) col.y = el.y - Math.random() * el.h * 0.5;
+    // Randomize char occasionally
+    col.charTimer--;
+    if (col.charTimer <= 0) {
+      col.char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+      col.charTimer = 3 + Math.floor(Math.random() * 6);
+    }
+    // Head char (bright)
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.fillText(col.char, col.x, col.y);
+    // Trail (fade out upward — 3 ghost chars)
+    for (let t = 1; t <= 3; t++) {
+      ctx.globalAlpha = alpha * (1 - t / 4) * 0.5;
+      const trailChar = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+      ctx.fillText(trailChar, col.x, col.y - t * 9);
+    }
+  }
+  ctx.shadowBlur = 0;
+  ctx.textAlign = "left";
+  ctx.restore();
+}
+
+
 function zalgoWord(word, intensity) {
   return word.split('').map(c => {
     let out = c;
@@ -1045,6 +1110,7 @@ function glitchTick() {
         setTimeout(() => {
           localGlitch.cleaned = true;
           localGlitch.cleanAge = localGlitch.age;
+          delete state.matrixRains["glitch:" + localGlitch.room + ":" + localGlitch.elIdx];
           setDialogue("sector clean.");
           state.r3x.anim = ROOMS[state.room].idleAnim;
         }, 2400);
@@ -1060,6 +1126,10 @@ function drawGlitches(room) {
     const cx = el.x + el.w/2;
     const cy = el.y + 6;
     // Flicker intensity tied to age
+    // Red matrix rain on glitched element
+    const glitchRainKey = "glitch:" + g.room + ":" + g.elIdx;
+    drawMatrixRain(el, glitchRainKey, "#ff2244", 2.5, 0.55, true);
+
     const flicker = (Math.sin(Date.now()/80 + g.elIdx) + 1) / 2;
     const alpha = 0.6 + flicker * 0.4;
     // Regenerate zalgo text every ~4 frames for shimmer
@@ -1117,6 +1187,7 @@ canvas.addEventListener("click", function(e) {
       setTimeout(() => {
         g.cleaned = true;
         g.cleanAge = g.age;
+        delete state.matrixRains["glitch:" + g.room + ":" + g.elIdx];
         setDialogue("--G̷̛L̵I̷T̶C̵H̷-- cleared.");
         state.r3x.anim = ROOMS[state.room].idleAnim;
       }, 1800);
