@@ -87,17 +87,17 @@
 // ─────────────────────────────────────────────
 const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
-  stand:    { row: 0,  frames: 1,  fps: 4  },
-  walk:     { row: 1,  frames: 16, fps: 10 },
-  run:      { row: 2,  frames: 16, fps: 22 },
-  jump:     { row: 3,  frames: 16, fps: 16 },
-  comms:    { row: 4,  frames: 16, fps: 12 },  // talking / comms room idle
-  art:      { row: 5,  frames: 16, fps: 14 },  // painting / art room idle
-  repair:   { row: 6,  frames: 16, fps: 10 },  // wrenching / code room idle
-  pingpong: { row: 7,  frames: 16, fps: 18 },  // lobby idle 1
-  march:    { row: 8,  frames: 16, fps: 10 },  // lobby idle 2
-  sweep:    { row: 9,  frames: 16, fps: 12 },  // tasks idle (sweeping)
-  portal:   { row: 10, frames: 16, fps: 14 },  // tasks active (portal fire)
+  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3 },
+  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.0 },
+  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.0 },
+  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3 },
+  comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35 },  // talking / comms room idle
+  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35 },  // painting / art room idle
+  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.35 },  // wrenching / code room idle
+  pingpong: { row: 7,  frames: 16, fps: 8,   scale: 1.35 },  // lobby idle 1 (slowed down)
+  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.35 },  // lobby idle 2
+  sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.35 },  // tasks idle (sweeping)
+  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.35 },  // tasks active (portal fire)
 };
 
 // ─────────────────────────────────────────────
@@ -414,7 +414,7 @@ function drawR3X() {
 
   const sx = frameIdx * CELL_W;
   const sy = anim.row * CELL_H;
-  const drawSize = 80;
+  const drawSize = Math.round(80 * (anim.scale || 1.0));
   const drawX = r.x - drawSize / 2;
   const drawY = r.y - drawSize;
 
