@@ -580,6 +580,16 @@
           <span class="key-badge" style="color:#ff0">F</span> Vox (Vocals)
         </div>
       </div>
+      <div class="song-card" id="song-rage">
+        <div class="song-card-title">&#9835; RAGE &#9835;</div>
+        <div class="song-card-meta">THE JURN · 2:04 · 180 BPM</div>
+        <div class="song-card-keys">
+          <span class="key-badge" style="color:#f0f">A</span> Taz (Bass) &nbsp;
+          <span class="key-badge" style="color:#0ff">S</span> Bonecrush (Drums) &nbsp;
+          <span class="key-badge" style="color:#0f0">D</span> Riff-Rot (Guitar) &nbsp;
+          <span class="key-badge" style="color:#ff0">F</span> Vox (Vocals)
+        </div>
+      </div>
     </div>
     <button class="nav-btn" id="btn-song-select">SELECT</button>
   </div>
@@ -627,79 +637,157 @@
 // ============================================================
 // CONFIGURATION
 // ============================================================
-const CONFIG = {
-  BPM: 155,
-  SONG_DURATION: 180,
+// CONFIG is derived from the active song at game start
+// Static gameplay constants only — per-song values come from _activeSong
+const CONFIG_BASE = {
   SCROLL_SPEED: 6,
   LANE_COUNT: 4,
   LANE_KEYS: ['a', 's', 'd', 'f'],
-  LANE_COLORS: ['#f0f', '#0ff', '#0f0', '#ff0'],
-  LANE_GLOW: ['rgba(255,0,255,', 'rgba(0,255,255,', 'rgba(0,255,0,', 'rgba(255,255,0,'],
-  LANE_NAMES: ['TAZ', 'CRUSH', 'RIFF', 'VOX'],
   HIT_Y: 0.88,
   NOTE_RADIUS: 22,
-  // Timing windows (ms)
   PERFECT_WINDOW: 50,
   GREAT_WINDOW: 100,
   GOOD_WINDOW: 150,
-  // Scoring
   PERFECT_SCORE: 300,
   GREAT_SCORE: 200,
   GOOD_SCORE: 100,
-  // Multiplier
   MULT_THRESHOLDS: [10, 30, 60, 100],
   MAX_MULTIPLIER: 5,
-  // Rock meter
   ROCK_METER_MAX: 100,
   ROCK_METER_START: 50,
   ROCK_HIT_GAIN: 2,
   ROCK_MISS_PENALTY: 8,
-  // Audio
-  AUDIO_URL: 'audio/combined.mp3',
-  // Stems — lane order: 0=Bass(Taz), 1=Drums(Bonecrush), 2=Guitar(Riff-Rot), 3=Vocals(Vox)
-  // Lane 3 (Vocals / F) NEVER mutes — stems[3] always plays
-  STEM_URLS: [
-    'audio/stems/bass.mp3',
-    'audio/stems/drums.mp3',
-    'audio/stems/guitar.mp3',
-    'audio/stems/lead_vocals.mp3',
-    'audio/stems/backing_vocals.mp3',
-  ],
-  VOCALS_LANE: 3, // F key — never mutes
+  VOCALS_LANE: 3,
 };
+
+function buildConfig(song) {
+  return Object.assign({}, CONFIG_BASE, {
+    BPM: song.bpm,
+    SONG_DURATION: song.duration,
+    AUDIO_URL: song.audioUrl,
+    STEM_URLS: song.stemUrls,
+    LANE_COLORS: song.laneColors,
+    LANE_GLOW:   song.laneGlow,
+    LANE_NAMES:  song.laneNames,
+  });
+}
+
+// CONFIG is set when a song is selected; starts as first song default
+let CONFIG = buildConfig(SONG_CATALOG[0]);
 
 // ============================================================
 // SONG STRUCTURE @ 155 BPM
 // ============================================================
-const SONG = {
-  bpm: 155,
-  msPerBeat: 60000 / 155,
-  sections: [
-    { name: 'intro',       startMs: 0,      endMs: 13000,  type: 'instrumental' },
-    { name: 'verse1',      startMs: 13000,  endMs: 34000,  type: 'verse' },
-    { name: 'chorus1',     startMs: 34000,  endMs: 58000,  type: 'chorus' },
-    { name: 'postChorus1', startMs: 58000,  endMs: 83000,  type: 'post_chorus' },
-    { name: 'break',       startMs: 83000,  endMs: 91000,  type: 'instrumental' },
-    { name: 'verse2',      startMs: 91000,  endMs: 116000, type: 'verse' },
-    { name: 'chorus2',     startMs: 116000, endMs: 130000, type: 'chorus' },
-    { name: 'postChorus2', startMs: 130000, endMs: 150000, type: 'post_chorus' },
-    { name: 'outro',       startMs: 150000, endMs: 180000, type: 'outro' },
-  ]
-};
+
+// ─────────────────────────────────────────────────────────────
+//  SONG CATALOG
+// ─────────────────────────────────────────────────────────────
+const SONG_CATALOG = [
+  {
+    id: 'grgh',
+    title: 'GET READY FOR GET HAPPY',
+    meta: 'JURN · 3:00 · 155 BPM · F MAJOR',
+    bpm: 155,
+    duration: 180,
+    audioUrl: 'audio/grgh/combined.mp3',
+    stemUrls: [
+      'audio/grgh/stems/bass.mp3',
+      'audio/grgh/stems/drums.mp3',
+      'audio/grgh/stems/guitar.mp3',
+      'audio/grgh/stems/lead_vocals.mp3',
+      'audio/grgh/stems/backing_vocals.mp3',
+    ],
+    laneNames:  ['TAZ', 'CRUSH', 'RIFF', 'VOX'],
+    laneColors: ['#f0f', '#0ff', '#0f0', '#ff0'],
+    laneGlow:   ['rgba(255,0,255,', 'rgba(0,255,255,', 'rgba(0,255,0,', 'rgba(255,255,0,'],
+    videoClips: {
+      taz:       'videos/grgh/taz.mp4',
+      bonecrush: 'videos/grgh/bonecrush.mp4',
+      rif:       'videos/grgh/rif.mp4',
+      vox:       'videos/grgh/vox.mp4',
+      fullband:  'videos/grgh/fullband.mp4',
+      fullband1: 'videos/grgh/fullBand1.mp4',
+      fullband2: 'videos/grgh/fullBand2.mp4',
+    },
+    sections: [
+      { name: 'intro',       startMs: 0,      endMs: 13000,  type: 'instrumental' },
+      { name: 'verse1',      startMs: 13000,  endMs: 34000,  type: 'verse' },
+      { name: 'chorus1',     startMs: 34000,  endMs: 58000,  type: 'chorus' },
+      { name: 'postChorus1', startMs: 58000,  endMs: 83000,  type: 'post_chorus' },
+      { name: 'break',       startMs: 83000,  endMs: 91000,  type: 'instrumental' },
+      { name: 'verse2',      startMs: 91000,  endMs: 116000, type: 'verse' },
+      { name: 'chorus2',     startMs: 116000, endMs: 130000, type: 'chorus' },
+      { name: 'postChorus2', startMs: 130000, endMs: 150000, type: 'post_chorus' },
+      { name: 'outro',       startMs: 150000, endMs: 180000, type: 'outro' },
+    ],
+  },
+  {
+    id: 'rage',
+    title: 'RAGE',
+    meta: 'THE JURN · 2:04 · 180 BPM',
+    bpm: 180,
+    duration: 124,
+    audioUrl: 'audio/rage/combined.mp3',
+    stemUrls: [
+      'audio/rage/stems/bass.mp3',
+      'audio/rage/stems/drums.mp3',
+      'audio/rage/stems/guitar.mp3',
+      'audio/rage/stems/vocals.mp3',       // combined lead+backing
+    ],
+    laneNames:  ['TAZ', 'CRUSH', 'RIFF', 'VOX'],
+    laneColors: ['#f0f', '#0ff', '#0f0', '#ff0'],
+    laneGlow:   ['rgba(255,0,255,', 'rgba(0,255,255,', 'rgba(0,255,0,', 'rgba(255,255,0,'],
+    videoClips: {
+      taz:       'videos/taz.mp4',
+      bonecrush: 'videos/bonecrush.mp4',
+      rif:       'videos/rif.mp4',
+      vox:       'videos/vox.mp4',
+      fullband:  'videos/fullband.mp4',
+      fullband1: 'videos/fullBand1.mp4',
+      fullband2: 'videos/fullBand2.mp4',
+    },
+    sections: [
+      { name: 'intro',      startMs: 0,      endMs: 12000,  type: 'instrumental' },
+      { name: 'verse1',     startMs: 12000,  endMs: 30000,  type: 'verse' },
+      { name: 'preChorus',  startMs: 30000,  endMs: 43000,  type: 'pre_chorus' },
+      { name: 'chorus1',    startMs: 43000,  endMs: 64000,  type: 'chorus' },
+      { name: 'bridge',     startMs: 64000,  endMs: 85000,  type: 'bridge' },
+      { name: 'breakdown',  startMs: 85000,  endMs: 100000, type: 'breakdown' },
+      { name: 'buildup',    startMs: 100000, endMs: 108000, type: 'instrumental' },
+      { name: 'chorus2',    startMs: 108000, endMs: 117000, type: 'chorus' },
+      { name: 'outro',      startMs: 117000, endMs: 124000, type: 'outro' },
+    ],
+  },
+];
+
+// Active song — default to first
+let _activeSong = SONG_CATALOG[0];
+
 
 // Tag each section with its occurrence index (for video alternation)
-{ const _c = {}; for (const s of SONG.sections) { s.index = (_c[s.type]||0); _c[s.type] = (_c[s.type]||0)+1; } }
+
+// Stamp section indices for all songs in catalog at startup
+(function() {
+  for (const song of SONG_CATALOG) {
+    const _c = {};
+    for (const s of song.sections) {
+      s.index = (_c[s.type] || 0);
+      _c[s.type] = (_c[s.type] || 0) + 1;
+    }
+  }
+})();
 
 // ============================================================
 // BEATMAP GENERATOR — Two difficulty levels
 // ============================================================
-function generateBeatmap(difficulty) {
+function generateBeatmap(difficulty, songDef) {
+  const song = songDef || _activeSong;
   const notes = [];
-  const b = SONG.msPerBeat;
+  const b = 60000 / song.bpm;
   const h = b / 2;
   const isBeginner = difficulty === 'beginner';
 
-  for (const sec of SONG.sections) {
+  for (const sec of song.sections) {
     let t = sec.startMs;
     const end = sec.endMs;
 
@@ -744,6 +832,33 @@ function generateBeatmap(difficulty) {
             notes.push({ time: t + b,   lane: 0 });
             notes.push({ time: t + b*2, lane: 2 });
             notes.push({ time: t + b*3, lane: 0 });
+            t += b * 4;
+          }
+          break;
+
+        case 'pre_chorus':
+          while (t < end) {
+            notes.push({ time: t,       lane: 2 }); // vocals
+            notes.push({ time: t + b,   lane: 0 }); // drums
+            notes.push({ time: t + b*2, lane: 2 }); // vocals
+            notes.push({ time: t + b*2, lane: 1 }); // guitar
+            t += b * 4;
+          }
+          break;
+        case 'bridge':
+          while (t < end) {
+            notes.push({ time: t,       lane: 1 }); // guitar
+            notes.push({ time: t + b,   lane: 0 }); // drums
+            notes.push({ time: t + b*2, lane: 2 }); // vocals
+            notes.push({ time: t + b*3, lane: 0 }); // drums
+            t += b * 4;
+          }
+          break;
+        case 'breakdown':
+          // Sparse — beginner gets a breather here
+          while (t < end) {
+            notes.push({ time: t,       lane: 0 }); // drums only
+            notes.push({ time: t + b*2, lane: 1 }); // guitar
             t += b * 4;
           }
           break;
@@ -805,6 +920,38 @@ function generateBeatmap(difficulty) {
             notes.push({ time: t + b*2, lane: 2 });
             notes.push({ time: t + b*2, lane: 3 });
             notes.push({ time: t + b*3, lane: 1 });
+            t += b * 4;
+          }
+          break;
+
+        case 'pre_chorus':
+          while (t < end) {
+            notes.push({ time: t, lane: 3 });           // vocals
+            notes.push({ time: t + b, lane: 1 });       // drums
+            notes.push({ time: t + b, lane: 2 });       // guitar
+            notes.push({ time: t + b*2, lane: 3 });     // vocals
+            notes.push({ time: t + b*3, lane: 1 });     // drums
+            t += b * 4;
+          }
+          break;
+        case 'bridge':
+          while (t < end) {
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*2, lane: 2 });
+            notes.push({ time: t + b*3, lane: 1 });
+            t += b * 4;
+          }
+          break;
+        case 'breakdown':
+          // Half-time feel — sparse hits on every other beat
+          while (t < end) {
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t + b*2, lane: 2 });
+            notes.push({ time: t + b*2, lane: 3 });
             t += b * 4;
           }
           break;
@@ -901,6 +1048,57 @@ function generateBeatmap(difficulty) {
             t += b * 4;
           }
           break;
+
+        case 'pre_chorus':
+          while (t < end) {
+            notes.push({ time: t, lane: 3 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t + h, lane: 0 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b, lane: 3 });
+            notes.push({ time: t + b + h, lane: 2 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2 + h, lane: 0 });
+            notes.push({ time: t + b*3, lane: 2 });
+            notes.push({ time: t + b*3, lane: 1 });
+            t += b * 4;
+          }
+          break;
+        case 'bridge':
+          while (t < end) {
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t + h, lane: 1 });
+            notes.push({ time: t + h, lane: 3 });
+            notes.push({ time: t + b, lane: 2 });
+            notes.push({ time: t + b + h, lane: 0 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*2 + h, lane: 2 });
+            notes.push({ time: t + b*3, lane: 0 });
+            notes.push({ time: t + b*3, lane: 1 });
+            notes.push({ time: t + b*3 + h, lane: 2 });
+            t += b * 4;
+          }
+          break;
+        case 'breakdown':
+          // Heavy half-time: big chords on the 1 and 3, driving eighth on 2
+          while (t < end) {
+            notes.push({ time: t, lane: 0 });
+            notes.push({ time: t, lane: 1 });
+            notes.push({ time: t, lane: 2 });
+            notes.push({ time: t + h, lane: 3 });
+            notes.push({ time: t + b, lane: 1 });
+            notes.push({ time: t + b + h, lane: 2 });
+            notes.push({ time: t + b*2, lane: 0 });
+            notes.push({ time: t + b*2, lane: 1 });
+            notes.push({ time: t + b*2, lane: 3 });
+            notes.push({ time: t + b*3, lane: 2 });
+            notes.push({ time: t + b*3 + h, lane: 1 });
+            t += b * 4;
+          }
+          break;
         case 'outro':
           while (t < end - 3000) {
             // Dense all-lane assault
@@ -942,7 +1140,7 @@ class VideoBackdrop {
     this.vid = document.getElementById('vid-main');
     this.currentSrc = null;
 
-    this.clips = {
+    this.clips = (_activeSong && _activeSong.videoClips) ? _activeSong.videoClips : {
       taz:       'videos/taz.mp4',
       bonecrush: 'videos/bonecrush.mp4',
       rif:       'videos/rif.mp4',
@@ -1194,6 +1392,25 @@ class JURNRhythmGame {
       }
     });
 
+    // ---- Song Select: song card clicks set active song ----
+    document.querySelectorAll('.song-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.song-card').forEach(c => c.classList.remove('active-song'));
+        card.classList.add('active-song');
+        const sid = card.id.replace('song-', '');
+        const found = SONG_CATALOG.find(s => s.id === sid);
+        if (found) {
+          _activeSong = found;
+          CONFIG = buildConfig(found);
+          // Reload audio for new selection
+          this.preloadAudio();
+          // Update the difficulty screen song title display
+          const titleEl = document.querySelector('.song-title-small');
+          if (titleEl) titleEl.textContent = '♫ ' + found.title + ' ♫';
+        }
+      });
+    });
+
     // ---- Song Select: SELECT button goes to difficulty ----
     document.getElementById('btn-song-select').addEventListener('click', () => {
       document.getElementById('song-select-screen').style.display = 'none';
@@ -1237,8 +1454,11 @@ class JURNRhythmGame {
     this.difficulty = difficulty;
     document.getElementById('difficulty-label').textContent = difficulty.toUpperCase();
 
+    // Rebuild CONFIG from active song (in case song was changed on select screen)
+    CONFIG = buildConfig(_activeSong);
+
     // Generate beatmap for selected difficulty
-    this.beatmap = generateBeatmap(difficulty);
+    this.beatmap = generateBeatmap(difficulty, _activeSong);
     this.totalNotes = this.beatmap.length;
     this.activeNotes = [];
     this.nextNoteIndex = 0;
@@ -1325,17 +1545,19 @@ class JURNRhythmGame {
   _updateVideoSection() {
     if (!this.backdrop) return;
     const t = this.gameTime || this.getSongTime();
-    const sec = SONG.sections.find(s => t >= s.startMs && t < s.endMs);
+    const sec = _activeSong.sections.find(s => t >= s.startMs && t < s.endMs);
     if (!sec) return;
 
     // Determine which video should be playing
     const key = sec.type + '_' + sec.index;
     if (key === this.lastVideoSection) {
-      // Same section — just update filter
       this.backdrop.setRockFilter(this.rockMeter / CONFIG.ROCK_METER_MAX);
       return;
     }
     this.lastVideoSection = key;
+
+    // Refresh backdrop clips in case song changed
+    this.backdrop.clips = _activeSong.videoClips;
 
     // Switch video based on section type
     switch (sec.type) {
@@ -1343,19 +1565,27 @@ class JURNRhythmGame {
         this.backdrop.showBand('default');
         break;
       case 'verse':
-        // Alternate between fullband clips across verses
         this.backdrop.showBand('default');
+        break;
+      case 'pre_chorus':
+        this.backdrop.showLane(3); // Vox lead-in
         break;
       case 'chorus':
         this.backdrop.showBand('chorus');
         break;
-      case 'post_chorus':
-        // Post-chorus: spotlight a character per occurrence
+      case 'post_chorus': {
         const spotlightLane = (sec.index || 0) % 4;
         this.backdrop.showLane(spotlightLane);
         break;
+      }
+      case 'bridge':
+        this.backdrop.showBand('default');
+        break;
+      case 'breakdown':
+        this.backdrop.showLane(1); // Bonecrush — heavy drums
+        break;
       case 'break':
-        this.backdrop.showLane(1); // Bonecrush drum break
+        this.backdrop.showLane(1);
         break;
       case 'outro':
         this.backdrop.showBand('outro');
@@ -1764,7 +1994,7 @@ class JURNRhythmGame {
 
     // Beat pulse (subtle screen flash on each beat at high combo)
     if (this.combo > 20) {
-      const beatPhase = (songTime % SONG.msPerBeat) / SONG.msPerBeat;
+      const beatPhase = (songTime % (60000 / _activeSong.bpm)) / (60000 / _activeSong.bpm);
       if (beatPhase < 0.08) {
         const intensity = 0.04 * (1 - beatPhase / 0.08) * Math.min(this.combo / 50, 1);
         ctx.fillStyle = `rgba(0,255,255,${intensity})`;
