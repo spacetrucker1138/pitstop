@@ -672,8 +672,6 @@ function buildConfig(song) {
   });
 }
 
-// CONFIG is set when a song is selected; starts as first song default
-let CONFIG = buildConfig(SONG_CATALOG[0]);
 
 // ============================================================
 // SONG STRUCTURE @ 155 BPM
@@ -776,6 +774,9 @@ let _activeSong = SONG_CATALOG[0];
     }
   }
 })();
+
+// CONFIG is set when a song is selected; starts as first song default
+let CONFIG = buildConfig(SONG_CATALOG[0]);
 
 // ============================================================
 // BEATMAP GENERATOR — Two difficulty levels
