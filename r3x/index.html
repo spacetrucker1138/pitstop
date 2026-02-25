@@ -87,13 +87,17 @@
 // ─────────────────────────────────────────────
 const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
-  stand:  { row: 0, frames: 1,  fps: 4  },
-  walk:   { row: 1, frames: 16, fps: 10 },
-  run:    { row: 2, frames: 16, fps: 22 },
-  jump:   { row: 3, frames: 16, fps: 16 },
-  comms:  { row: 4, frames: 16, fps: 12 },  // talking / comms room idle
-  art:    { row: 5, frames: 16, fps: 14 },  // painting / art room idle
-  repair: { row: 6, frames: 16, fps: 10 },  // wrenching / code room idle
+  stand:    { row: 0,  frames: 1,  fps: 4  },
+  walk:     { row: 1,  frames: 16, fps: 10 },
+  run:      { row: 2,  frames: 16, fps: 22 },
+  jump:     { row: 3,  frames: 16, fps: 16 },
+  comms:    { row: 4,  frames: 16, fps: 12 },  // talking / comms room idle
+  art:      { row: 5,  frames: 16, fps: 14 },  // painting / art room idle
+  repair:   { row: 6,  frames: 16, fps: 10 },  // wrenching / code room idle
+  pingpong: { row: 7,  frames: 16, fps: 18 },  // lobby idle 1
+  march:    { row: 8,  frames: 16, fps: 10 },  // lobby idle 2
+  sweep:    { row: 9,  frames: 16, fps: 12 },  // tasks idle (sweeping)
+  portal:   { row: 10, frames: 16, fps: 14 },  // tasks active (portal fire)
 };
 
 // ─────────────────────────────────────────────
@@ -112,7 +116,8 @@ const ROOMS = {
       { type: "vent",  x: 700, y: 80,  w: 60,  h: 40,  color: "#0a1a1a", label: null },
     ],
     ambientText: "Security sweep. All clear.",
-    idleAnim: "stand",
+    idleAnim: "pingpong",
+    idleAnim2: "march",
     walkAnim: "walk",
   },
   code: {
@@ -173,7 +178,8 @@ const ROOMS = {
       { type: "chair",  x: 560, y: 250, w: 80,  h: 70,  color: "#1a1200", label: null },
     ],
     ambientText: "Tasks queued. Standing by.",
-    idleAnim: "stand",
+    idleAnim: "sweep",
+    idleAnim2: "portal",
     walkAnim: "walk",
   },
 };
@@ -209,7 +215,7 @@ const ctx = canvas.getContext("2d");
 const W = canvas.width, H = canvas.height;
 
 const sprite = new Image();
-sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v3_sprites.png";
+sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v4_sprites.webp";
 
 let state = {
   room: "lobby",
@@ -230,6 +236,8 @@ let state = {
   missCount: 0,
   patrolIdx: 0,
   patrolTimer: 0,
+  idleCycleTimer: 0,
+  idleCyclePhase: 0,       // 0 = primary idle, 1 = secondary idle
   transitioning: false,
   transitionAlpha: 0,
   transitionDir: 1,
@@ -518,6 +526,8 @@ function tick() {
       r.x = r.targetX;
       r.moving = false;
       r.anim = ROOMS[state.room].idleAnim;
+      state.idleCycleTimer = 0;
+      state.idleCyclePhase = 0;
       if (r._onArrive) { r._onArrive(); r._onArrive = null; }
     } else {
       r.x += Math.sign(dx) * speed;
@@ -572,6 +582,23 @@ function tick() {
     if (state.transitionAlpha <= 0) {
       state.transitioning = false;
       state.transitionAlpha = 0;
+    }
+  }
+
+  // Idle animation cycling (primary ↔ secondary idle)
+  if (!r.moving && !state.transitioning) {
+    state.idleCycleTimer++;
+    const room = ROOMS[state.room];
+    const hasCycle = !!room.idleAnim2;
+    if (hasCycle) {
+      // Switch every ~15 seconds (900 frames at 60fps)
+      const switchAt = state.idleCyclePhase === 0 ? 900 : 540;
+      if (state.idleCycleTimer >= switchAt) {
+        state.idleCycleTimer = 0;
+        state.idleCyclePhase = state.idleCyclePhase === 0 ? 1 : 0;
+        r.anim = state.idleCyclePhase === 0 ? room.idleAnim : room.idleAnim2;
+        r.frame = 0;
+      }
     }
   }
 
