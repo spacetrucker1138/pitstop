@@ -805,7 +805,7 @@ function tick() {
   }
 
   // Fallback patrol
-  if (state.fallback && state.mode === "auto") {
+  if (state.mode === "auto") {  // patrol always active in auto mode
     state.patrolTimer--;
     if (state.patrolTimer <= 0 && !r.moving && !state.transitioning) {
       state.patrolIdx = (state.patrolIdx + 1) % PATROL.length;
@@ -986,7 +986,10 @@ const GLITCH_WORDS = ["ERROR","NULL","FAULT","CORRUPT","LEAK","CRASH","VOID","DE
 
 function spawnGlitch() {
   const roomKeys = Object.keys(ROOMS);
-  const room = roomKeys[Math.floor(Math.random() * roomKeys.length)];
+  // In manual mode, always spawn in current room so the user can interact with glitches
+  const room = state.mode === "manual"
+    ? state.room
+    : roomKeys[Math.floor(Math.random() * roomKeys.length)];
   const els = ROOMS[room].elements;
   if (!els.length) return;
   const elIdx = Math.floor(Math.random() * els.length);
@@ -1019,7 +1022,7 @@ function glitchTick() {
       const prevAnim = state.r3x.anim;
       walkTo(el.x + el.w/2, () => {
         // Sweep animation while cleaning
-        state.r3x.anim = "sweep";
+        state.r3x.anim = "portal";
         setDialogue("--G̷̛L̵I̷T̶C̵H̷-- detected. cleaning.");
         setTimeout(() => {
           localGlitch.cleaned = true;
@@ -1092,7 +1095,7 @@ canvas.addEventListener("click", function(e) {
     });
     if (g) {
       g.cleaning = true;
-      state.r3x.anim = "sweep";
+      state.r3x.anim = "portal";
       setTimeout(() => {
         g.cleaned = true;
         g.cleanAge = g.age;
