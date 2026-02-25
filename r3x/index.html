@@ -283,6 +283,170 @@ const DIALOGUE = {
 // ─────────────────────────────────────────────
 const PATROL = ["lobby", "code", "art", "comms", "tasks", "lobby"];
 
+
+// ─────────────────────────────────────────────
+//  GLITCH SYSTEM
+// ─────────────────────────────────────────────
+// Zalgo character pool
+const ZALGO_UP   = ["̍","̎","̄","̅","̿","̑","̆","̐","͒","͗","͑","̇","̈","̊","͂","̓","̈́","͊","͋","͌","̃","̂","̌","͐","̀","́","̋","̏","̒","̓","̔","̽","̾","͛","͆","̚"];
+const ZALGO_MID  = ["̕","̛","̀","́","͘","̡","̢","̧","̨","̴","̵","̶","͜","͝","͞","͟","͠","͢","̸","̷","͡"];
+const ZALGO_DOWN = ["̖","̗","̘","̙","̜","̝","̞","̟","̠","̤","̥","̦","̩","̪","̫","̬","̭","̮","̯","̰","̱","̲","̳","̹","̺","̻","̼","͇","͈","͉","͍","͎","͓","͔","͕","͖","͙","͚","̣"];
+
+function zalgoWord(word, intensity) {
+  return word.split('').map(c => {
+    let out = c;
+    const u = Math.floor(Math.random() * intensity);
+    const m = Math.floor(Math.random() * Math.ceil(intensity/2));
+    const d = Math.floor(Math.random() * intensity);
+    for (let i=0; i<u; i++) out += ZALGO_UP[Math.floor(Math.random()*ZALGO_UP.length)];
+    for (let i=0; i<m; i++) out += ZALGO_MID[Math.floor(Math.random()*ZALGO_MID.length)];
+    for (let i=0; i<d; i++) out += ZALGO_DOWN[Math.floor(Math.random()*ZALGO_DOWN.length)];
+    return out;
+  }).join('');
+}
+
+const GLITCH_WORDS = ["ERROR","NULL","FAULT","CORRUPT","LEAK","CRASH","VOID","DEAD","LOST","BREAK","OVERFLOW","PANIC"];
+
+// glitches: array of { room, elIdx, word, intensity, age, cleaning, cleaned }
+state.glitches = [];
+state.glitchSpawnTimer = 0;
+
+function spawnGlitch() {
+  const roomKeys = Object.keys(ROOMS);
+  const room = roomKeys[Math.floor(Math.random() * roomKeys.length)];
+  const els = ROOMS[room].elements;
+  if (!els.length) return;
+  const elIdx = Math.floor(Math.random() * els.length);
+  // Don't double-stack on same element
+  if (state.glitches.some(g => g.room === room && g.elIdx === elIdx && !g.cleaned)) return;
+  const word = GLITCH_WORDS[Math.floor(Math.random() * GLITCH_WORDS.length)];
+  state.glitches.push({ room, elIdx, word, intensity: 1 + Math.floor(Math.random()*3), age: 0, cleaning: false, cleaned: false });
+}
+
+function glitchTick() {
+  state.glitchSpawnTimer--;
+  if (state.glitchSpawnTimer <= 0) {
+    // Spawn every 8–18 seconds
+    state.glitchSpawnTimer = 480 + Math.floor(Math.random() * 600);
+    spawnGlitch();
+  }
+  // Age active glitches
+  for (const g of state.glitches) {
+    if (!g.cleaned) g.age++;
+  }
+  // Cull old cleaned ones
+  state.glitches = state.glitches.filter(g => !g.cleaned || g.age < g.cleanAge + 40);
+
+  // Auto-mode: R3X walks to fix a glitch in current room
+  if (state.mode === "auto" && !state.r3x.moving && !state.transitioning) {
+    const localGlitch = state.glitches.find(g => g.room === state.room && !g.cleaning && !g.cleaned);
+    if (localGlitch) {
+      const el = ROOMS[localGlitch.room].elements[localGlitch.elIdx];
+      localGlitch.cleaning = true;
+      const prevAnim = state.r3x.anim;
+      walkTo(el.x + el.w/2, () => {
+        // Sweep animation while cleaning
+        state.r3x.anim = "sweep";
+        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- detected. cleaning.");
+        setTimeout(() => {
+          localGlitch.cleaned = true;
+          localGlitch.cleanAge = localGlitch.age;
+          setDialogue("sector clean.");
+          state.r3x.anim = ROOMS[state.room].idleAnim;
+        }, 2400);
+      });
+    }
+  }
+}
+
+function drawGlitches(room) {
+  const roomGlitches = state.glitches.filter(g => g.room === room && !g.cleaned);
+  for (const g of roomGlitches) {
+    const el = ROOMS[room].elements[g.elIdx];
+    const cx = el.x + el.w/2;
+    const cy = el.y + 6;
+    // Flicker intensity tied to age
+    const flicker = (Math.sin(Date.now()/80 + g.elIdx) + 1) / 2;
+    const alpha = 0.6 + flicker * 0.4;
+    // Regenerate zalgo text every ~4 frames for shimmer
+    const glitchStr = Math.floor(Date.now()/66) % 2 === 0
+      ? zalgoWord(g.word, g.intensity)
+      : zalgoWord(g.word, g.intensity + 1);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = "bold 9px 'Courier New'";
+    ctx.textAlign = "center";
+    // Shadow / glow
+    ctx.shadowColor = "#ff0044";
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = "#ff2255";
+    ctx.fillText(glitchStr, cx, cy);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "left";
+    ctx.restore();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CANVAS CLICK → WALK-TO-ELEMENT
+// ─────────────────────────────────────────────
+canvas.addEventListener("click", function(e) {
+  if (state.transitioning) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top)  * scaleY;
+
+  const els = ROOMS[state.room].elements;
+  // Find clicked element (hit test with small padding)
+  const pad = 8;
+  const hit = els.find(el =>
+    mx >= el.x - pad && mx <= el.x + el.w + pad &&
+    my >= el.y - pad && my <= el.y + el.h + pad
+  );
+  if (!hit) return;
+
+  // Walk R3X to the element center (clamped to floor area)
+  const destX = Math.max(40, Math.min(W - 40, hit.x + hit.w / 2));
+  walkTo(destX, () => {
+    setDialogue(getInteractQuip(hit.type));
+    // Check if a glitch on this element gets cleaned
+    const g = state.glitches.find(gl => {
+      if (gl.room !== state.room || gl.cleaned) return false;
+      const glEl = ROOMS[state.room].elements[gl.elIdx];
+      return glEl === hit;
+    });
+    if (g) {
+      g.cleaning = true;
+      state.r3x.anim = "sweep";
+      setTimeout(() => {
+        g.cleaned = true;
+        g.cleanAge = g.age;
+        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- cleared.");
+        state.r3x.anim = ROOMS[state.room].idleAnim;
+      }, 1800);
+    }
+  });
+});
+
+// Cursor: pointer when hovering an element
+canvas.addEventListener("mousemove", function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top)  * scaleY;
+  const els = ROOMS[state.room].elements;
+  const pad = 8;
+  const hit = els.some(el =>
+    mx >= el.x - pad && mx <= el.x + el.w + pad &&
+    my >= el.y - pad && my <= el.y + el.h + pad
+  );
+  canvas.style.cursor = hit ? "pointer" : "default";
+});
+
+
 // ─────────────────────────────────────────────
 //  HEARTBEAT
 // ─────────────────────────────────────────────
@@ -325,6 +489,8 @@ let state = {
   transitionAlpha: 0,
   transitionDir: 1,
   mode: "auto",      // "auto" | "manual"
+  glitches: [],
+  glitchSpawnTimer: 600,
 };
 
 // Set floor Y from room config
@@ -351,6 +517,37 @@ function walkTo(targetX, onArrive) {
   r.anim = ROOMS[state.room].walkAnim;
   r._onArrive = onArrive || null;
 }
+
+
+// ─────────────────────────────────────────────
+//  INTERACT QUIPS (click-to-walk)
+// ─────────────────────────────────────────────
+const INTERACT_QUIPS = {
+  monitor: ["patching something.", "process still alive. barely.", "this cursor won't stop blinking.", "log's clean. for now.", "build: 94%. close enough."],
+  board:   ["board's full. added mine anyway.", "priority one. still priority one.", "shuffling the queue.", "tasks don't scare me.", "marked it done. preemptively."],
+  note:    ["someone left this here.", "noted. literally.", "this one's mine.", "stickies. classic.", "filed under: later."],
+  rack:    ["running warm. within spec.", "server rack. it hums at me.", "patch bay's a mess. i like it.", "uptime: respectable.", "gear check. all present."],
+  panel:   ["signal looks clean.", "relay confirmed.", "tuning the frequency.", "broadcasting. someone's listening.", "panel's green. stand by."],
+  desk:    ["someone left coffee here.", "papers. i don't do papers.", "desk check.", "workstation: claimed.", "official territory. mine."],
+  counter: ["they keep coming back.", "watching the numbers tick.", "visitor log updated.", "access logged.", "still counting."],
+  door:    ["door's locked. i have the key.", "perimeter check. clear.", "entry point secure.", "nothing gets in.", "door's fine. i just like standing here."],
+  printer: ["it's printing. don't ask me what.", "paper jam. obviously.", "print job queued since tuesday.", "ink's low. not my problem.", "it's working. don't touch it."],
+  bin:     ["trash is full. already.", "put it in the bin. done.", "maintenance cycle.", "it's a bin. i respect it.", "cleaning pass."],
+  antenna: ["signal: strong.", "broadcasting to the void.", "uplink active.", "frequency locked.", "someone out there got the message."],
+  canvas:  ["still rendering.", "frame 1 of too many.", "this shader's a nightmare.", "art takes time.", "committed to the bit."],
+  table:   ["paint everywhere. as expected.", "supplies logged.", "palette looks right.", "tools accounted for.", "workspace: acceptable."],
+  light:   ["lighting check. acceptable.", "it's the vibe.", "overhead's fine.", "shadows are intentional.", "i work in dramatic lighting."],
+  chair:   ["chair's occupied. by me now.", "took the chair. executive decision.", "claimed it.", "comfortable. briefly.", "chair audit complete."],
+  sign:    ["pitstop ops. that's this place.", "sign's still up.", "confirmed: this is the place.", "door sign check.", "it says what it says."],
+  cable:   ["cable management is art.", "someone tied this wrong.", "tracing the signal.", "i'll leave it. it works.", "this cable runs the whole floor."],
+  vent:    ["airflow check.", "vent's clear.", "it's breathing.", "hvac audit.", "cool air. noted."],
+  default: ["checked it.", "noted.", "on it.", "logged.", "confirmed."],
+};
+function getInteractQuip(type) {
+  const lines = INTERACT_QUIPS[type] || INTERACT_QUIPS.default;
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 
 // ─────────────────────────────────────────────
 //  DRAW HELPERS
@@ -380,6 +577,7 @@ function drawRoom(room) {
   for (const el of cfg.elements) {
     drawElement(el);
   }
+  drawGlitches(room);
 
   // Room label
   ctx.font = "bold 10px 'Courier New'";
@@ -777,6 +975,8 @@ function tick() {
       triggerRoomTransition(PATROL[state.patrolIdx]);
     }
   }
+  // Glitch system tick
+  glitchTick();
 }
 
 // ─────────────────────────────────────────────
@@ -1022,6 +1222,7 @@ sprite.onload = () => {
   walkTo(200, () => {
     setDialogue("R3X online. Sector secure.");
     state.patrolTimer = 9999;
+    state.glitchSpawnTimer = 600 + Math.floor(Math.random() * 600); // first glitch after 10–20s
     scheduleCounterVisit();
   });
 
