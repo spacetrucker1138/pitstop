@@ -168,17 +168,18 @@
 // ─────────────────────────────────────────────
 const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
-  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3,  yOffset: 14 },
-  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.0,  yOffset: 0  },
-  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.0,  yOffset: 0  },
-  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3,  yOffset: 14 },
-  comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35, yOffset: 14 },  // talking / comms room idle
-  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35, yOffset: 14 },  // painting / art room idle
-  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.35, yOffset: 14 },  // wrenching / code room idle
-  pingpong: { row: 7,  frames: 16, fps: 8,   scale: 1.42, yOffset: 14 },  // lobby idle 1 (slowed down)
-  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.35, yOffset: 14 },  // lobby idle 2
-  sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.35, yOffset: 14 },  // tasks idle (sweeping)
-  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.35, yOffset: 14 },  // tasks active (portal fire)
+  //                                                          scale  yOffset  ← tune yOffset per-anim to align feet to floor
+  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3,  yOffset: 22 },
+  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.0,  yOffset: 8  },  // tight-crop; slight base lift
+  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.0,  yOffset: 8  },  // same crop as walk
+  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3,  yOffset: 22 },
+  comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35, yOffset: 0  },  // this one was going BELOW floor; pulled back
+  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35, yOffset: 31 },  // large bottom padding in source
+  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.35, yOffset: 26 },
+  pingpong: { row: 7,  frames: 16, fps: 8,   scale: 1.42, yOffset: 18 },  // lobby idle 1
+  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.35, yOffset: 22 },  // lobby idle 2
+  sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.35, yOffset: 36 },  // largest bottom pad
+  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.35, yOffset: 22 },  // tasks active
 };
 
 // ─────────────────────────────────────────────
@@ -607,17 +608,29 @@ function drawDialogue() {
   const d = state.dialogue;
   if (d.alpha <= 0) return;
   const r = state.r3x;
-  const bx = r.x - 90;
-  const by = r.y - 100;
+  const bw = 180, bh = 36;
+  // Place bubble to the right or left of R3X, not over his face
+  const bx = r.x < 550 ? r.x + 30 : r.x - 30 - bw;
+  const by = r.y - 95;
 
   ctx.save();
   ctx.globalAlpha = Math.min(d.alpha, 1);
   ctx.fillStyle = "#0d1117ee";
   ctx.strokeStyle = "#00ff8888";
   ctx.lineWidth = 1;
-  const bw = 180, bh = 36;
   ctx.fillRect(bx, by, bw, bh);
   ctx.strokeRect(bx, by, bw, bh);
+  // Draw a small tail pointing down toward R3X
+  ctx.beginPath();
+  const tailX = r.x < 550 ? bx + 14 : bx + bw - 14;
+  const tailDir = r.x < 550 ? -1 : 1;
+  ctx.moveTo(tailX,       by + bh);
+  ctx.lineTo(tailX - 6 * tailDir, by + bh + 8);
+  ctx.lineTo(tailX + 6,  by + bh);
+  ctx.fillStyle = "#0d1117ee";
+  ctx.fill();
+  ctx.strokeStyle = "#00ff8888";
+  ctx.stroke();
   ctx.fillStyle = "#00ff88";
   ctx.font = "9px 'Courier New'";
   // Word wrap at 170px
