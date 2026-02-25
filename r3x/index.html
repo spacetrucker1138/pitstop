@@ -1071,6 +1071,7 @@ function loop() {
 //  HEARTBEAT
 // ─────────────────────────────────────────────
 function heartbeat() {
+  if (state.mode === "manual") return;   // manual mode — skip all network activity
   if (!HEARTBEAT_URL) {
     // No endpoint configured — simulate connected, stay online
     setOnline(true);
@@ -1158,10 +1159,15 @@ window.R3X = {
       state.r3x.moving = false;
       state.r3x.targetX = state.r3x.x;
       state.r3x._onArrive = null;
+      // Show neutral status — not connected, not fallback
+      const el = document.getElementById("hud-status");
+      el.textContent = "◌ MANUAL";
+      el.className = "status fallback";
     }
     if (m === "auto") {
-      // Resume from current room
+      // Resume from current room and reconnect immediately
       state.patrolTimer = 60;
+      heartbeat();
     }
   },
   nextAnim() {
