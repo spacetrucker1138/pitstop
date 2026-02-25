@@ -1,1 +1,1668 @@
-PLACEHOLDER_WILL_BE_REPLACED
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R3X // Pitstop Operations</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    color: #00ff88;
+  }
+  #hud {
+    width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: #0d1117;
+    border: 1px solid #1a2a1a;
+    border-bottom: none;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  #hud .title { color: #00ff88; font-weight: bold; font-size: 13px; }
+  #hud .status { color: #556655; }
+  #hud .status.online { color: #00ff88; }
+  #hud .status.fallback { color: #ff8800; }
+  #canvas-wrap {
+    position: relative;
+    width: 800px;
+    border: 1px solid #1a2a1a;
+    background: #111118;
+  }
+  canvas { display: block; }
+  #taskbar {
+    width: 800px;
+    background: #0d1117;
+    border: 1px solid #1a2a1a;
+    border-top: 1px solid #00ff8822;
+    padding: 6px 12px;
+    display: flex;
+    gap: 12px;
+    font-size: 10px;
+    color: #334433;
+    letter-spacing: 0.06em;
+  }
+  #taskbar span { cursor: pointer; transition: color 0.2s; }
+  #taskbar span:hover { color: #00ff88; }
+  #taskbar span.active { color: #00ff88; }
+
+  #mode-btns {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+  }
+  .mode-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    background: #0d1117;
+    border: 1px solid #334433;
+    color: #ff4444;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    user-select: none;
+  }
+  .mode-btn:hover { border-color: #00ff88; color: #00ff88; }
+  .mode-btn.active { background: #0d2a0d; border-color: #00ff88; color: #00ff88; }
+</style>
+<script>
+  window._R3X_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+    authDomain: "pitstop-wall.firebaseapp.com",
+    databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+    projectId: "pitstop-wall",
+    storageBucket: "pitstop-wall.firebasestorage.app",
+    messagingSenderId: "767668528451",
+    appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+  };
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+  const FIREBASE_CONFIG = window._R3X_FIREBASE_CONFIG || null;
+
+  async function initCounter() {
+    let totalVisits = 0, uniqueVisits = 0;
+    if (FIREBASE_CONFIG) {
+      try {
+        const app = initializeApp(FIREBASE_CONFIG, "r3x-counter");
+        const db  = getDatabase(app);
+        const statsRef = ref(db, "r3x/stats");
+        const isNew = !localStorage.getItem("r3x_visit_id");
+        if (isNew) localStorage.setItem("r3x_visit_id", "1");
+        const snap = await get(statsRef);
+        const cur  = snap.exists() ? snap.val() : { visits: 0, unique: 0 };
+        totalVisits  = (cur.visits || 0) + 1;
+        uniqueVisits = (cur.unique || 0) + (isNew ? 1 : 0);
+        await set(statsRef, { visits: totalVisits, unique: uniqueVisits });
+        onValue(statsRef, (s) => {
+          const d = s.val() || {};
+          window._R3X_COUNTER_VISITS = d.visits || totalVisits;
+          window._R3X_COUNTER_UNIQUE = d.unique || uniqueVisits;
+          window._R3X_COUNTER_READY  = true;
+        });
+      } catch(e) { console.warn("R3X counter Firebase error", e); fallback(); }
+    } else { fallback(); }
+
+    function fallback() {
+      const isNew = !localStorage.getItem("r3x_visit_id");
+      if (isNew) localStorage.setItem("r3x_visit_id", "1");
+      totalVisits  = parseInt(localStorage.getItem("r3x_visit_count") || "0") + 1;
+      uniqueVisits = parseInt(localStorage.getItem("r3x_unique_count") || "0") + (isNew ? 1 : 0);
+      localStorage.setItem("r3x_visit_count", String(totalVisits));
+      localStorage.setItem("r3x_unique_count", String(uniqueVisits));
+      window._R3X_COUNTER_VISITS = totalVisits;
+      window._R3X_COUNTER_UNIQUE = uniqueVisits;
+      window._R3X_COUNTER_READY  = true;
+    }
+  }
+  initCounter();
+</script>
+</head>
+<body>
+
+<div id="hud">
+  <span class="title">R3X // PITSTOP OPS</span>
+  <span id="hud-room">LOBBY</span>
+  <span id="hud-status" class="status">● CONNECTING...</span>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="world" width="800" height="420"></canvas>
+  <div id="mode-btns">
+    <span class="mode-btn active" id="btn-auto"   onclick="R3X.setMode('auto')">AUTO</span>
+    <span class="mode-btn"        id="btn-manual" onclick="R3X.setMode('manual')">MANUAL</span>
+  </div>
+</div>
+
+<div id="taskbar">
+  <span onclick="R3X.setRoom('lobby')"    id="btn-lobby"  class="active">[ LOBBY ]</span>
+  <span onclick="R3X.setRoom('code')"     id="btn-code"          >[ CODE LAB ]</span>
+  <span onclick="R3X.setRoom('art')"      id="btn-art"           >[ ART STUDIO ]</span>
+  <span onclick="R3X.setRoom('comms')"    id="btn-comms"         >[ COMMS ]</span>
+  <span onclick="R3X.setRoom('tasks')"    id="btn-tasks"         >[ TASK BOARD ]</span>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  SPRITE CONFIG
+//  Sheet: 2048×2304 | cell: 128×128  (rows 0-17)
+//  Row 0 = stand (1 frame)
+//  Row 1 = walk  (16 frames)
+//  Row 2 = run   (16 frames)
+//  Row 3 = jump  (16 frames)
+// ─────────────────────────────────────────────
+const CELL_W = 128, CELL_H = 128;
+const ANIMS = {
+  //                                                          scale  yOffset  ← tune yOffset per-anim to align feet to floor
+  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3,  yOffset: 22 },
+  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.0,  yOffset: 8  },  // tight-crop; slight base lift
+  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.0,  yOffset: 8  },  // same crop as walk
+  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3,  yOffset: 22 },
+  comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35, yOffset: 0  },  // this one was going BELOW floor; pulled back
+  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35, yOffset: 31 },  // large bottom padding in source
+  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.35, yOffset: 26 },
+  pingpong: { row: 7,  frames: 16, fps: 8,   scale: 1.55, yOffset: 20 },  // lobby idle 1 (+10% scale)
+  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.48, yOffset: 24 },  // lobby idle 2 (+10% scale)
+  sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.48, yOffset: 40 },  // taskboard (+10% scale)
+  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.48, yOffset: 24 },  // tasks active (+10% scale)
+  angry:    { row: 11, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // angry + steam
+  defend:   { row: 12, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // shield defense
+  code2:    { row: 13, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // holographic typing
+  celebrate:{ row: 14, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // celebration
+  point:    { row: 15, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // pointing + talking
+  sleep:    { row: 16, frames: 16, fps:  6,  scale: 1.35, yOffset: 24 },  // plugged in / good night
+  charge:   { row: 17, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // battery charging
+};
+
+// ─────────────────────────────────────────────
+//  ROOMS
+// ─────────────────────────────────────────────
+const ROOMS = {
+  lobby: {
+    label: "LOBBY",
+    bg: "#12121c",
+    accent: "#1a2a3a",
+    floorY: 300,
+    elements: [
+      { type: "door",    x: 60,  y: 200, w: 60,  h: 100, color: "#1a2a1a", label: null },
+      { type: "sign",    x: 350, y: 100, w: 120, h: 40,  color: "#0d1a0d", label: "PITSTOP OPS", matrix: true },
+      { type: "counter", x: 500, y: 108, w: 172, h: 92,  color: "#0a0a14", label: null },
+      { type: "desk",    x: 560, y: 230, w: 120, h: 60,  color: "#1a1a2a", label: null },
+      { type: "vent",    x: 700, y: 80,  w: 60,  h: 40,  color: "#0a1a1a", label: null },
+    ],
+    ambientText: "Security sweep. All clear.",
+    idleAnim: "pingpong",
+    idleAnim2: "march",
+    idleAnims: ["pingpong", "march", "sleep", "charge"],  // extended lobby idle pool
+    walkAnim: "walk",
+  },
+  code: {
+    label: "CODE LAB",
+    bg: "#0d1520",
+    accent: "#0a2040",
+    floorY: 300,
+    elements: [
+      { type: "monitor", x: 80,  y: 160, w: 180, h: 120, color: "#0a1a0a", label: "COMPILING...",     matrix: true },
+      { type: "monitor", x: 300, y: 180, w: 140, h: 100, color: "#0a1a0a", label: "PROCESS_ID: 4491", matrix: true },
+      { type: "rack",    x: 560, y: 120, w: 80,  h: 180, color: "#101520", label: null,               matrix: true },
+      { type: "cable",   x: 650, y: 280, w: 120, h: 10,  color: "#1a2a1a", label: null },
+    ],
+    ambientText: "Build in progress.",
+    idleAnim: "repair",
+    walkAnim: "run",
+  },
+  art: {
+    label: "ART STUDIO",
+    bg: "#1a0f18",
+    accent: "#2a0a20",
+    floorY: 300,
+    elements: [
+      { type: "canvas", x: 80,  y: 100, w: 120, h: 160, color: "#1a0a1a", label: null },
+      { type: "canvas", x: 230, y: 130, w: 90,  h: 120, color: "#180a18", label: null },
+      { type: "table",  x: 450, y: 250, w: 160, h: 50,  color: "#1a0f18", label: null },
+      { type: "light",  x: 680, y: 60,  w: 40,  h: 80,  color: "#2a1a00", label: null },
+    ],
+    ambientText: "Running the renders.",
+    idleAnim: "art",
+    walkAnim: "walk",
+  },
+  comms: {
+    label: "COMMS ROOM",
+    bg: "#0f1a10",
+    accent: "#0a2a10",
+    floorY: 300,
+    elements: [
+      { type: "antenna", x: 120, y: 60,  w: 20,  h: 140, color: "#00ff8833", label: null },
+      { type: "panel",   x: 200, y: 160, w: 200, h: 130, color: "#0a1a0a",   label: "SIGNAL: ACTIVE", matrix: true },
+      { type: "printer", x: 480, y: 250, w: 100, h: 60,  color: "#0f1a0f",   label: null },
+      { type: "bin",     x: 650, y: 270, w: 50,  h: 50,  color: "#0a100a",   label: null },
+    ],
+    ambientText: "All messages relayed.",
+    idleAnim: "comms",
+    walkAnim: "walk",
+  },
+  tasks: {
+    label: "TASK BOARD",
+    bg: "#1a1200",
+    accent: "#2a1a00",
+    floorY: 300,
+    elements: [
+      { type: "board",  x: 60,  y: 80,  w: 300, h: 200, color: "#1a1000", label: "TASK BOARD",   matrix: true },
+      { type: "note",   x: 80,  y: 120, w: 60,  h: 40,  color: "#2a1a00", label: "▣ SPRITE V2" },
+      { type: "note",   x: 160, y: 120, w: 60,  h: 40,  color: "#2a1a00", label: "▣ WIRE STATE" },
+      { type: "note",   x: 240, y: 120, w: 60,  h: 40,  color: "#2a2000", label: "▣ HEARTBEAT" },
+      { type: "chair",  x: 560, y: 250, w: 80,  h: 70,  color: "#1a1200", label: null },
+    ],
+    ambientText: "Tasks queued. Standing by.",
+    idleAnim: "sweep",
+    idleAnim2: "portal",
+    walkAnim: "walk",
+  },
+};
+
+// ─────────────────────────────────────────────
+//  DIALOGUE LINES (per room)
+// ─────────────────────────────────────────────
+const DIALOGUE = {
+  lobby:  ["Quiet shift. The way I like it.", "Perimeter clear.", "Sector scanned. Nothing unusual.", "Standing by.", "Entry logged."],
+  code:   ["Build running.", "Compilation in progress.", "No errors found. Yet.", "Process 4491 still alive.", "Deploying..."],
+  art:    ["Rendering.", "Pixels take time. So do cigars.", "Waiting on the pipeline.", "Frame 1 of too many.", "Color pass. Looking good."],
+  comms:  ["Message received.", "Relay confirmed.", "Signal strong.", "Transmitting now.", "Inbox clear."],
+  tasks:  ["Tasks queued.", "Working the board.", "Nothing falls through here.", "Priority order maintained.", "Next item loading..."],
+};
+
+// ─────────────────────────────────────────────
+//  FALLBACK PATROL SCRIPT
+// ─────────────────────────────────────────────
+const PATROL = ["lobby", "code", "art", "comms", "tasks", "lobby"];
+
+
+// ─────────────────────────────────────────────
+//  HEARTBEAT
+// ─────────────────────────────────────────────
+const HEARTBEAT_URL = "https://gist.githubusercontent.com/spacetrucker1138/e92fa584a52314a180b947c309440357/raw/r3x-state.json"; // R3X agent state gist
+const HEARTBEAT_INTERVAL_MS = 5000;
+const HEARTBEAT_MISS_LIMIT = 3;
+
+// ─────────────────────────────────────────────
+//  MAIN ENGINE
+// ─────────────────────────────────────────────
+const canvas = document.getElementById("world");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height;
+
+const sprite = new Image();
+sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v4_sprites.webp";
+
+let state = {
+  room: "lobby",
+  r3x: {
+    x: 200, y: 0, vy: 0, grounded: true,
+    facing: 1,          // 1=right, -1=left
+    anim: "walk",
+    frame: 0,
+    frameTick: 0,
+    targetX: 200,
+    moving: false,
+    isJumping: false,
+  },
+  dialogue: { text: "", alpha: 0, timer: 0 },
+  particles: [],        // cigar smoke
+  online: false,
+  fallback: false,
+  missCount: 0,
+  patrolIdx: 0,
+  patrolTimer: 0,
+  idleCycleTimer: 0,
+  idleCyclePhase: 0,       // 0 = primary idle, 1 = secondary idle
+  matrixRains: {},          // keyed by "room:elIdx" or "ambient:room:elIdx"
+  transitioning: false,
+  transitionAlpha: 0,
+  transitionDir: 1,
+  mode: "auto",      // "auto" | "manual"
+  glitches: [],
+  glitchSpawnTimer: 600,
+  // Auto-theater timers
+  broadcastTimer: 1800,       // R3X status broadcast (every ~30s)
+  taskBoardTimer: 600,        // task board auto-update timer
+  commsTickTimer: 0,          // comms ticker message cycle
+  powerFlickerTimer: 3600,    // power fluctuation event (~60s)
+  boredTimer: 0,              // idle boredom escalation
+  cascadeAlerted: false,      // glitch cascade alert active
+  // Per-element syslog/output lines displayed on monitors
+  monitorLines: {},           // keyed by "room:elIdx" → { line, alpha, timer }
+  commsTicker: { msg: "", alpha: 0, timer: 0 },
+  powerFlicker: { active: false, alpha: 0, dir: 1 },
+};
+
+// Set floor Y from room config
+function floorY() {
+  return ROOMS[state.room].floorY;
+}
+
+function setDialogue(text) {
+  state.dialogue.text = text;
+  state.dialogue.alpha = 1;
+  state.dialogue.timer = 220;
+}
+
+function pickDialogue(room) {
+  const lines = DIALOGUE[room] || DIALOGUE.lobby;
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
+function walkTo(targetX, onArrive) {
+  const r = state.r3x;
+  r.targetX = targetX;
+  r.moving = true;
+  r.facing = targetX > r.x ? 1 : -1;
+  r.anim = ROOMS[state.room].walkAnim;
+  r._onArrive = onArrive || null;
+}
+
+
+// ─────────────────────────────────────────────
+//  INTERACT QUIPS (click-to-walk)
+// ─────────────────────────────────────────────
+const INTERACT_QUIPS = {
+  monitor: ["patching something.", "process still alive. barely.", "this cursor won't stop blinking.", "log's clean. for now.", "build: 94%. close enough."],
+  board:   ["board's full. added mine anyway.", "priority one. still priority one.", "shuffling the queue.", "tasks don't scare me.", "marked it done. preemptively."],
+  note:    ["someone left this here.", "noted. literally.", "this one's mine.", "stickies. classic.", "filed under: later."],
+  rack:    ["running warm. within spec.", "server rack. it hums at me.", "patch bay's a mess. i like it.", "uptime: respectable.", "gear check. all present."],
+  panel:   ["signal looks clean.", "relay confirmed.", "tuning the frequency.", "broadcasting. someone's listening.", "panel's green. stand by."],
+  desk:    ["someone left coffee here.", "papers. i don't do papers.", "desk check.", "workstation: claimed.", "official territory. mine."],
+  counter: ["they keep coming back.", "watching the numbers tick.", "visitor log updated.", "access logged.", "still counting."],
+  door:    ["door's locked. i have the key.", "perimeter check. clear.", "entry point secure.", "nothing gets in.", "door's fine. i just like standing here."],
+  printer: ["it's printing. don't ask me what.", "paper jam. obviously.", "print job queued since tuesday.", "ink's low. not my problem.", "it's working. don't touch it."],
+  bin:     ["trash is full. already.", "put it in the bin. done.", "maintenance cycle.", "it's a bin. i respect it.", "cleaning pass."],
+  antenna: ["signal: strong.", "broadcasting to the void.", "uplink active.", "frequency locked.", "someone out there got the message."],
+  canvas:  ["still rendering.", "frame 1 of too many.", "this shader's a nightmare.", "art takes time.", "committed to the bit."],
+  table:   ["paint everywhere. as expected.", "supplies logged.", "palette looks right.", "tools accounted for.", "workspace: acceptable."],
+  light:   ["lighting check. acceptable.", "it's the vibe.", "overhead's fine.", "shadows are intentional.", "i work in dramatic lighting."],
+  chair:   ["chair's occupied. by me now.", "took the chair. executive decision.", "claimed it.", "comfortable. briefly.", "chair audit complete."],
+  sign:    ["pitstop ops. that's this place.", "sign's still up.", "confirmed: this is the place.", "door sign check.", "it says what it says."],
+  cable:   ["cable management is art.", "someone tied this wrong.", "tracing the signal.", "i'll leave it. it works.", "this cable runs the whole floor."],
+  vent:    ["airflow check.", "vent's clear.", "it's breathing.", "hvac audit.", "cool air. noted."],
+  default: ["checked it.", "noted.", "on it.", "logged.", "confirmed."],
+};
+function getInteractQuip(type) {
+  const lines = INTERACT_QUIPS[type] || INTERACT_QUIPS.default;
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
+
+// ─────────────────────────────────────────────
+//  DRAW HELPERS
+// ─────────────────────────────────────────────
+function drawRoom(room) {
+  const cfg = ROOMS[room];
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, cfg.bg);
+  grad.addColorStop(1, cfg.accent);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Floor
+  ctx.fillStyle = "#0a0a10";
+  ctx.fillRect(0, cfg.floorY + 30, W, H - cfg.floorY - 30);
+  ctx.fillStyle = "#00ff8820";
+  ctx.fillRect(0, cfg.floorY + 28, W, 2);
+
+  // Scanline overlay (subtle)
+  for (let sy = 0; sy < H; sy += 4) {
+    ctx.fillStyle = "rgba(0,0,0,0.06)";
+    ctx.fillRect(0, sy, W, 2);
+  }
+
+  // Room elements
+  for (const el of cfg.elements) {
+    drawElement(el);
+  }
+  drawGlitches(room);
+
+  // Room label
+  ctx.font = "bold 10px 'Courier New'";
+  ctx.fillStyle = "#00ff8840";
+  ctx.fillText(`// ${cfg.label}`, 12, 22);
+}
+
+function drawElement(el) {
+  ctx.save();
+  switch (el.type) {
+    case "monitor":
+      ctx.fillStyle = "#1a1a2a";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#00ff8830";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      if (el.label) {
+        // Animated text flicker
+        ctx.fillStyle = `rgba(0,255,136,${0.4 + 0.3 * Math.sin(Date.now()/400)})`;
+        ctx.font = "9px 'Courier New'";
+        ctx.fillText(el.label, el.x + 8, el.y + 20);
+        // Cursor blink
+        if (Math.floor(Date.now()/500) % 2 === 0) {
+          ctx.fillStyle = "#00ff88aa";
+          ctx.fillText("▮", el.x + 8, el.y + 36);
+        }
+      }
+      break;
+    case "board":
+      ctx.fillStyle = el.color;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#ff880030";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      if (el.label) {
+        ctx.fillStyle = "#ff8800aa";
+        ctx.font = "bold 9px 'Courier New'";
+        ctx.fillText(el.label, el.x + 6, el.y + 14);
+      }
+      break;
+    case "note":
+      ctx.fillStyle = el.color;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = el.label && el.label.startsWith("✔") ? "#00ff8880" : "#ff880060";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      if (el.label) {
+        const isDone = el.label.startsWith("✔");
+        ctx.fillStyle = isDone ? "#00ff88cc" : "#ffaa44cc";
+        ctx.font = isDone ? "bold 7px 'Courier New'" : "7px 'Courier New'";
+        ctx.fillText(el.label, el.x + 3, el.y + 13);
+        if (isDone) {
+          // Green checkmark stamp effect
+          ctx.fillStyle = "#00ff8840";
+          ctx.fillRect(el.x, el.y, el.w, el.h);
+        }
+      }
+      break;
+    case "antenna":
+      ctx.fillStyle = el.color;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      // Pulse ring
+      const pulse = (Math.sin(Date.now() / 600) + 1) / 2;
+      ctx.strokeStyle = `rgba(0,255,136,${pulse * 0.3})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(el.x + el.w/2, el.y, 20 + pulse * 15, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case "panel":
+      ctx.fillStyle = el.color;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#00ff8830";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      if (el.label) {
+        ctx.fillStyle = "#00ff88bb";
+        ctx.font = "9px 'Courier New'";
+        ctx.fillText(el.label, el.x + 6, el.y + 18);
+      }
+      // Signal bars
+      for (let b = 0; b < 5; b++) {
+        const bh = (b + 1) * 8;
+        const active = b <= Math.floor((Math.sin(Date.now()/800) + 1) / 2 * 4);
+        ctx.fillStyle = active ? "#00ff8888" : "#0a1a0a";
+        ctx.fillRect(el.x + 8 + b * 16, el.y + el.h - bh - 10, 10, bh);
+      }
+      break;
+    case "sign":
+      ctx.fillStyle = el.color;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#00ff8860";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      if (el.label) {
+        ctx.fillStyle = "#00ff88";
+        ctx.font = "bold 10px 'Courier New'";
+        ctx.textAlign = "center";
+        ctx.fillText(el.label, el.x + el.w/2, el.y + el.h/2 + 4);
+        ctx.textAlign = "left";
+      }
+      break;
+    case "counter": {
+      ctx.fillStyle = "#0a0a14";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#ff000055";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      ctx.fillStyle = "#ff000099";
+      ctx.font = "bold 7px 'Courier New'";
+      ctx.fillText("VISITOR LOG", el.x + 5, el.y + 11);
+
+      // 7-segment digit renderer
+      const SEG_MAP = {
+        '0':[1,1,1,0,1,1,1],'1':[0,0,1,0,0,1,0],'2':[1,0,1,1,1,0,1],
+        '3':[1,0,1,1,0,1,1],'4':[0,1,1,1,0,1,0],'5':[1,1,0,1,0,1,1],
+        '6':[1,1,0,1,1,1,1],'7':[1,0,1,0,0,1,0],'8':[1,1,1,1,1,1,1],
+        '9':[1,1,1,1,0,1,1]
+      };
+      function drawSeg7(cx, cy, digit, sh, sw, col) {
+        const s = SEG_MAP[String(digit)[0]] || SEG_MAP['0'];
+        const g = 1;
+        ctx.fillStyle = col;
+        if(s[0]) ctx.fillRect(cx+g,    cy,          sw-g*2, g*2);
+        if(s[1]) ctx.fillRect(cx,      cy+g,        g*2,    sh/2-g*2);
+        if(s[2]) ctx.fillRect(cx+sw-g*2, cy+g,      g*2,    sh/2-g*2);
+        if(s[3]) ctx.fillRect(cx+g,    cy+sh/2-g,   sw-g*2, g*2);
+        if(s[4]) ctx.fillRect(cx,      cy+sh/2+g,   g*2,    sh/2-g*2);
+        if(s[5]) ctx.fillRect(cx+sw-g*2, cy+sh/2+g, g*2,    sh/2-g*2);
+        if(s[6]) ctx.fillRect(cx+g,    cy+sh-g*2,   sw-g*2, g*2);
+      }
+      function drawNum7(n, sx, sy, digits, sh, sw, col) {
+        const s = String(n).padStart(digits,'0').slice(-digits);
+        for(let i=0;i<s.length;i++) drawSeg7(sx+i*(sw+2), sy, s[i], sh, sw, col);
+      }
+
+      const visits = window._R3X_COUNTER_VISITS || 0;
+      const unique = window._R3X_COUNTER_UNIQUE || 0;
+      const ready  = window._R3X_COUNTER_READY  || false;
+
+      // LCD panels
+      ctx.fillStyle = "#050510";
+      ctx.fillRect(el.x+4,  el.y+14, el.w-8, 28);
+      ctx.fillRect(el.x+4,  el.y+48, el.w-8, 28);
+
+      if (ready) {
+        ctx.fillStyle = "#ff000066";
+        ctx.font = "7px 'Courier New'";
+        ctx.fillText("VISITS:", el.x+7, el.y+28);
+        drawNum7(visits, el.x+56, el.y+15, 6, 22, 9, "#ff3333");
+        ctx.fillStyle = "#ff880066";
+        ctx.fillText("UNIQUE:", el.x+7, el.y+62);
+        drawNum7(unique, el.x+56, el.y+49, 6, 22, 9, "#ff8800");
+      } else {
+        const dots = ".".repeat(Math.floor(Date.now()/400) % 4);
+        ctx.fillStyle = "#ff3333aa";
+        ctx.font = "8px 'Courier New'";
+        ctx.fillText("SCANNING"+dots, el.x+10, el.y+32);
+        ctx.fillStyle = "#ff8800aa";
+        ctx.fillText("SCANNING"+dots, el.x+10, el.y+66);
+      }
+
+      // Corner pips + scan lines
+      ctx.fillStyle = "#ff000055";
+      ctx.fillRect(el.x+2, el.y+el.h-8, 6, 6);
+      ctx.fillRect(el.x+el.w-8, el.y+el.h-8, 6, 6);
+      const fl = 0.03 + 0.02*Math.sin(Date.now()/300);
+      for(let sy2=el.y; sy2<el.y+el.h; sy2+=3) {
+        ctx.fillStyle = "rgba(0,0,0,"+fl+")";
+        ctx.fillRect(el.x, sy2, el.w, 1);
+      }
+      break;
+    }
+    default:
+      ctx.fillStyle = el.color;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#00ff8815";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      if (el.label) {
+        ctx.fillStyle = "#00ff8877";
+        ctx.font = "9px 'Courier New'";
+        ctx.fillText(el.label, el.x + 4, el.y + 14);
+      }
+  }
+  // Ambient matrix rain for tagged elements
+  if (el.matrix) {
+    const ambKey = "amb:" + el.type + ":" + el.x + ":" + el.y;
+    drawMatrixRain(el, ambKey, "#00ff88", 0.9, 0.15, false);
+  }
+  ctx.restore();
+}
+
+function drawR3X() {
+  const r = state.r3x;
+  const anim = ANIMS[r.anim] || ANIMS.stand;
+  const frameIdx = Math.floor(r.frame) % anim.frames;
+
+  const sx = frameIdx * CELL_W;
+  const sy = anim.row * CELL_H;
+  const drawSize = Math.round(80 * (anim.scale || 1.0));
+  const drawX = r.x - drawSize / 2;
+  const drawY = r.y - drawSize + (anim.yOffset || 0);
+
+  ctx.save();
+  if (r.facing === -1) {
+    // Flip horizontally
+    ctx.translate(r.x * 2, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(sprite, sx, sy, CELL_W, CELL_H, r.facing === -1 ? (r.x * 2 - r.x - drawSize/2) : drawX, drawY, drawSize, drawSize);
+  ctx.restore();
+
+  // Shadow
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  ctx.ellipse(r.x, r.y + 2, 22, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSmoke() {
+  for (const p of state.particles) {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = "#aaaaaa";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawDialogue() {
+  const d = state.dialogue;
+  if (d.alpha <= 0) return;
+  const r = state.r3x;
+  const bw = 180, bh = 36;
+  // Place bubble to the right or left of R3X, not over his face
+  const bx = r.x < 550 ? r.x + 30 : r.x - 30 - bw;
+  const by = r.y - 95;
+
+  ctx.save();
+  ctx.globalAlpha = Math.min(d.alpha, 1);
+  ctx.fillStyle = "#0d1117ee";
+  ctx.strokeStyle = "#00ff8888";
+  ctx.lineWidth = 1;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeRect(bx, by, bw, bh);
+  // Draw a small tail pointing down toward R3X
+  ctx.beginPath();
+  const tailX = r.x < 550 ? bx + 14 : bx + bw - 14;
+  const tailDir = r.x < 550 ? -1 : 1;
+  ctx.moveTo(tailX,       by + bh);
+  ctx.lineTo(tailX - 6 * tailDir, by + bh + 8);
+  ctx.lineTo(tailX + 6,  by + bh);
+  ctx.fillStyle = "#0d1117ee";
+  ctx.fill();
+  ctx.strokeStyle = "#00ff8888";
+  ctx.stroke();
+  ctx.fillStyle = "#00ff88";
+  ctx.font = "9px 'Courier New'";
+  // Word wrap at 170px
+  const words = d.text.split(" ");
+  let line = "", lines = [];
+  for (const w of words) {
+    const test = line + w + " ";
+    if (ctx.measureText(test).width > 165 && line) {
+      lines.push(line.trim()); line = w + " ";
+    } else { line = test; }
+  }
+  lines.push(line.trim());
+  lines.slice(0, 3).forEach((l, i) => ctx.fillText(l, bx + 8, by + 14 + i * 12));
+  ctx.restore();
+}
+
+function drawFallbackBadge() {
+  if (!state.fallback) return;
+  ctx.save();
+  ctx.fillStyle = "#ff880022";
+  ctx.fillRect(W - 140, 8, 132, 18);
+  ctx.strokeStyle = "#ff880060";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(W - 140, 8, 132, 18);
+  ctx.fillStyle = "#ff8800aa";
+  ctx.font = "9px 'Courier New'";
+  ctx.fillText("◌ OFFLINE // PATROL", W - 134, 21);
+  ctx.restore();
+}
+
+function drawTransition() {
+  if (state.transitionAlpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = state.transitionAlpha;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────
+//  PHYSICS + ANIMATION TICK
+// ─────────────────────────────────────────────
+function tick() {
+  const r = state.r3x;
+  const floor = floorY();
+
+  // Animation frame advance
+  const anim = ANIMS[r.anim] || ANIMS.stand;
+  r.frameTick++;
+  if (r.frameTick >= Math.round(60 / anim.fps)) {
+    r.frame = (r.frame + 1) % anim.frames;
+    r.frameTick = 0;
+  }
+
+  // Movement
+  if (r.moving) {
+    const speed = r.anim === "run" ? 4 : 2.5;
+    const dx = r.targetX - r.x;
+    if (Math.abs(dx) < speed + 1) {
+      r.x = r.targetX;
+      r.moving = false;
+      r.anim = ROOMS[state.room].idleAnim;
+      state.idleCycleTimer = 0;
+      state.idleCyclePhase = 0;
+      if (r._onArrive) { r._onArrive(); r._onArrive = null; }
+    } else {
+      r.x += Math.sign(dx) * speed;
+    }
+  }
+
+  // Gravity
+  if (!r.grounded) {
+    r.vy += 0.5;
+    r.y += r.vy;
+    if (r.y >= floor + 30) {
+      r.y = floor + 30;
+      r.vy = 0;
+      r.grounded = true;
+      r.isJumping = false;
+      r.anim = r.moving ? ROOMS[state.room].walkAnim : ROOMS[state.room].idleAnim;
+    }
+  } else {
+    r.y = floor + 30;
+  }
+
+  // Smoke particles
+  if (Math.random() < 0.08) {
+    state.particles.push({
+      x: r.x + (r.facing * 20),
+      y: r.y - 55,
+      r: 2 + Math.random() * 3,
+      alpha: 0.4,
+      vx: r.facing * 0.2 + (Math.random() - 0.5) * 0.4,
+      vy: -0.4 - Math.random() * 0.3,
+    });
+  }
+  for (const p of state.particles) {
+    p.x += p.vx; p.y += p.vy; p.r += 0.04; p.alpha -= 0.008;
+  }
+  state.particles = state.particles.filter(p => p.alpha > 0);
+
+  // Dialogue timer
+  if (state.dialogue.timer > 0) {
+    state.dialogue.timer--;
+    if (state.dialogue.timer < 60) state.dialogue.alpha = state.dialogue.timer / 60;
+  }
+
+  // Transition fade
+  if (state.transitioning) {
+    state.transitionAlpha += state.transitionDir * 0.06;
+    if (state.transitionAlpha >= 1) {
+      // Room switch at peak black
+      state.transitionDir = -1;
+      performRoomSwitch();
+    }
+    if (state.transitionAlpha <= 0) {
+      state.transitioning = false;
+      state.transitionAlpha = 0;
+    }
+  }
+
+  // Idle animation cycling (primary ↔ secondary idle)
+  if (!r.moving && !state.transitioning && state.mode === "auto") {
+    state.idleCycleTimer++;
+    const room = ROOMS[state.room];
+    const hasCycle = !!(room.idleAnims || room.idleAnim2);
+    if (hasCycle) {
+      // Switch every ~15 seconds (900 frames at 60fps)
+      const switchAt = state.idleCyclePhase === 0 ? 900 : 540;
+      if (state.idleCycleTimer >= switchAt) {
+        state.idleCycleTimer = 0;
+        if (room.idleAnims) {
+          // Extended pool: pick a random different anim
+          const cur = state.idleCyclePhase % room.idleAnims.length;
+          let next = cur;
+          while (next === cur) next = Math.floor(Math.random() * room.idleAnims.length);
+          state.idleCyclePhase = next;
+          r.anim = room.idleAnims[state.idleCyclePhase];
+        } else {
+          state.idleCyclePhase = state.idleCyclePhase === 0 ? 1 : 0;
+          r.anim = state.idleCyclePhase === 0 ? room.idleAnim : room.idleAnim2;
+        }
+        r.frame = 0;
+      }
+    }
+  }
+
+  // Fallback patrol
+  if (state.mode === "auto") {  // patrol always active in auto mode
+    state.patrolTimer--;
+    const _cleaning = state.glitches.some(g => g.cleaning && !g.cleaned);
+    if (state.patrolTimer <= 0 && !r.moving && !state.transitioning && !_cleaning) {
+      state.patrolIdx = (state.patrolIdx + 1) % PATROL.length;
+      triggerRoomTransition(PATROL[state.patrolIdx]);
+    }
+  }
+  // Glitch system tick
+  glitchTick();
+  // Auto-theater tick (ambient life)
+  if (state.mode === "auto") autoTheaterTick();
+  // Power flicker tick
+  powerFlickerTick();
+}
+
+// ─────────────────────────────────────────────
+//  ROOM TRANSITION
+// ─────────────────────────────────────────────
+let _pendingRoom = null;
+function triggerRoomTransition(room) {
+  if (state.transitioning) return;
+  _pendingRoom = room;
+  state.transitioning = true;
+  state.transitionDir = 1;
+  state.transitionAlpha = 0;
+  // Walk R3X to door direction first
+  const r = state.r3x;
+  r.anim = ROOMS[state.room].walkAnim;
+  r.moving = true;
+  r.facing = 1;
+  r.targetX = W + 50;
+}
+
+function performRoomSwitch() {
+  if (!_pendingRoom) return;
+  state.room = _pendingRoom;
+  _pendingRoom = null;
+  const r = state.r3x;
+  r.x = -50;
+  r.y = ROOMS[state.room].floorY + 30;
+  r.facing = 1;
+  r.anim = ROOMS[state.room].walkAnim;
+  const destX = 150 + Math.random() * 400;
+  walkTo(destX, () => {
+    setDialogue(pickDialogue(state.room));
+    state.patrolTimer = 280 + Math.floor(Math.random() * 120);
+  });
+  // Update HUD
+  document.getElementById("hud-room").textContent = ROOMS[state.room].label;
+  updateTaskbar(state.room);
+}
+
+function updateTaskbar(room) {
+  for (const id of ["lobby","code","art","comms","tasks"]) {
+    document.getElementById("btn-"+id).classList.toggle("active", id === room);
+  }
+}
+
+
+function drawModeOverlay() {
+  const r = state.r3x;
+  const anim = ANIMS[r.anim] || ANIMS.stand;
+  const frameIdx = Math.floor(r.frame) % anim.frames;
+
+  if (state.mode === "manual") {
+    // Anim name + frame index badge near R3X
+    const txt = `[${r.anim}] f${frameIdx}`;
+    ctx.save();
+    ctx.font = "bold 11px 'Courier New'";
+    const tw = ctx.measureText(txt).width;
+    const bx = r.x - tw/2 - 6;
+    const by = r.y - Math.round(80 * (anim.scale||1.0)) + (anim.yOffset||0) - 22;
+    ctx.fillStyle = "#0d1117ee";
+    ctx.strokeStyle = "#ff880088";
+    ctx.lineWidth = 1;
+    ctx.fillRect(bx, by, tw + 12, 16);
+    ctx.strokeRect(bx, by, tw + 12, 16);
+    ctx.fillStyle = "#ff8800";
+    ctx.fillText(txt, bx + 6, by + 11);
+    ctx.restore();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  drawRoom(state.room);
+  drawSmoke();
+  drawR3X();
+  drawMonitorLines();
+  drawCommsTickerOverlay();
+  drawDialogue();
+  drawModeOverlay();
+  drawFallbackBadge();
+  drawPowerFlicker();
+  drawTransition();
+}
+
+function loop() {
+  tick();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ─────────────────────────────────────────────
+//  HEARTBEAT
+// ─────────────────────────────────────────────
+function heartbeat() {
+  if (state.mode === "manual") return;   // manual mode — skip all network activity
+  if (!HEARTBEAT_URL) {
+    // No endpoint configured — simulate connected, stay online
+    setOnline(true);
+    return;
+  }
+  fetch(HEARTBEAT_URL, { method: "GET", timeout: 4000 })
+    .then(r => r.json())
+    .then(data => {
+      state.missCount = 0;
+      setOnline(true);
+      // If agent pushes a room update
+      // Route to unified setState handler
+      if (state.mode === "auto") {
+        window.R3X.setState({
+          room: data.room,
+          message: data.message,
+          anim: data.anim
+        });
+      }
+    })
+    .catch(() => {
+      state.missCount++;
+      if (state.missCount >= HEARTBEAT_MISS_LIMIT) {
+        setOnline(false);
+      }
+    });
+}
+
+function setOnline(online) {
+  const wasOnline = state.online;
+  state.online = online;
+  state.fallback = !online;
+  const el = document.getElementById("hud-status");
+  if (online) {
+    el.textContent = "● CONNECTED";
+    el.className = "status online";
+    if (!wasOnline) {
+      setDialogue("Back online. Missed nothing.");
+      state.patrolTimer = 9999;
+    }
+  } else {
+    el.textContent = "◌ FALLBACK";
+    el.className = "status fallback";
+    if (wasOnline) {
+      setDialogue("Connection lost. Holding position.");
+      state.patrolTimer = 180;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  GLITCH SYSTEM
+// ─────────────────────────────────────────────
+// Zalgo character pool
+const ZALGO_UP   = ["̍","̎","̄","̅","̿","̑","̆","̐","͒","͗","͑","̇","̈","̊","͂","̓","̈́","͊","͋","͌","̃","̂","̌","͐","̀","́","̋","̏","̒","̓","̔","̽","̾","͛","͆","̚"];
+const ZALGO_MID  = ["̕","̛","̀","́","͘","̡","̢","̧","̨","̴","̵","̶","͜","͝","͞","͟","͠","͢","̸","̷","͡"];
+const ZALGO_DOWN = ["̖","̗","̘","̙","̜","̝","̞","̟","̠","̤","̥","̦","̩","̪","̫","̬","̭","̮","̯","̰","̱","̲","̳","̹","̺","̻","̼","͇","͈","͉","͍","͎","͓","͔","͕","͖","͙","͚","̣"];
+
+// ─────────────────────────────────────────────
+//  MATRIX RAIN SYSTEM
+// ─────────────────────────────────────────────
+const MATRIX_CHARS = "ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789@#$%&*<>[]{}|/\\";
+
+function getMatrixRain(key, el, colWidth) {
+  if (!state.matrixRains[key]) {
+    const cols = Math.max(2, Math.floor(el.w / colWidth));
+    state.matrixRains[key] = Array.from({ length: cols }, (_, i) => ({
+      x: el.x + i * colWidth + Math.floor(colWidth / 2),
+      y: el.y + Math.random() * el.h,
+      speed: 0,
+      char: MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)],
+      charTimer: 0,
+    }));
+  }
+  return state.matrixRains[key];
+}
+
+function drawMatrixRain(el, key, color, speed, alpha, glowing) {
+  const colWidth = 8;
+  const cols = getMatrixRain(key, el, colWidth);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(el.x, el.y, el.w, el.h);
+  ctx.clip();
+  ctx.font = "7px 'Courier New'";
+  ctx.textAlign = "center";
+  if (glowing) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 4;
+  }
+  for (const col of cols) {
+    // Update position
+    col.y += speed;
+    if (col.y > el.y + el.h + 10) col.y = el.y - Math.random() * el.h * 0.5;
+    // Randomize char occasionally
+    col.charTimer--;
+    if (col.charTimer <= 0) {
+      col.char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+      col.charTimer = 3 + Math.floor(Math.random() * 6);
+    }
+    // Head char (bright)
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.fillText(col.char, col.x, col.y);
+    // Trail (fade out upward — 3 ghost chars)
+    for (let t = 1; t <= 3; t++) {
+      ctx.globalAlpha = alpha * (1 - t / 4) * 0.5;
+      const trailChar = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+      ctx.fillText(trailChar, col.x, col.y - t * 9);
+    }
+  }
+  ctx.shadowBlur = 0;
+  ctx.textAlign = "left";
+  ctx.restore();
+}
+
+
+function zalgoWord(word, intensity) {
+  return word.split('').map(c => {
+    let out = c;
+    const u = Math.floor(Math.random() * intensity);
+    const m = Math.floor(Math.random() * Math.ceil(intensity/2));
+    const d = Math.floor(Math.random() * intensity);
+    for (let i=0; i<u; i++) out += ZALGO_UP[Math.floor(Math.random()*ZALGO_UP.length)];
+    for (let i=0; i<m; i++) out += ZALGO_MID[Math.floor(Math.random()*ZALGO_MID.length)];
+    for (let i=0; i<d; i++) out += ZALGO_DOWN[Math.floor(Math.random()*ZALGO_DOWN.length)];
+    return out;
+  }).join('');
+}
+
+const GLITCH_WORDS = ["ERROR","NULL","FAULT","CORRUPT","LEAK","CRASH","VOID","DEAD","LOST","BREAK","OVERFLOW","PANIC"];
+
+// ─────────────────────────────────────────────
+//  AUTO-THEATER CONSTANTS
+// ─────────────────────────────────────────────
+const SYSLOG_LINES = [
+  "PROCESS 4491: OK","BUILD 0x3F: PASS","ALLOC 128K: DONE","SUDO: granted","PROC KILLED: 9914",
+  "ERR 0x4F: handled","COMPILE: 97% done","LINT: 0 errors","DEPLOY: staged","GIT PUSH: ok",
+  "CHECKSUM: valid","NET: 10.0.0.1 OK","AUTH: accepted","CRON: fired","LOG: rotated",
+  "PKG 14/14: OK","SCAN: no threats","HEAP: 42% used","SYNC: complete","TASK 77: done",
+];
+const COMMS_TICKERS = [
+  "RCV: 0xA3F2... ACK","TX: RELAY-7... SENT","SIG: 440.1MHz LOCK","MSG: SEC-3 RECV",
+  "UPLINK: CONFIRMED","BCAST: SECTOR-ALL","PING: 12ms OK","FREQ: STABLE",
+  "DATA: 4KB RECV","ACK: 0xFF21 OK","NET: HANDSHAKE OK","TX: DONE",
+];
+const BROADCAST_LINES = [
+  "sector sweep: all clear.","lobby: secure. no anomalies.","code lab: build nominal.",
+  "comms: signal strong.","task board: queue nominal.","patrol complete. resuming.",
+  "status: operational.","no unauthorized access detected.","all sectors green.",
+  "running diagnostics. stand by.","systems nominal. continuing patrol.",
+  "perimeter check: done.","environment scan: negative.",
+];
+const NOTE_QUIPS = {
+  "▣ SPRITE V2":  ["sprite pipeline nominal.","pixels incoming.","v2 is ready.","art's on it."],
+  "▣ WIRE STATE": ["state is wired.","heartbeat confirmed.","gist is live.","connection: solid."],
+  "▣ HEARTBEAT":  ["pulse is steady.","signal confirmed.","it's alive.","five-second check."],
+};
+const DIRECT_CLICK_QUIPS = [
+  ["hey. eyes off.", "i'm armed and aware.", "personal space. noted."],
+  ["you got something to say?", "direct contact. bold move.", "watching."],
+  ["don't poke the robot.", "i felt that.", "system intact. barely."],
+  ["rude. effective.", "attention logged.", "registered."],
+];
+let _directClickIdx = 0;
+
+// glitches: array of { room, elIdx, word, intensity, age, cleaning, cleaned }
+
+function spawnGlitch() {
+  const roomKeys = Object.keys(ROOMS);
+  // In manual mode, always spawn in current room so the user can interact with glitches
+  const room = state.mode === "manual"
+    ? state.room
+    : roomKeys[Math.floor(Math.random() * roomKeys.length)];
+  const els = ROOMS[room].elements;
+  if (!els.length) return;
+  const elIdx = Math.floor(Math.random() * els.length);
+  // Don't double-stack on same element
+  if (state.glitches.some(g => g.room === room && g.elIdx === elIdx && !g.cleaned)) return;
+  const word = GLITCH_WORDS[Math.floor(Math.random() * GLITCH_WORDS.length)];
+  state.glitches.push({ room, elIdx, word, intensity: 1 + Math.floor(Math.random()*3), age: 0, cleaning: false, cleaned: false });
+}
+
+function glitchTick() {
+  state.glitchSpawnTimer--;
+  if (state.glitchSpawnTimer <= 0) {
+    // Spawn every 8–18 seconds
+    state.glitchSpawnTimer = 480 + Math.floor(Math.random() * 600);
+    spawnGlitch();
+  }
+  // Age active glitches
+  for (const g of state.glitches) {
+    if (!g.cleaned) g.age++;
+  }
+  // Cull old cleaned ones
+  state.glitches = state.glitches.filter(g => !g.cleaned || g.age < g.cleanAge + 40);
+
+  // Auto-mode: R3X walks to fix a glitch in current room
+  if (state.mode === "auto" && !state.r3x.moving && !state.transitioning) {
+    const localGlitch = state.glitches.find(g => g.room === state.room && !g.cleaning && !g.cleaned);
+    if (localGlitch) {
+      const el = ROOMS[localGlitch.room].elements[localGlitch.elIdx];
+      localGlitch.cleaning = true;
+      const prevAnim = state.r3x.anim;
+      walkTo(el.x + el.w/2, () => {
+        // Sweep animation while cleaning
+        state.r3x.anim = "portal";
+        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- detected. cleaning.");
+        setTimeout(() => {
+          localGlitch.cleaned = true;
+          localGlitch.cleanAge = localGlitch.age;
+          delete state.matrixRains["glitch:" + localGlitch.room + ":" + localGlitch.elIdx];
+          setDialogue("sector clean.");
+          state.r3x.anim = ROOMS[state.room].idleAnim;
+        }, 2400);
+      });
+    }
+  }
+}
+
+function drawGlitches(room) {
+  const roomGlitches = state.glitches.filter(g => g.room === room && !g.cleaned);
+  for (const g of roomGlitches) {
+    const el = ROOMS[room].elements[g.elIdx];
+    const cx = el.x + el.w/2;
+    const cy = el.y + 6;
+    // Flicker intensity tied to age
+    // Red matrix rain on glitched element
+    const glitchRainKey = "glitch:" + g.room + ":" + g.elIdx;
+    drawMatrixRain(el, glitchRainKey, "#ff2244", 2.5, 0.55, true);
+
+    const flicker = (Math.sin(Date.now()/80 + g.elIdx) + 1) / 2;
+    const alpha = 0.6 + flicker * 0.4;
+    // Regenerate zalgo text every ~4 frames for shimmer
+    const glitchStr = Math.floor(Date.now()/66) % 2 === 0
+      ? zalgoWord(g.word, g.intensity)
+      : zalgoWord(g.word, g.intensity + 1);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = "bold 9px 'Courier New'";
+    ctx.textAlign = "center";
+    // Shadow / glow
+    ctx.shadowColor = "#ff0044";
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = "#ff2255";
+    ctx.fillText(glitchStr, cx, cy);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "left";
+    ctx.restore();
+  }
+}
+
+
+// ─────────────────────────────────────────────
+//  AUTO-THEATER — ambient life
+// ─────────────────────────────────────────────
+function autoTheaterTick() {
+  const r = state.r3x;
+
+  // ── R3X status broadcast ──────────────────────────────────
+  state.broadcastTimer--;
+  if (state.broadcastTimer <= 0) {
+    state.broadcastTimer = 1200 + Math.floor(Math.random() * 1200); // ~20–40s
+    if (!r.moving && !state.transitioning) {
+      const line = BROADCAST_LINES[Math.floor(Math.random() * BROADCAST_LINES.length)];
+      r.anim = "point"; r.frame = 0;
+      setDialogue(line);
+      setTimeout(() => { if (!r.moving) r.anim = ROOMS[state.room].idleAnim; }, 2000);
+    }
+  }
+
+  // ── Task board: auto-update a note ───────────────────────
+  state.taskBoardTimer--;
+  if (state.taskBoardTimer <= 0) {
+    state.taskBoardTimer = 900 + Math.floor(Math.random() * 900);
+    // Stamp a random note as done (toggle its label prefix)
+    const taskRoom = ROOMS.tasks;
+    const notes = taskRoom.elements.filter(el => el.type === "note");
+    if (notes.length > 0) {
+      const n = notes[Math.floor(Math.random() * notes.length)];
+      // Toggle: ▣ → ✔ or ✔ → ▣
+      if (n.label && n.label.startsWith("▣")) {
+        n.label = "✔" + n.label.slice(1);
+        n._doneTimer = 300; // show checkmark for 5s, then reset
+      }
+    }
+  }
+  // Age note checkmarks back
+  const taskNotes = ROOMS.tasks.elements.filter(el => el.type === "note" && el._doneTimer !== undefined);
+  for (const n of taskNotes) {
+    n._doneTimer--;
+    if (n._doneTimer <= 0) {
+      if (n.label && n.label.startsWith("✔")) n.label = "▣" + n.label.slice(1);
+      delete n._doneTimer;
+    }
+  }
+
+  // ── Comms ticker: cycle a fake transmission message ──────
+  // Auto-fires in comms room every ~20s
+  if (state.room === "comms") {
+    state.commsTickTimer--;
+    if (state.commsTickTimer <= 0) {
+      state.commsTickTimer = 1000 + Math.floor(Math.random() * 400);
+      const msg = COMMS_TICKERS[Math.floor(Math.random() * COMMS_TICKERS.length)];
+      state.commsTicker = { msg, alpha: 1, timer: 280 };
+    }
+  }
+
+  // ── Code Lab typing bursts: auto syslog lines on monitors ─
+  if (state.room === "code") {
+    // Every ~8–15s, update one monitor's syslog line
+    if (!state._codeLabTimer) state._codeLabTimer = 400 + Math.floor(Math.random() * 500);
+    state._codeLabTimer--;
+    if (state._codeLabTimer <= 0) {
+      state._codeLabTimer = 400 + Math.floor(Math.random() * 500);
+      const monitors = ROOMS.code.elements.filter(el => el.type === "monitor");
+      if (monitors.length > 0) {
+        const m = monitors[Math.floor(Math.random() * monitors.length)];
+        const elIdx = ROOMS.code.elements.indexOf(m);
+        const key = "code:" + elIdx;
+        const line = SYSLOG_LINES[Math.floor(Math.random() * SYSLOG_LINES.length)];
+        state.monitorLines[key] = { line, alpha: 1, timer: 240 };
+      }
+    }
+  }
+
+  // ── Glitch cascade alert ──────────────────────────────────
+  const liveGlitches = state.glitches.filter(g => !g.cleaned);
+  if (liveGlitches.length >= 3 && !state.cascadeAlerted) {
+    state.cascadeAlerted = true;
+    setDialogue("--ALERT-- multiple anomalies detected.");
+    // Reduce patrol timer so he moves faster
+    state.patrolTimer = Math.min(state.patrolTimer, 60);
+  }
+  if (liveGlitches.length < 3) {
+    state.cascadeAlerted = false;
+  }
+
+  // ── Idle boredom escalation ───────────────────────────────
+  if (!r.moving && !state.transitioning) {
+    state.boredTimer++;
+    if (state.boredTimer >= 1800 && state.boredTimer < 1860) {
+      // ~30s idle → R3X falls asleep
+      r.anim = "sleep"; r.frame = 0;
+    }
+    if (state.boredTimer >= 2100) {
+      // Wakes up, walks somewhere
+      state.boredTimer = 0;
+      r.anim = ROOMS[state.room].idleAnim; r.frame = 0;
+      const destX = 100 + Math.random() * 600;
+      setDialogue("...right. still on shift.");
+      setTimeout(() => { walkTo(destX, null); }, 800);
+    }
+  } else {
+    state.boredTimer = 0;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  POWER FLUCTUATION EVENT
+// ─────────────────────────────────────────────
+function powerFlickerTick() {
+  if (state.mode !== "auto") return;
+  state.powerFlickerTimer--;
+  if (state.powerFlickerTimer <= 0) {
+    state.powerFlickerTimer = 3000 + Math.floor(Math.random() * 3600); // ~50–110s
+    // Start flicker
+    state.powerFlicker.active = true;
+    state.powerFlicker.alpha = 0;
+    state.powerFlicker.dir = 1;
+    state.r3x.anim = "defend"; state.r3x.frame = 0;
+    setDialogue("power fluctuation. holding.");
+    setTimeout(() => {
+      if (!state.r3x.moving) state.r3x.anim = ROOMS[state.room].idleAnim;
+    }, 1200);
+  }
+  // Animate flicker overlay
+  if (state.powerFlicker.active) {
+    state.powerFlicker.alpha += state.powerFlicker.dir * 0.12;
+    if (state.powerFlicker.alpha >= 0.55) state.powerFlicker.dir = -1;
+    if (state.powerFlicker.alpha <= 0) {
+      state.powerFlicker.active = false;
+      state.powerFlicker.alpha = 0;
+    }
+  }
+}
+
+function drawPowerFlicker() {
+  if (!state.powerFlicker.active || state.powerFlicker.alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = state.powerFlicker.alpha * 0.6;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+function drawCommsTickerOverlay() {
+  const t = state.commsTicker;
+  if (!t || t.alpha <= 0) return;
+  // Tick timer
+  t.timer--;
+  if (t.timer > 0 && t.timer < 60) t.alpha = t.timer / 60;
+  if (t.timer <= 0) { t.alpha = 0; return; }
+
+  // Draw across the comms panel area (or bottom of canvas if in another room)
+  const panel = state.room === "comms"
+    ? ROOMS.comms.elements.find(el => el.type === "panel")
+    : null;
+  const tx = panel ? panel.x + 6 : 12;
+  const ty = panel ? panel.y + panel.h - 8 : H - 24;
+
+  ctx.save();
+  ctx.globalAlpha = t.alpha;
+  ctx.font = "bold 8px 'Courier New'";
+  ctx.fillStyle = "#00ff88";
+  ctx.shadowColor = "#00ff88";
+  ctx.shadowBlur = 4;
+  ctx.fillText("» " + t.msg, tx, ty);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawMonitorLines() {
+  for (const [key, entry] of Object.entries(state.monitorLines)) {
+    if (!entry || entry.alpha <= 0) continue;
+    entry.timer--;
+    if (entry.timer > 0 && entry.timer < 60) entry.alpha = entry.timer / 60;
+    if (entry.timer <= 0) { entry.alpha = 0; continue; }
+
+    // Find element by key (room:elIdx)
+    const parts = key.split(":");
+    const room = parts[0];
+    const elIdx = parseInt(parts[1]);
+    if (room !== state.room) continue;
+    const el = ROOMS[room].elements[elIdx];
+    if (!el) continue;
+
+    ctx.save();
+    ctx.globalAlpha = entry.alpha;
+    ctx.font = "bold 8px 'Courier New'";
+    ctx.fillStyle = "#00ff88";
+    ctx.shadowColor = "#00ff88";
+    ctx.shadowBlur = 3;
+    ctx.fillText("> " + entry.line, el.x + 6, el.y + el.h - 10);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CANVAS CLICK → WALK-TO-ELEMENT
+// ─────────────────────────────────────────────
+canvas.addEventListener("click", function(e) {
+  if (state.transitioning) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top)  * scaleY;
+
+  // ── R3X self-click ──────────────────────────────────────────
+  const r = state.r3x;
+  const anim = ANIMS[r.anim] || ANIMS.stand;
+  const drawSize = Math.round(80 * (anim.scale || 1.0));
+  const r3xLeft  = r.x - drawSize / 2;
+  const r3xRight = r.x + drawSize / 2;
+  const r3xTop   = r.y - drawSize + (anim.yOffset || 0);
+  const r3xBot   = r.y + 4;
+  if (mx >= r3xLeft && mx <= r3xRight && my >= r3xTop && my <= r3xBot) {
+    const set = DIRECT_CLICK_QUIPS[_directClickIdx % DIRECT_CLICK_QUIPS.length];
+    const line = set[Math.floor(Math.random() * set.length)];
+    setDialogue(line);
+    _directClickIdx++;
+    // Cycle reaction anims: point → angry → celebrate → point ...
+    const reactionAnims = ["point","angry","celebrate"];
+    const rIdx = (_directClickIdx - 1) % reactionAnims.length;
+    r.anim = reactionAnims[rIdx];
+    r.frame = 0;
+    r.moving = false;
+    // Return to idle after anim completes (~1.5s)
+    setTimeout(() => {
+      if (!state.r3x.moving) r.anim = ROOMS[state.room].idleAnim;
+    }, 1500);
+    return;
+  }
+
+  const els = ROOMS[state.room].elements;
+  const pad = 8;
+  const hit = els.find(el =>
+    mx >= el.x - pad && mx <= el.x + el.w + pad &&
+    my >= el.y - pad && my <= el.y + el.h + pad
+  );
+  if (!hit) return;
+
+  const destX = Math.max(40, Math.min(W - 40, hit.x + hit.w / 2));
+
+  // ── Element-specific interactions ───────────────────────────
+  if (hit.type === "monitor") {
+    // R3X walks over, does code2 anim, prints a syslog line
+    walkTo(destX, () => {
+      r.anim = "code2"; r.frame = 0;
+      const line = SYSLOG_LINES[Math.floor(Math.random() * SYSLOG_LINES.length)];
+      const elIdx = ROOMS[state.room].elements.indexOf(hit);
+      const key = state.room + ":" + elIdx;
+      state.monitorLines[key] = { line, alpha: 1, timer: 200 };
+      setDialogue(line.toLowerCase());
+      setTimeout(() => { if (!state.r3x.moving) r.anim = ROOMS[state.room].idleAnim; }, 2000);
+    });
+    return;
+  }
+  if (hit.type === "vent") {
+    walkTo(destX, () => {
+      r.anim = Math.random() < 0.5 ? "defend" : "angry"; r.frame = 0;
+      setDialogue(getInteractQuip("vent"));
+      setTimeout(() => { if (!state.r3x.moving) r.anim = ROOMS[state.room].idleAnim; }, 1600);
+    });
+    return;
+  }
+  if (hit.type === "antenna") {
+    walkTo(destX, () => {
+      r.anim = "comms"; r.frame = 0;
+      const msg = COMMS_TICKERS[Math.floor(Math.random() * COMMS_TICKERS.length)];
+      state.commsTicker = { msg, alpha: 1, timer: 240 };
+      setDialogue("incoming transmission.");
+      setTimeout(() => { if (!state.r3x.moving) r.anim = ROOMS[state.room].idleAnim; }, 2200);
+    });
+    return;
+  }
+  if (hit.type === "counter") {
+    walkTo(destX, () => {
+      setDialogue(getCounterQuip(window._R3X_COUNTER_VISITS || 0));
+      setTimeout(() => { if(state.room==="lobby") walkTo(150+Math.random()*280, null); }, 4000);
+    });
+    return;
+  }
+  if (hit.type === "note") {
+    // Note-specific quip based on label
+    walkTo(destX, () => {
+      const noteQuips = NOTE_QUIPS[hit.label] || INTERACT_QUIPS.note;
+      const line = noteQuips[Math.floor(Math.random() * noteQuips.length)];
+      setDialogue(line);
+    });
+    return;
+  }
+
+  // ── Default walk-to-interact ─────────────────────────────────
+  walkTo(destX, () => {
+    setDialogue(getInteractQuip(hit.type));
+    const g = state.glitches.find(gl => {
+      if (gl.room !== state.room || gl.cleaned) return false;
+      return ROOMS[state.room].elements[gl.elIdx] === hit;
+    });
+    if (g) {
+      g.cleaning = true;
+      r.anim = "portal";
+      setTimeout(() => {
+        g.cleaned = true;
+        g.cleanAge = g.age;
+        delete state.matrixRains["glitch:" + g.room + ":" + g.elIdx];
+        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- cleared.");
+        r.anim = ROOMS[state.room].idleAnim;
+      }, 1800);
+    }
+  });
+});
+
+// Cursor: pointer when hovering an element
+canvas.addEventListener("mousemove", function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top)  * scaleY;
+  const els = ROOMS[state.room].elements;
+  const pad = 8;
+  const hit = els.some(el =>
+    mx >= el.x - pad && mx <= el.x + el.w + pad &&
+    my >= el.y - pad && my <= el.y + el.h + pad
+  );
+  canvas.style.cursor = hit ? "pointer" : "default";
+});
+
+
+
+// ─────────────────────────────────────────────
+//  PUBLIC API
+// ─────────────────────────────────────────────
+window.R3X = {
+  setRoom(room) {
+    if (!ROOMS[room]) return;
+    if (room === state.room) return;
+    triggerRoomTransition(room);
+    if (room === "lobby") scheduleCounterVisit();
+    if (!state.fallback) {
+      document.getElementById("hud-status").textContent = "● CONNECTED";
+    }
+  },
+  say(text) {
+    setDialogue(text);
+  },
+  setState(payload) {
+    // payload: { room?, message?, anim? }
+    const isCleaning = state.glitches.some(g => g.cleaning && !g.cleaned);
+    if (payload.room && ROOMS[payload.room] && payload.room !== state.room && !isCleaning) {
+      triggerRoomTransition(payload.room);
+    }
+    if (payload.message) setDialogue(payload.message);
+    if (payload.anim && ANIMS[payload.anim]) {
+      state.r3x.anim = payload.anim;
+      state.r3x.frame = 0;
+    }
+  },
+  setMode(m) {
+    if (m !== "auto" && m !== "manual") return;
+    state.mode = m;
+    document.getElementById("btn-auto").classList.toggle("active",   m === "auto");
+    document.getElementById("btn-manual").classList.toggle("active", m === "manual");
+    if (m === "manual") {
+      // Freeze R3X in place, cancel movement
+      state.r3x.moving = false;
+      state.r3x.targetX = state.r3x.x;
+      state.r3x._onArrive = null;
+      // Show neutral status — not connected, not fallback
+      const el = document.getElementById("hud-status");
+      el.textContent = "◌ MANUAL";
+      el.className = "status fallback";
+    }
+    if (m === "auto") {
+      // Resume from current room and reconnect immediately
+      state.patrolTimer = 60;
+      heartbeat();
+    }
+  },
+  nextAnim() {
+    // Cycle through all anims (useful for manual inspection)
+    const keys = Object.keys(ANIMS);
+    const cur = state.r3x.anim;
+    const idx = keys.indexOf(cur);
+    state.r3x.anim = keys[(idx + 1) % keys.length];
+    state.r3x.frame = 0;
+  },
+  getState() {
+    return { room: state.room, online: state.online, fallback: state.fallback, mode: state.mode };
+  }
+};
+
+
+// ─────────────────────────────────────────────
+//  COUNTER QUIPS
+// ─────────────────────────────────────────────
+const COUNTER_QUIPS = [
+  { min:0,   max:10,  lines:["...nobody's come to see me yet. figures.","place is empty. just how i operate.","zero traffic. i work best alone."] },
+  { min:11,  max:50,  lines:["a few stragglers. i'll take it.","handful of visitors. curiosity noted.","word's getting out. slowly."] },
+  { min:51,  max:200, lines:["decent traffic for a secure sector.","word's getting out. don't tell anyone.","more every cycle. i'm watching."] },
+  { min:201, max:500, lines:["heh. they keep coming back.","traffic's picking up. running a log.","access granted to a lot of people lately."] },
+  { min:501, max:Infinity, lines:["i'm kind of a big deal. don't make it weird.","this place is getting crowded.","sector's popular. good thing i'm armed."] },
+];
+function getCounterQuip(v) {
+  const b = COUNTER_QUIPS.find(b => v >= b.min && v <= b.max) || COUNTER_QUIPS[0];
+  return b.lines[Math.floor(Math.random()*b.lines.length)];
+}
+function r3xCheckCounter() {
+  if (state.room !== "lobby") return;
+  if (state.r3x.moving) return;
+  walkTo(565, () => {
+    setDialogue(getCounterQuip(window._R3X_COUNTER_VISITS || 0));
+    setTimeout(() => { if(state.room==="lobby") walkTo(150+Math.random()*280, null); }, 4800);
+  });
+}
+let _cTimer = null;
+function scheduleCounterVisit() {
+  clearTimeout(_cTimer);
+  _cTimer = setTimeout(() => {
+    r3xCheckCounter();
+    _cTimer = setTimeout(function rep(){ r3xCheckCounter(); _cTimer=setTimeout(rep,90000); }, 90000);
+  }, 20000);
+}
+
+// ─────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────
+sprite.onload = () => {
+  // Init R3X position
+  const r = state.r3x;
+  r.y = ROOMS[state.room].floorY + 30;
+  r.x = -50;
+  r.facing = 1;
+  r.anim = ROOMS[state.room].walkAnim;
+  walkTo(200, () => {
+    setDialogue("R3X online. Sector secure.");
+    state.patrolTimer = 9999;
+    state.glitchSpawnTimer = 600 + Math.floor(Math.random() * 600); // first glitch after 10–20s
+    scheduleCounterVisit();
+  });
+
+  // Start heartbeat poll
+  heartbeat();
+  setInterval(heartbeat, HEARTBEAT_INTERVAL_MS);
+
+  // Start render loop
+  loop();
+};
+
+sprite.onerror = () => {
+  console.error("R3X: sprite sheet failed to load");
+};
+</script>
+</body>
+</html>
