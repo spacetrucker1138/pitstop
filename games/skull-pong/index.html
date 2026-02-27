@@ -93,8 +93,9 @@ let countdownTimer = 0;
 let countdownNum = 3;
 
 // Scores
-const WIN_SCORE = 7;
+const WIN_SCORE = 5;
 let playerScore = 0, aiScore = 0;
+let matchStartTime = 0, matchElapsed = 0;
 
 // Ball
 let ball = { x: W/2, y: H/2, vx: 4, vy: 4, r: 12, visualR: 18, speed: 5 };
@@ -159,7 +160,7 @@ function handleClick() {
 function startGame() {
   audio.resume();
   audio.startSound();
-  playerScore = 0; aiScore = 0;
+  playerScore = 0; aiScore = 0; matchStartTime = 0; matchElapsed = 0;
   resetBall();
   state = 'countdown';
   countdownNum = 3;
@@ -215,15 +216,50 @@ function drawTombstone(x, y, w, h, color) {
 }
 
 function drawSkull(x, y, r) {
+  // Draw fading red trail
+  trail.forEach((p, idx) => {
+    const frac = idx / TRAIL_MAX;
+    const alpha = frac * 0.55;
+    const radius = r * (0.35 + frac * 0.55);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ff1a1a';
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Draw ball sprite (cycling)
+  const img = ballImgs[currentBallIdx];
+  const size = r * 2;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(skullAngle);
-  ctx.font = `${r*2}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor = '#a855f7';
-  ctx.shadowBlur = 20;
-  ctx.fillText('ð', 0, 0);
+  if (img && img.complete && img.naturalWidth > 0) {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = offscreen.height = Math.ceil(size * 2);
+    const oc = offscreen.getContext('2d');
+    oc.drawImage(img, 0, 0, offscreen.width, offscreen.height);
+    const id = oc.getImageData(0, 0, offscreen.width, offscreen.height);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] > 180 && d[i+1] < 80 && d[i+2] > 180) d[i+3] = 0;
+    }
+    oc.putImageData(id, 0, 0);
+    ctx.shadowColor = '#a855f7';
+    ctx.shadowBlur = 16;
+    ctx.drawImage(offscreen, -size, -size, size*2, size*2);
+  } else {
+    ctx.font = `${size}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#a855f7';
+    ctx.shadowBlur = 20;
+    ctx.fillText('💀', 0, 0);
+  }
   ctx.restore();
 }
 
@@ -283,7 +319,7 @@ function drawTitle() {
   // Subtitle
   ctx.font = '20px Creepster';
   ctx.fillStyle = '#c084fc';
-  ctx.fillText('First to ' + WIN_SCORE + ' wins', W/2, 250);
+  ctx.fillText('First to ' + WIN_SCORE + ' — fastest time wins!', W/2, 250);
 
   // Instructions
   ctx.font = '18px Creepster';
@@ -343,7 +379,7 @@ function update() {
   if (state === 'countdown') {
     countdownTimer++;
     if (countdownTimer >= 60) { countdownTimer = 0; countdownNum--; }
-    if (countdownNum <= 0) { state = 'playing'; }
+    if (countdownNum <= 0) { state = 'playing'; if (matchStartTime === 0) matchStartTime = Date.now(); }
     return;
   }
   if (state !== 'playing') return;
@@ -412,14 +448,14 @@ function update() {
     playerScore++;
     audio.scoreSound();
     spawnParticles(W/2, 0, '#22c55e', 15);
-    if (playerScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); setTimeout(() => spShowOverlay(playerScore), 400); }
+    if (playerScore >= WIN_SCORE) { state = 'gameover'; matchElapsed = Date.now() - matchStartTime; audio.gameOverSound(); setTimeout(() => spShowOverlay(matchElapsed, true), 400); }
     else resetBall();
   }
   if (ball.y > H + 20) {
     aiScore++;
     audio.scoreSound();
     spawnParticles(W/2, H, '#f87171', 15);
-    if (aiScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); setTimeout(() => spShowOverlay(playerScore), 400); }
+    if (aiScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); setTimeout(() => spShowOverlay(0, false), 400); }
     else resetBall();
   }
 
@@ -516,16 +552,17 @@ let spCachedScores = [];
 let spMyEntry = null;
 let spBestScore = 0;
 
-spHsRef.orderByChild('score').limitToLast(10).on('value', snap => {
+spHsRef.orderByChild('score').limitToFirst(10).on('value', snap => {
   const d = snap.val();
   spCachedScores = d
-    ? Object.entries(d).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.score - a.score)
+    ? Object.entries(d).map(([k,v]) => ({...v, key:k})).sort((a,b) => a.score - b.score)
     : [];
   spBestScore = spCachedScores.length > 0 ? spCachedScores[0].score : 0;
 });
 
-function spIsHighScore(s) {
-  return spCachedScores.length < 10 || s > (spCachedScores[spCachedScores.length-1]?.score || 0);
+function spIsHighScore(timeMs) {
+  if (!timeMs) return false;
+  return spCachedScores.length < 10 || timeMs < (spCachedScores[spCachedScores.length-1]?.score || Infinity);
 }
 
 function spSaveScore(name, s) {
@@ -541,40 +578,50 @@ function spRenderLeaderboard() {
     const isMe = spMyEntry && s.name===spMyEntry.name && s.score===spMyEntry.score;
     const cls = isMe ? 'me' : (colors[i]||'normal');
     const rank = medals[i] || ((i+1)+'.');
-    return '<div class="sp-lb-row '+cls+'"><span>'+rank+' '+(s.name||'???')+'</span><span>'+s.score+'</span></div>';
+    return '<div class="sp-lb-row '+cls+'"><span>'+rank+' '+(s.name||'???')+'</span><span>'+(s.score?(s.score/1000).toFixed(1)+'s':'--')+'</span></div>';
   }).join('');
   document.getElementById('spLeaderboard').style.display = 'block';
 }
 
-function spShowOverlay(finalScore) {
-  document.getElementById('spFinalScore').textContent = finalScore;
+function spFormatTime(ms) {
+  if (!ms) return '--';
+  return (ms / 1000).toFixed(1) + 's';
+}
+
+function spShowOverlay(timeMs, playerWon) {
   const bestLine = document.getElementById('spBestLine');
   bestLine.textContent = '';
   document.getElementById('spInitialsSection').style.display = 'none';
   document.getElementById('spLeaderboard').style.display = 'none';
   spMyEntry = null;
 
-  if (spIsHighScore(finalScore)) {
-    bestLine.textContent = '\u{1F3C6} NEW HIGH SCORE!';
-    bestLine.style.color = '#eab308';
-    document.getElementById('spInitialsSection').style.display = 'block';
-    const input = document.getElementById('spInitialsInput');
-    input.value = '';
-    setTimeout(() => input.focus(), 400);
-    const submitFn = () => {
-      const name = input.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-      if (!name) return;
-      spSaveScore(name, finalScore);
-      document.getElementById('spInitialsSection').style.display = 'none';
-      setTimeout(() => spRenderLeaderboard(), 600);
-    };
-    document.getElementById('spInitialsSubmit').onclick = submitFn;
-    input.onkeydown = e => { if (e.key==='Enter') submitFn(); };
-  } else {
-    if (spCachedScores.length > 0) {
-      bestLine.textContent = 'Best: ' + spCachedScores[0].score;
-      bestLine.style.color = '#c084fc';
+  if (playerWon) {
+    document.getElementById('spFinalScore').textContent = spFormatTime(timeMs);
+    if (spIsHighScore(timeMs)) {
+      bestLine.textContent = '🏆 FASTEST TIME!';
+      bestLine.style.color = '#eab308';
+      document.getElementById('spInitialsSection').style.display = 'block';
+      const input = document.getElementById('spInitialsInput');
+      input.value = '';
+      setTimeout(() => input.focus(), 400);
+      const submitFn = () => {
+        const name = input.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+        if (!name) return;
+        spSaveScore(name, timeMs);
+        document.getElementById('spInitialsSection').style.display = 'none';
+        setTimeout(() => spRenderLeaderboard(), 600);
+      };
+      document.getElementById('spInitialsSubmit').onclick = submitFn;
+      input.onkeydown = e => { if (e.key==='Enter') submitFn(); };
+    } else {
+      if (spCachedScores.length > 0) {
+        bestLine.textContent = 'Best: ' + spFormatTime(spCachedScores[0].score);
+        bestLine.style.color = '#c084fc';
+      }
+      spRenderLeaderboard();
     }
+  } else {
+    document.getElementById('spFinalScore').textContent = 'YOU LOSE';
     spRenderLeaderboard();
   }
   document.getElementById('spOverlay').classList.add('active');
@@ -647,7 +694,7 @@ document.getElementById('spTitleBtn').onclick  = () => { spHideOverlay(); backTo
 <div id="spOverlay">
   <div id="spPanel">
     <h2>GAME OVER</h2>
-    <div id="spScoreLine">Score: <span id="spFinalScore">0</span></div>
+    <div id="spScoreLine">Time: <span id="spFinalScore">--</span></div>
     <div id="spBestLine"></div>
     <div id="spInitialsSection" style="display:none;">
       <div id="spInitialsLabel">NEW HIGH SCORE — enter your initials</div>
