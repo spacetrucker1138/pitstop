@@ -204,7 +204,7 @@ function drawDfib() {
     ctx.textAlign = 'center';
     ctx.shadowColor = '#00ff88';
     ctx.shadowBlur = 6;
-    ctx.fillText(timeStr, dx + DW * 0.54, dy + DH * 0.22);
+    ctx.fillText(timeStr, dx + DW * 0.35, dy + DH * 0.42);
     ctx.restore();
   }
 }
@@ -212,38 +212,37 @@ function drawDfib() {
 // Cord drawing: stretched chord.png from paddle edge to dfib
 function drawCord(paddle, isTop) {
   if (!chordImg.complete || chordImg.naturalWidth === 0) return;
-  // Dfib sits at right edge
-  const DW = 110;
-  const dfibX = W - DW - 4;
-  const dfibConnY = H/2; // connection point on dfib (left side middle)
-  // Paddle connection point
-  const padConnX = isTop ? (paddle.x + paddle.w) : paddle.x; // top=right end, bottom=left end
+  const DW = 110, DH = 77;
+  const dfibX = W - DW - 4;              // left edge of dfib
+  const dfibConnY = H/2 - DH/2 + DH * 0.5; // vertical center of dfib
+  // Paddle connector: top paddle = right end, bottom paddle = left end
+  const padConnX = isTop ? (paddle.x + paddle.w) : paddle.x;
   const padConnY = paddle.y + paddle.h / 2;
-  // Draw chord stretched between these two points
-  const cordLen = Math.abs(dfibX - padConnX);
-  const cordH = 12; // display height
+
+  const dx = dfibX - padConnX;
+  const dy = dfibConnY - padConnY;
+  const cordLen = Math.sqrt(dx*dx + dy*dy);
+  const angle = Math.atan2(dy, dx);
+
   ctx.save();
-  ctx.globalAlpha = 0.85;
-  // Need to handle direction: bottom paddle's cord goes right, top paddle's also goes right
-  const startX = Math.min(padConnX, dfibX);
-  const endX = Math.max(padConnX, dfibX);
-  const midY = (padConnY + dfibConnY) / 2;
-  // Slight droop arc
+  ctx.globalAlpha = 0.88;
+
+  // Draw the arc line shadow underneath
   ctx.beginPath();
   ctx.moveTo(padConnX, padConnY);
-  ctx.quadraticCurveTo((padConnX + dfibX) / 2, midY + 15, dfibX, dfibConnY);
-  ctx.strokeStyle = '#555';
-  ctx.lineWidth = 3;
-  ctx.shadowColor = '#000';
-  ctx.shadowBlur = 3;
+  const mx = (padConnX + dfibX) / 2;
+  const my = (padConnY + dfibConnY) / 2 + cordLen * 0.08; // slight sag
+  ctx.quadraticCurveTo(mx, my, dfibX, dfibConnY);
+  ctx.strokeStyle = 'rgba(40,40,40,0.6)';
+  ctx.lineWidth = 4;
   ctx.stroke();
-  // Draw chord image stretched horizontally
-  if (cordLen > 10) {
-    ctx.save();
-    ctx.translate(startX, midY - cordH/2 + 8);
-    ctx.drawImage(chordImg, 0, 0, cordLen, cordH + 4);
-    ctx.restore();
-  }
+
+  // Draw chord.png rotated along the diagonal
+  const cordH = 14;
+  ctx.translate(padConnX, padConnY);
+  ctx.rotate(angle);
+  ctx.drawImage(chordImg, 0, -cordH / 2, cordLen, cordH);
+
   ctx.restore();
 }
 
