@@ -116,6 +116,136 @@ ballSrcs.forEach((src, i) => {
 const floorImg = new Image();
 floorImg.src = 'floor.jpg';
 
+// Paddle and equipment sprites
+const topPaddleImg = new Image();
+topPaddleImg.src = 'paddle_top.png';
+const bottomPaddleImg = new Image();
+bottomPaddleImg.src = 'paddle_bottom.png';
+const chordImg = new Image();
+chordImg.src = 'chord.png';
+const dfibImg = new Image();
+dfibImg.src = 'dfib.png';
+
+// Hit flash effects
+const hitFlashes = [];  // {x, y, type: 'lightning'|'red', life, maxLife}
+function addHitFlash(x, y, type) {
+  hitFlashes.push({ x, y, type, life: 8, maxLife: 8 });
+}
+
+function drawHitFlashes() {
+  hitFlashes.forEach((f, idx) => {
+    const t = f.life / f.maxLife;
+    ctx.save();
+    ctx.globalAlpha = t;
+    if (f.type === 'lightning') {
+      // Jagged lightning bolt burst
+      ctx.shadowColor = '#ffff00';
+      ctx.shadowBlur = 20 * t;
+      ctx.strokeStyle = `rgba(255,255,${Math.floor(100 + 155*t)},${t})`;
+      ctx.lineWidth = 2;
+      const bolts = 5;
+      for (let b = 0; b < bolts; b++) {
+        const angle = (b / bolts) * Math.PI * 2 + (1 - t) * 0.5;
+        const len = (20 + Math.random() * 15) * t;
+        ctx.beginPath();
+        ctx.moveTo(f.x, f.y);
+        // Jagged: two segments
+        const mx = f.x + Math.cos(angle) * len * 0.5 + (Math.random()-0.5)*8;
+        const my = f.y + Math.sin(angle) * len * 0.5 + (Math.random()-0.5)*8;
+        ctx.lineTo(mx, my);
+        ctx.lineTo(f.x + Math.cos(angle) * len, f.y + Math.sin(angle) * len);
+        ctx.stroke();
+      }
+      // Center flash
+      ctx.fillStyle = `rgba(255,255,200,${t})`;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, 6 * t, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (f.type === 'red') {
+      // Red burst for wall hits
+      ctx.shadowColor = '#ff2200';
+      ctx.shadowBlur = 16 * t;
+      const r = 18 * t;
+      const grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+      grad.addColorStop(0, `rgba(255,80,0,${t})`);
+      grad.addColorStop(1, `rgba(180,0,0,0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    f.life--;
+  });
+  // Cull dead flashes
+  for (let i = hitFlashes.length - 1; i >= 0; i--) {
+    if (hitFlashes[i].life <= 0) hitFlashes.splice(i, 1);
+  }
+}
+
+// Dfib timer (counts up from match start)
+function drawDfib() {
+  if (!dfibImg.complete || dfibImg.naturalWidth === 0) return;
+  const DW = 110, DH = 77;
+  const dx = W - DW - 4, dy = H/2 - DH/2;
+  ctx.drawImage(dfibImg, dx, dy, DW, DH);
+  // Timer overlay on dfib screen
+  if (state === 'playing' && matchStartTime > 0) {
+    const elapsed = Date.now() - matchStartTime;
+    const secs = Math.floor(elapsed / 1000);
+    const ms = Math.floor((elapsed % 1000) / 100);
+    const timeStr = String(Math.floor(secs / 60)).padStart(2,'0') + ':' + 
+                    String(secs % 60).padStart(2,'0') + '.' + ms;
+    ctx.save();
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = '#00ff88';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 6;
+    ctx.fillText(timeStr, dx + DW * 0.54, dy + DH * 0.22);
+    ctx.restore();
+  }
+}
+
+// Cord drawing: stretched chord.png from paddle edge to dfib
+function drawCord(paddle, isTop) {
+  if (!chordImg.complete || chordImg.naturalWidth === 0) return;
+  // Dfib sits at right edge
+  const DW = 110;
+  const dfibX = W - DW - 4;
+  const dfibConnY = H/2; // connection point on dfib (left side middle)
+  // Paddle connection point
+  const padConnX = isTop ? (paddle.x + paddle.w) : paddle.x; // top=right end, bottom=left end
+  const padConnY = paddle.y + paddle.h / 2;
+  // Draw chord stretched between these two points
+  const cordLen = Math.abs(dfibX - padConnX);
+  const cordH = 12; // display height
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  // Need to handle direction: bottom paddle's cord goes right, top paddle's also goes right
+  const startX = Math.min(padConnX, dfibX);
+  const endX = Math.max(padConnX, dfibX);
+  const midY = (padConnY + dfibConnY) / 2;
+  // Slight droop arc
+  ctx.beginPath();
+  ctx.moveTo(padConnX, padConnY);
+  ctx.quadraticCurveTo((padConnX + dfibX) / 2, midY + 15, dfibX, dfibConnY);
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#000';
+  ctx.shadowBlur = 3;
+  ctx.stroke();
+  // Draw chord image stretched horizontally
+  if (cordLen > 10) {
+    ctx.save();
+    ctx.translate(startX, midY - cordH/2 + 8);
+    ctx.drawImage(chordImg, 0, 0, cordLen, cordH + 4);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+
 // Blood splatters (GC-style, permanent, added on score)
 const bloodSplatters = [];
 function addBloodSplat(x, y) {
@@ -176,7 +306,7 @@ const TRAIL_MAX = 18;
 let skullAngle = 0;
 
 // Paddles (defib)
-const PAD_W = 80, PAD_H = 18, PAD_SPEED = 6;
+const PAD_W = 80, PAD_H = 26, PAD_SPEED = 6;
 let player = { x: W/2 - PAD_W/2, y: H - 50, w: PAD_W, h: PAD_H };
 let ai = { x: W/2 - PAD_W/2, y: 30, w: PAD_W, h: PAD_H };
 
@@ -250,37 +380,27 @@ function spawnParticles(x, y, color, count=8) {
 
 // Draw helpers
 function drawTombstone(x, y, w, h, color) {
-  // Defibrillator paddle shape
+  // Sprite paddle — use image if loaded, fallback to defib shape
+  const isPlayer = (color === '#22c55e');
+  const img = isPlayer ? bottomPaddleImg : topPaddleImg;
   ctx.save();
-  const r = 5;
-  // Paddle body
-  ctx.fillStyle = '#1a1a2e';
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 18;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fill();
-  // Colored rim/glow strip
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.roundRect(x + 1.5, y + 1.5, w - 3, h - 3, r - 1);
-  ctx.stroke();
-  // Handle grip lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 1;
-  for (let gx = x + 8; gx < x + w - 6; gx += 6) {
-    ctx.beginPath();
-    ctx.moveTo(gx, y + 3);
-    ctx.lineTo(gx, y + h - 3);
-    ctx.stroke();
+  if (img.complete && img.naturalWidth > 0) {
+    // Draw sprite with glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 14;
+    // Draw image scaled to paddle bounds + slight padding for visual detail
+    const pad = 4;
+    ctx.drawImage(img, x - pad, y - pad, w + pad*2, h + pad*2);
+  } else {
+    // Fallback: defib rect
+    ctx.fillStyle = '#1a1a2e';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x+1, y+1, w-2, h-2);
   }
-  // Center electrode dot
-  ctx.fillStyle = color;
-  ctx.shadowBlur = 10;
-  ctx.beginPath();
-  ctx.arc(x + w/2, y + h/2, 4, 0, Math.PI*2);
-  ctx.fill();
   ctx.restore();
 }
 
@@ -484,7 +604,8 @@ function update() {
     ball.vx *= -1;
     ball.x = Math.max(ball.r, Math.min(W - ball.r, ball.x));
     audio.wallSound();
-    spawnParticles(ball.x, ball.y, '#7c3aed', 4);
+    spawnParticles(ball.x, ball.y, '#cc1100', 4);
+    addHitFlash(ball.x, ball.y, 'red');
   }
 
   // Paddle collision â player
@@ -494,7 +615,8 @@ function update() {
     const offset = (ball.x - (player.x + player.w/2)) / (player.w/2);
     ball.vx = offset * 5;
     audio.hitSound();
-    spawnParticles(ball.x, player.y, '#22c55e', 6);
+    spawnParticles(ball.x, player.y, '#ffff00', 5);
+    addHitFlash(ball.x, player.y, 'lightning');
   }
 
   // Paddle collision â AI
@@ -504,7 +626,8 @@ function update() {
     const offset = (ball.x - (ai.x + ai.w/2)) / (ai.w/2);
     ball.vx = offset * 5;
     audio.hitSound();
-    spawnParticles(ball.x, ai.y + ai.h, '#f87171', 6);
+    spawnParticles(ball.x, ai.y + ai.h, '#ffff00', 5);
+    addHitFlash(ball.x, ai.y + ai.h, 'lightning');
   }
 
   // Speed cap
@@ -567,6 +690,13 @@ function render() {
   drawTombstone(player.x, player.y, player.w, player.h, '#22c55e');
   drawTombstone(ai.x, ai.y, ai.w, ai.h, '#f87171');
 
+  // Cords connecting paddles to dfib
+  drawCord(player, false);
+  drawCord(ai, true);
+  // Dfib unit on right wall
+  drawDfib();
+
+
   // Ball
   drawSkull(ball.x, ball.y, ball.visualR);
 
@@ -579,6 +709,7 @@ function render() {
     ctx.fill();
   });
   ctx.globalAlpha = 1;
+  drawHitFlashes();
 
   // Countdown overlay
   if (state === 'countdown') {
