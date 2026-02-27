@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Skull Pong — Afterverse Arcade</title>
+<title>Skull Pong â Afterverse Arcade</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
 canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; touch-action: none; }
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -204,7 +206,7 @@ function drawSkull(x, y, r) {
   ctx.textBaseline = 'middle';
   ctx.shadowColor = '#a855f7';
   ctx.shadowBlur = 20;
-  ctx.fillText('💀', 0, 0);
+  ctx.fillText('ð', 0, 0);
   ctx.restore();
 }
 
@@ -233,7 +235,7 @@ function drawMuteIndicator() {
   ctx.font = '14px monospace';
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.fillText(audio.muted ? '🔇 M — Muted' : '🔊 M — Sound', W - 10, H - 10);
+  ctx.fillText(audio.muted ? 'ð M â Muted' : 'ð M â Sound', W - 10, H - 10);
 }
 
 // Title screen
@@ -248,7 +250,7 @@ function drawTitle() {
     ctx.font = '30px serif';
     ctx.textAlign = 'center';
     ctx.globalAlpha = 0.15;
-    ctx.fillText('💀', W * (i+1)/6, H/2 + Math.sin(t + i) * 50);
+    ctx.fillText('ð', W * (i+1)/6, H/2 + Math.sin(t + i) * 50);
   }
   ctx.globalAlpha = 1;
 
@@ -270,7 +272,7 @@ function drawTitle() {
   ctx.font = '18px Creepster';
   ctx.fillStyle = '#e9d5ff';
   ctx.fillText('Arrow Keys / Touch to Move', W/2, 380);
-  ctx.fillText('M — Mute | P — Pause', W/2, 410);
+  ctx.fillText('M â Mute | P â Pause', W/2, 410);
 
   // Start prompt
   const pulse = Math.sin(t * 3) * 0.3 + 0.7;
@@ -283,7 +285,7 @@ function drawTitle() {
   // Credit
   ctx.font = '16px Creepster';
   ctx.fillStyle = 'rgba(168,85,247,0.6)';
-  ctx.fillText('☠ A JURN Production ☠', W/2, H - 30);
+  ctx.fillText('â  A JURN Production â ', W/2, H - 30);
 
   drawMuteIndicator();
 }
@@ -306,7 +308,7 @@ function drawGameOver() {
 
   ctx.font = '28px Creepster';
   ctx.fillStyle = '#e9d5ff';
-  ctx.fillText(`${playerScore} — ${aiScore}`, W/2, 320);
+  ctx.fillText(`${playerScore} â ${aiScore}`, W/2, 320);
 
   const t = Date.now() / 1000;
   const pulse = Math.sin(t * 3) * 0.3 + 0.7;
@@ -358,7 +360,7 @@ function update() {
     spawnParticles(ball.x, ball.y, '#7c3aed', 4);
   }
 
-  // Paddle collision — player
+  // Paddle collision â player
   if (ball.vy > 0 && ball.y + ball.r >= player.y && ball.y - ball.r <= player.y + player.h &&
       ball.x >= player.x && ball.x <= player.x + player.w) {
     ball.vy = -Math.abs(ball.vy) - 0.2;
@@ -368,7 +370,7 @@ function update() {
     spawnParticles(ball.x, player.y, '#22c55e', 6);
   }
 
-  // Paddle collision — AI
+  // Paddle collision â AI
   if (ball.vy < 0 && ball.y - ball.r <= ai.y + ai.h && ball.y + ball.r >= ai.y &&
       ball.x >= ai.x && ball.x <= ai.x + ai.w) {
     ball.vy = Math.abs(ball.vy) + 0.2;
@@ -388,14 +390,14 @@ function update() {
     playerScore++;
     audio.scoreSound();
     spawnParticles(W/2, 0, '#22c55e', 15);
-    if (playerScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); }
+    if (playerScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); setTimeout(() => spShowOverlay(playerScore), 400); }
     else resetBall();
   }
   if (ball.y > H + 20) {
     aiScore++;
     audio.scoreSound();
     spawnParticles(W/2, H, '#f87171', 15);
-    if (aiScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); }
+    if (aiScore >= WIN_SCORE) { state = 'gameover'; audio.gameOverSound(); setTimeout(() => spShowOverlay(playerScore), 400); }
     else resetBall();
   }
 
@@ -476,6 +478,169 @@ function loop() { updateMusic();
   requestAnimationFrame(loop);
 }
 loop();
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+  authDomain: "pitstop-wall.firebaseapp.com",
+  databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+  projectId: "pitstop-wall",
+  storageBucket: "pitstop-wall.firebasestorage.app",
+  messagingSenderId: "767668528451",
+  appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+};
+firebase.initializeApp(firebaseConfig);
+const spHsRef = firebase.database().ref('highscores/skull-pong');
+let spCachedScores = [];
+let spMyEntry = null;
+let spBestScore = 0;
+
+spHsRef.orderByChild('score').limitToLast(10).on('value', snap => {
+  const d = snap.val();
+  spCachedScores = d
+    ? Object.entries(d).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.score - a.score)
+    : [];
+  spBestScore = spCachedScores.length > 0 ? spCachedScores[0].score : 0;
+});
+
+function spIsHighScore(s) {
+  return spCachedScores.length < 10 || s > (spCachedScores[spCachedScores.length-1]?.score || 0);
+}
+
+function spSaveScore(name, s) {
+  spMyEntry = { name, score: s, timestamp: Date.now() };
+  spHsRef.push({ name, score: s, timestamp: Date.now() });
+}
+
+function spRenderLeaderboard() {
+  const rows = document.getElementById('spLbRows');
+  const medals = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+  const colors = ['gold','silver','bronze'];
+  rows.innerHTML = spCachedScores.slice(0,10).map((s,i) => {
+    const isMe = spMyEntry && s.name===spMyEntry.name && s.score===spMyEntry.score;
+    const cls = isMe ? 'me' : (colors[i]||'normal');
+    const rank = medals[i] || ((i+1)+'.');
+    return '<div class="sp-lb-row '+cls+'"><span>'+rank+' '+(s.name||'???')+'</span><span>'+s.score+'</span></div>';
+  }).join('');
+  document.getElementById('spLeaderboard').style.display = 'block';
+}
+
+function spShowOverlay(finalScore) {
+  document.getElementById('spFinalScore').textContent = finalScore;
+  const bestLine = document.getElementById('spBestLine');
+  bestLine.textContent = '';
+  document.getElementById('spInitialsSection').style.display = 'none';
+  document.getElementById('spLeaderboard').style.display = 'none';
+  spMyEntry = null;
+
+  if (spIsHighScore(finalScore)) {
+    bestLine.textContent = '\u{1F3C6} NEW HIGH SCORE!';
+    bestLine.style.color = '#eab308';
+    document.getElementById('spInitialsSection').style.display = 'block';
+    const input = document.getElementById('spInitialsInput');
+    input.value = '';
+    setTimeout(() => input.focus(), 400);
+    const submitFn = () => {
+      const name = input.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+      if (!name) return;
+      spSaveScore(name, finalScore);
+      document.getElementById('spInitialsSection').style.display = 'none';
+      setTimeout(() => spRenderLeaderboard(), 600);
+    };
+    document.getElementById('spInitialsSubmit').onclick = submitFn;
+    input.onkeydown = e => { if (e.key==='Enter') submitFn(); };
+  } else {
+    if (spCachedScores.length > 0) {
+      bestLine.textContent = 'Best: ' + spCachedScores[0].score;
+      bestLine.style.color = '#c084fc';
+    }
+    spRenderLeaderboard();
+  }
+  document.getElementById('spOverlay').classList.add('active');
+}
+
+function spHideOverlay() {
+  document.getElementById('spOverlay').classList.remove('active');
+}
+
+document.getElementById('spPlayAgain').onclick = () => { spHideOverlay(); startGame(); };
+document.getElementById('spTitleBtn').onclick  = () => { spHideOverlay(); backToTitle(); };
+
 </script>
+
+<style id="sp-lb-styles">
+#spOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+}
+#spOverlay.active { display: flex; }
+#spPanel {
+  background: #0d0d1a;
+  border: 1px solid #7c3aed;
+  border-radius: 8px;
+  padding: 24px 28px;
+  min-width: 280px;
+  text-align: center;
+  font-family: 'Creepster', cursive;
+  color: #e9d5ff;
+  box-shadow: 0 0 30px #7c3aed88;
+}
+#spPanel h2 { font-size: 2rem; color: #f87171; margin-bottom: 10px; }
+#spScoreLine { font-size: 1.5rem; margin-bottom: 4px; }
+#spBestLine { font-size: 1rem; min-height: 1.4em; margin-bottom: 8px; }
+#spInitialsSection { margin-bottom: 10px; }
+#spInitialsLabel { font-size: 0.8rem; color: #c084fc; margin-bottom: 6px; }
+#spInitialsInput {
+  width: 80px; font-size: 1.6rem; text-align: center;
+  background: #1a0a2e; border: 1px solid #7c3aed; color: #e9d5ff;
+  padding: 4px 8px; border-radius: 4px; font-family: monospace;
+  text-transform: uppercase; letter-spacing: 0.2em;
+}
+#spInitialsSubmit {
+  display: block; margin: 8px auto 0;
+  background: #7c3aed; color: #fff; border: none;
+  padding: 6px 18px; border-radius: 4px; cursor: pointer;
+  font-family: 'Creepster', cursive; font-size: 1rem;
+}
+#spLeaderboard { margin: 8px 0 12px; }
+.sp-lb-title { color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-bottom: 5px; letter-spacing: 0.08em; }
+.sp-lb-row { display: flex; justify-content: space-between; padding: 2px 4px; font-size: 0.95rem; }
+.sp-lb-row.gold   { color: #ffd700; }
+.sp-lb-row.silver { color: #c0c0c0; }
+.sp-lb-row.bronze { color: #cd7f32; }
+.sp-lb-row.normal { color: rgba(255,255,255,0.55); }
+.sp-lb-row.me     { color: #c084fc; font-weight: bold; }
+#spButtons { display: flex; gap: 12px; justify-content: center; margin-top: 4px; }
+.sp-btn {
+  background: #1a0a2e; border: 1px solid #7c3aed; color: #e9d5ff;
+  padding: 7px 16px; border-radius: 4px; cursor: pointer;
+  font-family: 'Creepster', cursive; font-size: 1rem;
+}
+.sp-btn:hover { background: #2d1b69; }
+</style>
+<div id="spOverlay">
+  <div id="spPanel">
+    <h2>GAME OVER</h2>
+    <div id="spScoreLine">Score: <span id="spFinalScore">0</span></div>
+    <div id="spBestLine"></div>
+    <div id="spInitialsSection" style="display:none;">
+      <div id="spInitialsLabel">NEW HIGH SCORE — enter your initials</div>
+      <input id="spInitialsInput" maxlength="3" autocomplete="off" spellcheck="false" />
+      <button id="spInitialsSubmit">SUBMIT</button>
+    </div>
+    <div id="spLeaderboard" style="display:none;">
+      <div class="sp-lb-title">TOP SCORES</div>
+      <div id="spLbRows"></div>
+    </div>
+    <div id="spButtons">
+      <button class="sp-btn" id="spPlayAgain">&#9654; PLAY AGAIN</button>
+      <button class="sp-btn" id="spTitleBtn">&#11013; TITLE</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
