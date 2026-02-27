@@ -118,7 +118,7 @@ const TRAIL_MAX = 18;
 // Skull animation
 let skullAngle = 0;
 
-// Paddles (tombstone shaped)
+// Paddles (defib)
 const PAD_W = 80, PAD_H = 18, PAD_SPEED = 6;
 let player = { x: W/2 - PAD_W/2, y: H - 50, w: PAD_W, h: PAD_H };
 let ai = { x: W/2 - PAD_W/2, y: 30, w: PAD_W, h: PAD_H };
@@ -192,26 +192,37 @@ function spawnParticles(x, y, color, count=8) {
 
 // Draw helpers
 function drawTombstone(x, y, w, h, color) {
+  // Defibrillator paddle shape
   ctx.save();
-  ctx.fillStyle = color;
+  const r = 5;
+  // Paddle body
+  ctx.fillStyle = '#1a1a2e';
   ctx.shadowColor = color;
-  ctx.shadowBlur = 15;
-  // Tombstone shape: rounded top
+  ctx.shadowBlur = 18;
   ctx.beginPath();
-  ctx.moveTo(x, y + h);
-  ctx.lineTo(x, y + h*0.4);
-  ctx.quadraticCurveTo(x, y, x + w/2, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + h*0.4);
-  ctx.lineTo(x + w, y + h);
-  ctx.closePath();
+  ctx.roundRect(x, y, w, h, r);
   ctx.fill();
-  // Cross detail
-  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-  ctx.lineWidth = 2;
+  // Colored rim/glow strip
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.moveTo(x + w/2, y + 4); ctx.lineTo(x + w/2, y + h - 2);
-  ctx.moveTo(x + w*0.3, y + h*0.4); ctx.lineTo(x + w*0.7, y + h*0.4);
+  ctx.roundRect(x + 1.5, y + 1.5, w - 3, h - 3, r - 1);
   ctx.stroke();
+  // Handle grip lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  for (let gx = x + 8; gx < x + w - 6; gx += 6) {
+    ctx.beginPath();
+    ctx.moveTo(gx, y + 3);
+    ctx.lineTo(gx, y + h - 3);
+    ctx.stroke();
+  }
+  // Center electrode dot
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(x + w/2, y + h/2, 4, 0, Math.PI*2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -288,7 +299,7 @@ function drawMuteIndicator() {
   ctx.font = '14px monospace';
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.fillText(audio.muted ? 'ð M â Muted' : 'ð M â Sound', W - 10, H - 10);
+  ctx.fillText(audio.muted ? '[M] Muted' : '[M] Sound', W - 10, H - 10);
 }
 
 // Title screen
@@ -325,7 +336,7 @@ function drawTitle() {
   ctx.font = '18px Creepster';
   ctx.fillStyle = '#e9d5ff';
   ctx.fillText('Arrow Keys / Touch to Move', W/2, 380);
-  ctx.fillText('M â Mute | P â Pause', W/2, 410);
+  ctx.fillText('[M] Mute  [P] Pause', W/2, 410);
 
   // Start prompt
   const pulse = Math.sin(t * 3) * 0.3 + 0.7;
@@ -470,8 +481,37 @@ function update() {
 
 // Render
 function render() {
-  ctx.fillStyle = '#0a0a0a';
+  // Hospital floor background
+  ctx.fillStyle = '#111118';
   ctx.fillRect(0, 0, W, H);
+  // Floor tiles
+  const tileSize = 48;
+  ctx.save();
+  for (let row = 0; row < Math.ceil(H/tileSize)+1; row++) {
+    for (let col = 0; col < Math.ceil(W/tileSize)+1; col++) {
+      const tx = col * tileSize, ty = row * tileSize;
+      // Alternate tile tints
+      const isAlt = (row + col) % 2 === 0;
+      ctx.fillStyle = isAlt ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.0)';
+      ctx.fillRect(tx, ty, tileSize, tileSize);
+      // Grout lines
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(tx, ty, tileSize, tileSize);
+    }
+  }
+  // Blood pool splatters (static, seeded by position)
+  const bloodSpots = [[120,180],[310,420],[480,250],[200,530],[560,380],[80,450],[420,130]];
+  bloodSpots.forEach(([bx, by]) => {
+    const grad = ctx.createRadialGradient(bx, by, 0, bx, by, 28);
+    grad.addColorStop(0, 'rgba(140,0,0,0.18)');
+    grad.addColorStop(1, 'rgba(80,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 28, 18, 0.4, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
 
   if (state === 'title') { drawTitle(); return; }
   if (state === 'gameover') { drawGameOver(); return; }
