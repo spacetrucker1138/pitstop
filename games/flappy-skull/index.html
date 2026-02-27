@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Flappy Skull — Afterverse Arcade</title>
+<title>Flappy Skull â Afterverse Arcade</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
 canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; touch-action: none; }
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -160,6 +162,7 @@ function die() {
   state = 'gameover';
   audio.die();
   if (score > bestScore) { bestScore = score; try { localStorage.setItem('flappyskull_best', bestScore); } catch(e) {} }
+  setTimeout(() => fsShowOverlay(score), 400);
   // Death particles
   for (let i = 0; i < 15; i++) {
     particles.push({
@@ -241,7 +244,7 @@ function drawPipe(pipe) {
 
   // Bone pillar style
   const drawPillar = (x, y, w, h) => {
-    // Main pillar — stone gray with purple tint
+    // Main pillar â stone gray with purple tint
     const grad = ctx.createLinearGradient(x, y, x + w, y);
     grad.addColorStop(0, '#3b2060');
     grad.addColorStop(0.3, '#5b3080');
@@ -274,12 +277,12 @@ function drawPipe(pipe) {
   // Skull cap on top pipe bottom
   ctx.font = '30px serif';
   ctx.textAlign = 'center';
-  ctx.fillText('☠️', pipe.x + PIPE_WIDTH/2, topH - 5);
+  ctx.fillText('â ï¸', pipe.x + PIPE_WIDTH/2, topH - 5);
 
   // Bottom pipe
   drawPillar(pipe.x, botY, PIPE_WIDTH, botH);
   // Skull cap on bottom pipe top
-  ctx.fillText('☠️', pipe.x + PIPE_WIDTH/2, botY + 28);
+  ctx.fillText('â ï¸', pipe.x + PIPE_WIDTH/2, botY + 28);
 }
 
 function drawGround() {
@@ -315,7 +318,7 @@ function drawSkull() {
   ctx.font = `${skull.size}px serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('💀', 0, 0);
+  ctx.fillText('ð', 0, 0);
 
   ctx.shadowBlur = 0;
   ctx.restore();
@@ -356,7 +359,7 @@ function drawBackground() {
     ctx.font = '18px serif';
     ctx.textAlign = 'center';
     ctx.globalAlpha = 0.15;
-    const wingSpread = Math.sin(b.wing) > 0 ? '🦇' : '🦇';
+    const wingSpread = Math.sin(b.wing) > 0 ? 'ð¦' : 'ð¦';
     ctx.fillText(wingSpread, b.x, b.y + Math.sin(t + b.x)*10);
   });
   ctx.globalAlpha = 1;
@@ -367,7 +370,7 @@ function drawMuteIndicator() {
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   const y = H - GROUND_H - 10;
-  ctx.fillText(audio.muted ? '🔇 M — Muted' : '🔊 M — Sound', W - 8, y);
+  ctx.fillText(audio.muted ? 'ð M â Muted' : 'ð M â Sound', W - 8, y);
 }
 
 function drawTitle() {
@@ -380,7 +383,7 @@ function drawTitle() {
   ctx.textAlign = 'center';
   ctx.shadowColor = '#a855f7';
   ctx.shadowBlur = 25;
-  ctx.fillText('💀', W/2, 140 + Math.sin(t*2)*15);
+  ctx.fillText('ð', W/2, 140 + Math.sin(t*2)*15);
   ctx.shadowBlur = 0;
 
   ctx.font = '56px Creepster';
@@ -398,12 +401,12 @@ function drawTitle() {
   if (bestScore > 0) {
     ctx.font = '22px Creepster';
     ctx.fillStyle = '#eab308';
-    ctx.fillText('🏆 Best: ' + bestScore, W/2, 330);
+    ctx.fillText('ð Best: ' + bestScore, W/2, 330);
   }
 
   ctx.font = '16px Creepster';
   ctx.fillStyle = '#e9d5ff';
-  ctx.fillText('M — Mute', W/2, 400);
+  ctx.fillText('M â Mute', W/2, 400);
 
   const pulse = Math.sin(t*3)*0.3+0.7;
   ctx.globalAlpha = pulse;
@@ -414,7 +417,7 @@ function drawTitle() {
 
   ctx.font = '14px Creepster';
   ctx.fillStyle = 'rgba(168,85,247,0.6)';
-  ctx.fillText('☠ A JURN Production ☠', W/2, H - GROUND_H - 30);
+  ctx.fillText('â  A JURN Production â ', W/2, H - GROUND_H - 30);
 
   drawMuteIndicator();
 }
@@ -438,7 +441,7 @@ function drawGameOver() {
   if (score >= bestScore && score > 0) {
     ctx.fillStyle = '#eab308';
     ctx.font = '24px Creepster';
-    ctx.fillText('🏆 NEW BEST!', W/2, 340);
+    ctx.fillText('ð NEW BEST!', W/2, 340);
   }
 
   const t = Date.now()/1000;
@@ -506,6 +509,169 @@ function render() {
 
 function loop() { updateMusic(); update(); render(); requestAnimationFrame(loop); }
 loop();
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+  authDomain: "pitstop-wall.firebaseapp.com",
+  databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+  projectId: "pitstop-wall",
+  storageBucket: "pitstop-wall.firebasestorage.app",
+  messagingSenderId: "767668528451",
+  appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+};
+firebase.initializeApp(firebaseConfig);
+const fsHsRef = firebase.database().ref('highscores/flappy-skull');
+let fsCachedScores = [];
+let fsMyEntry = null;
+let fsBestScore = 0;
+
+fsHsRef.orderByChild('score').limitToLast(10).on('value', snap => {
+  const d = snap.val();
+  fsCachedScores = d
+    ? Object.entries(d).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.score - a.score)
+    : [];
+  fsBestScore = fsCachedScores.length > 0 ? fsCachedScores[0].score : 0;
+});
+
+function fsIsHighScore(s) {
+  return fsCachedScores.length < 10 || s > (fsCachedScores[fsCachedScores.length-1]?.score || 0);
+}
+
+function fsSaveScore(name, s) {
+  fsMyEntry = { name, score: s, timestamp: Date.now() };
+  fsHsRef.push({ name, score: s, timestamp: Date.now() });
+}
+
+function fsRenderLeaderboard() {
+  const rows = document.getElementById('fsLbRows');
+  const medals = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+  const colors = ['gold','silver','bronze'];
+  rows.innerHTML = fsCachedScores.slice(0,10).map((s,i) => {
+    const isMe = fsMyEntry && s.name===fsMyEntry.name && s.score===fsMyEntry.score;
+    const cls = isMe ? 'me' : (colors[i]||'normal');
+    const rank = medals[i] || ((i+1)+'.');
+    return '<div class="fs-lb-row '+cls+'"><span>'+rank+' '+(s.name||'???')+'</span><span>'+s.score+'</span></div>';
+  }).join('');
+  document.getElementById('fsLeaderboard').style.display = 'block';
+}
+
+function fsShowOverlay(finalScore) {
+  document.getElementById('fsFinalScore').textContent = finalScore;
+  const bestLine = document.getElementById('fsBestLine');
+  bestLine.textContent = '';
+  document.getElementById('fsInitialsSection').style.display = 'none';
+  document.getElementById('fsLeaderboard').style.display = 'none';
+  fsMyEntry = null;
+
+  if (fsIsHighScore(finalScore)) {
+    bestLine.textContent = '\u{1F3C6} NEW HIGH SCORE!';
+    bestLine.style.color = '#eab308';
+    document.getElementById('fsInitialsSection').style.display = 'block';
+    const input = document.getElementById('fsInitialsInput');
+    input.value = '';
+    setTimeout(() => input.focus(), 400);
+    const submitFn = () => {
+      const name = input.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+      if (!name) return;
+      fsSaveScore(name, finalScore);
+      document.getElementById('fsInitialsSection').style.display = 'none';
+      setTimeout(() => fsRenderLeaderboard(), 600);
+    };
+    document.getElementById('fsInitialsSubmit').onclick = submitFn;
+    input.onkeydown = e => { if (e.key==='Enter') submitFn(); };
+  } else {
+    if (fsCachedScores.length > 0) {
+      bestLine.textContent = 'Best: ' + fsCachedScores[0].score;
+      bestLine.style.color = '#c084fc';
+    }
+    fsRenderLeaderboard();
+  }
+  document.getElementById('fsOverlay').classList.add('active');
+}
+
+function fsHideOverlay() {
+  document.getElementById('fsOverlay').classList.remove('active');
+}
+
+document.getElementById('fsPlayAgain').onclick = () => { fsHideOverlay(); startGame(); };
+document.getElementById('fsTitleBtn').onclick  = () => { fsHideOverlay(); state = 'title'; };
+
 </script>
+
+<style id="fs-lb-styles">
+#fsOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+}
+#fsOverlay.active { display: flex; }
+#fsPanel {
+  background: #0d0d1a;
+  border: 1px solid #7c3aed;
+  border-radius: 8px;
+  padding: 24px 28px;
+  min-width: 280px;
+  text-align: center;
+  font-family: 'Creepster', cursive;
+  color: #e9d5ff;
+  box-shadow: 0 0 30px #7c3aed88;
+}
+#fsPanel h2 { font-size: 2rem; color: #f87171; margin-bottom: 10px; }
+#fsScoreLine { font-size: 1.5rem; margin-bottom: 4px; }
+#fsBestLine { font-size: 1rem; min-height: 1.4em; margin-bottom: 8px; }
+#fsInitialsSection { margin-bottom: 10px; }
+#fsInitialsLabel { font-size: 0.8rem; color: #c084fc; margin-bottom: 6px; }
+#fsInitialsInput {
+  width: 80px; font-size: 1.6rem; text-align: center;
+  background: #1a0a2e; border: 1px solid #7c3aed; color: #e9d5ff;
+  padding: 4px 8px; border-radius: 4px; font-family: monospace;
+  text-transform: uppercase; letter-spacing: 0.2em;
+}
+#fsInitialsSubmit {
+  display: block; margin: 8px auto 0;
+  background: #7c3aed; color: #fff; border: none;
+  padding: 6px 18px; border-radius: 4px; cursor: pointer;
+  font-family: 'Creepster', cursive; font-size: 1rem;
+}
+#fsLeaderboard { margin: 8px 0 12px; }
+.fs-lb-title { color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-bottom: 5px; letter-spacing: 0.08em; }
+.fs-lb-row { display: flex; justify-content: space-between; padding: 2px 4px; font-size: 0.95rem; }
+.fs-lb-row.gold   { color: #ffd700; }
+.fs-lb-row.silver { color: #c0c0c0; }
+.fs-lb-row.bronze { color: #cd7f32; }
+.fs-lb-row.normal { color: rgba(255,255,255,0.55); }
+.fs-lb-row.me     { color: #c084fc; font-weight: bold; }
+#fsButtons { display: flex; gap: 12px; justify-content: center; margin-top: 4px; }
+.fs-btn {
+  background: #1a0a2e; border: 1px solid #7c3aed; color: #e9d5ff;
+  padding: 7px 16px; border-radius: 4px; cursor: pointer;
+  font-family: 'Creepster', cursive; font-size: 1rem;
+}
+.fs-btn:hover { background: #2d1b69; }
+</style>
+<div id="fsOverlay">
+  <div id="fsPanel">
+    <h2>GAME OVER</h2>
+    <div id="fsScoreLine">Score: <span id="fsFinalScore">0</span></div>
+    <div id="fsBestLine"></div>
+    <div id="fsInitialsSection" style="display:none;">
+      <div id="fsInitialsLabel">NEW HIGH SCORE — enter your initials</div>
+      <input id="fsInitialsInput" maxlength="3" autocomplete="off" spellcheck="false" />
+      <button id="fsInitialsSubmit">SUBMIT</button>
+    </div>
+    <div id="fsLeaderboard" style="display:none;">
+      <div class="fs-lb-title">TOP SCORES</div>
+      <div id="fsLbRows"></div>
+    </div>
+    <div id="fsButtons">
+      <button class="fs-btn" id="fsPlayAgain">&#9654; PLAY AGAIN</button>
+      <button class="fs-btn" id="fsTitleBtn">&#11013; TITLE</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
