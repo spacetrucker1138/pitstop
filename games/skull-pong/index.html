@@ -125,6 +125,8 @@ const chordImg = new Image();
 chordImg.src = 'chord.png';
 const dfibImg = new Image();
 dfibImg.src = 'dfib.png';
+const titleScreenImg = new Image();
+titleScreenImg.src = 'skull_pong_title_screen.jpg';
 
 // Hit flash effects
 const hitFlashes = [];  // {x, y, type: 'lightning'|'red', life, maxLife}
@@ -482,19 +484,17 @@ function drawMuteIndicator() {
 
 // Title screen
 function drawTitle() {
-  // Background
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(0, 0, W, H);
-
-  // Floating skulls decoration
   const t = Date.now() / 1000;
-  for (let i = 0; i < 5; i++) {
-    ctx.font = '30px serif';
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.15;
-    ctx.fillText('ð', W * (i+1)/6, H/2 + Math.sin(t + i) * 50);
+  // Title screen image background
+  if (titleScreenImg.complete && titleScreenImg.naturalWidth > 0) {
+    ctx.drawImage(titleScreenImg, 0, 0, W, H);
+    // Overlay to ensure text legibility
+    ctx.fillStyle = 'rgba(5,0,15,0.52)';
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, W, H);
   }
-  ctx.globalAlpha = 1;
 
   // Title
   ctx.font = '64px Creepster';
@@ -527,7 +527,7 @@ function drawTitle() {
   // Credit
   ctx.font = '16px Creepster';
   ctx.fillStyle = 'rgba(168,85,247,0.6)';
-  ctx.fillText('â  A JURN Production â ', W/2, H - 30);
+  ctx.fillText('- A JURN Production -', W/2, H - 30);
 
   drawMuteIndicator();
 }
