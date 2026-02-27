@@ -146,8 +146,16 @@ document.addEventListener('keydown', e => {
     handleInput();
   }
 });
-canvas.addEventListener('click', e => { e.preventDefault(); handleInput(); });
-canvas.addEventListener('touchstart', e => { e.preventDefault(); handleInput(); });
+canvas.addEventListener('click', e => {
+  if (document.getElementById('fsOverlay').classList.contains('active')) return;
+  e.preventDefault();
+  handleInput();
+});
+canvas.addEventListener('touchstart', e => {
+  if (document.getElementById('fsOverlay').classList.contains('active')) return;
+  e.preventDefault();
+  handleInput();
+});
 
 function startGame() {
   audio.resume();

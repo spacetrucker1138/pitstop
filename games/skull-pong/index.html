@@ -98,6 +98,22 @@ let playerScore = 0, aiScore = 0;
 
 // Ball
 let ball = { x: W/2, y: H/2, vx: 4, vy: 4, r: 12, visualR: 18, speed: 5 };
+
+// Ball sprites (3 cycling)
+const ballImgs = [];
+const ballSrcs = ['pongball.png', 'pongball2.png', 'eyeball.jpg'];
+let currentBallIdx = 0;
+let ballImgsLoaded = 0;
+ballSrcs.forEach((src, i) => {
+  const img = new Image();
+  img.onload = () => { ballImgsLoaded++; };
+  img.src = src;
+  ballImgs[i] = img;
+});
+
+// Trail
+const trail = [];
+const TRAIL_MAX = 18;
 // Skull animation
 let skullAngle = 0;
 
@@ -152,6 +168,7 @@ function startGame() {
 function backToTitle() { state = 'title'; }
 
 function resetBall() {
+  currentBallIdx = (currentBallIdx + 1) % ballImgs.length;
   ball.x = W/2; ball.y = H/2;
   const angle = (Math.random() * 0.5 + 0.25) * Math.PI * (Math.random() > 0.5 ? 1 : -1);
   const dir = Math.random() > 0.5 ? 1 : -1;
@@ -351,6 +368,11 @@ function update() {
   ball.x += ball.vx;
   ball.y += ball.vy;
   skullAngle += ball.vx * 0.02;
+
+  // Trail
+  trail.push({ x: ball.x, y: ball.y, age: 0 });
+  if (trail.length > TRAIL_MAX) trail.shift();
+  trail.forEach(p => p.age++);
 
   // Wall bounce
   if (ball.x - ball.r <= 0 || ball.x + ball.r >= W) {
