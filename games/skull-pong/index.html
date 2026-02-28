@@ -878,8 +878,10 @@ function spHideOverlay() {
   document.getElementById('spOverlay').classList.remove('active');
 }
 
-document.getElementById('spPlayAgain').onclick = () => { spHideOverlay(); startGame(); };
-document.getElementById('spTitleBtn').onclick  = () => { spHideOverlay(); backToTitle(); };
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('spPlayAgain').onclick = () => { spHideOverlay(); startGame(); };
+  document.getElementById('spTitleBtn').onclick  = () => { spHideOverlay(); backToTitle(); };
+});
 
 </script>
 
