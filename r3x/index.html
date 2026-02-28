@@ -168,28 +168,28 @@
 // ─────────────────────────────────────────────
 const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
-  //                                                          scale  yOffset  ← tune yOffset per-anim to align feet to floor
-  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3,  yOffset: 22 },
-  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.0,  yOffset: 8  },  // tight-crop; slight base lift
-  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.0,  yOffset: 8  },  // same crop as walk
-  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3,  yOffset: 22 },
-  comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35, yOffset: 0  },  // this one was going BELOW floor; pulled back
-  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35, yOffset: 31 },  // large bottom padding in source
-  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.35, yOffset: 26 },
-  pingpong: { row: 7,  frames: 16, fps: 8,   scale: 1.55, yOffset: 20 },  // lobby idle 1 (+10% scale)
-  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.48, yOffset: 24 },  // lobby idle 2 (+10% scale)
-  sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.48, yOffset: 40 },  // taskboard (+10% scale)
-  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.48, yOffset: 24 },  // tasks active (+10% scale)
-  angry:    { row: 11, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // angry + steam
-  defend:   { row: 12, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // shield defense
-  code2:    { row: 13, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // holographic typing
-  celebrate:{ row: 14, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // celebration
-  point:    { row: 15, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // pointing + talking
-  sleep:    { row: 16, frames: 16, fps:  6,  scale: 1.35, yOffset: 24 },  // plugged in / good night
-  charge:   { row: 17, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // battery charging
-  // ── PHANTOM-7 enemy (rows 18-19, 8-frame strips) ──
-  phantom_walk: { row: 18, frames: 8,  fps: 10,  scale: 1.25, yOffset: 18 },
-  phantom_idle: { row: 19, frames: 8,  fps:  6,  scale: 1.25, yOffset: 18 },
+  //                                                     frames  fps  scale  yOffset
+  stand:        { row:  0, frames: 8,  fps:  4,  scale: 1.2, yOffset: 8 },
+  walk:         { row:  1, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  run:          { row:  2, frames: 8,  fps: 20,  scale: 1.2, yOffset: 8 },
+  jump:         { row:  3, frames: 8,  fps: 14,  scale: 1.2, yOffset: 8 },
+  comms:        { row:  4, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  art:          { row:  5, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  repair:       { row:  6, frames: 8,  fps:  8,  scale: 1.2, yOffset: 8 },
+  pingpong:     { row:  7, frames: 8,  fps:  8,  scale: 1.2, yOffset: 8 },
+  march:        { row:  8, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  sweep:        { row:  9, frames: 8,  fps:  8,  scale: 1.2, yOffset: 8 },
+  portal:       { row: 10, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  angry:        { row: 11, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  defend:       { row: 12, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  code2:        { row: 13, frames: 8,  fps: 12,  scale: 1.2, yOffset: 8 },
+  celebrate:    { row: 14, frames: 8,  fps: 12,  scale: 1.2, yOffset: 8 },
+  point:        { row: 15, frames: 8,  fps:  8,  scale: 1.2, yOffset: 8 },
+  sleep:        { row: 16, frames: 8,  fps:  4,  scale: 1.2, yOffset: 8 },
+  charge:       { row: 17, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  // ── PHANTOM-7 enemy ──────────────────────────────────────────────────────────
+  phantom_walk: { row: 18, frames: 8,  fps: 10,  scale: 1.2, yOffset: 8 },
+  phantom_idle: { row: 19, frames: 8,  fps:  5,  scale: 1.2, yOffset: 8 },
 };
 
 // ─────────────────────────────────────────────
@@ -314,7 +314,7 @@ const ctx = canvas.getContext("2d");
 const W = canvas.width, H = canvas.height;
 
 const sprite = new Image();
-sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v5_sprites.webp";
+sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v6_sprites.webp";
 
 let state = {
   room: "lobby",
