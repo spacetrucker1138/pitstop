@@ -82,8 +82,22 @@ const cargo = {
 let pipes = [];
 
 function spawnPipe() {
-  const gapY = 140 + Math.random() * (H - 280 - PIPE_GAP);
-  pipes.push({ x: W + 10, gapY, w: 80, scored: false });
+  // Obstacle types: 'both' (paired gap), 'top' (only ceiling spike), 'bottom' (only floor spike)
+  const typeRoll = Math.random();
+  let pipeType, gapY, spikeH;
+  if (typeRoll < 0.55) {
+    pipeType = 'both';
+    gapY = 130 + Math.random() * (H - 260 - PIPE_GAP);
+  } else if (typeRoll < 0.77) {
+    pipeType = 'top';
+    spikeH = 90 + Math.random() * 120;  // top spike height
+    gapY = spikeH;
+  } else {
+    pipeType = 'bottom';
+    spikeH = 90 + Math.random() * 120;  // bottom spike height
+    gapY = H - spikeH;
+  }
+  pipes.push({ x: W + 10, gapY, w: 80, scored: false, type: pipeType, spikeH });
 }
 
 // ─── BACKGROUND SCROLL ───────────────────────────────────────────
@@ -128,22 +142,40 @@ function circleRect(cx, cy, cr, rx, ry, rw, rh) {
 function checkCollisions() {
   const tr = truckRect();
 
-  // Walls
+  // Walls — truck only (cargo can swing near edges)
   if (truck.y - truck.h/2 < 0 || truck.y + truck.h/2 > H) return true;
 
-  for (const p of pipes) {
-    const topH  = p.gapY;                       // top pillar height
-    const botY  = p.gapY + PIPE_GAP;            // bottom pillar top
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    const p = pipes[i];
+    const topH  = p.gapY;
+    const botY  = (p.type === 'both') ? p.gapY + PIPE_GAP : p.gapY;
     const botH  = H - botY;
 
-    // Truck vs top pillar
-    if (rectsOverlap(tr, { x: p.x, y: 0, w: p.w, h: topH })) return true;
-    // Truck vs bottom pillar
-    if (rectsOverlap(tr, { x: p.x, y: botY, w: p.w, h: botH })) return true;
+    // Build active rects for this pipe type
+    const rects = [];
+    if (p.type === 'both' || p.type === 'top')    rects.push({ x: p.x, y: 0,    w: p.w, h: topH });
+    if (p.type === 'both' || p.type === 'bottom') rects.push({ x: p.x, y: botY, w: p.w, h: botH });
 
-    // Cargo vs pillars (circle)
-    if (circleRect(cargo.x, cargo.y, cargo.r, p.x, 0,    p.w, topH)) return true;
-    if (circleRect(cargo.x, cargo.y, cargo.r, p.x, botY, p.w, botH)) return true;
+    // Truck hits any rect → die
+    for (const r of rects) {
+      if (rectsOverlap(tr, r)) return true;
+    }
+
+    // Cargo hits any rect → SMASH: remove pipe, bonus score, swing impulse
+    let cargoCrash = false;
+    for (const r of rects) {
+      if (circleRect(cargo.x, cargo.y, cargo.r, r.x, r.y, r.w, r.h)) {
+        cargoCrash = true; break;
+      }
+    }
+    if (cargoCrash) {
+      pipes.splice(i, 1);
+      score++;
+      if (score > hiScore) hiScore = score;
+      audio.score();
+      // Ricochet: flip swing direction for satisfying bounce feel
+      cargo.va *= -0.6;
+    }
   }
   return false;
 }
@@ -198,14 +230,15 @@ function update() {
   const attachX = truck.x;
   const attachY = truck.y + truck.h / 2;
 
-  // Pendulum: gravity drives angle toward straight-down (angle=0)
-  // Truck horizontal acceleration creates pseudo-force that swings cargo
-  const pseudoForce = 0.0; // truck only moves vertically, no horizontal accel
-  cargo.va += -Math.sin(cargo.angle) * 0.04; // restoring force
+  // Truck vertical acceleration drives pendulum via pseudo-force
+  // When truck thrusts up (vy negative), cargo swings forward (positive angle)
+  // When truck falls (vy positive), cargo swings back (negative angle)
+  const pseudoForce = truck.vy * 0.008;  // velocity → swing impulse
+  cargo.va += -Math.sin(cargo.angle) * 0.06; // restoring gravity
   cargo.va += pseudoForce;
-  cargo.va *= (1 - CARGO_DRAG); // damping
+  cargo.va *= (1 - CARGO_DRAG); // damping (0.04 = gentle)
   cargo.angle += cargo.va;
-  cargo.angle = clamp(cargo.angle, -1.2, 1.2);
+  cargo.angle = clamp(cargo.angle, -1.1, 1.1);
 
   // Cargo world position
   cargo.x = attachX + Math.sin(cargo.angle) * BEAM_LEN;
@@ -321,26 +354,31 @@ function draw() {
 function drawPipes() {
   for (const p of pipes) {
     const topH = p.gapY;
-    const botY = p.gapY + PIPE_GAP;
+    const botY = (p.type === 'both') ? p.gapY + PIPE_GAP : p.gapY;
     const botH = H - botY;
+    const hasTop    = p.type === 'both' || p.type === 'top';
+    const hasBottom = p.type === 'both' || p.type === 'bottom';
 
     if (imgs.pillars.complete && imgs.pillars.naturalWidth > 0) {
-      // Top pillar: flip vertically
-      ctx.save();
-      ctx.translate(p.x + p.w/2, topH/2);
-      ctx.scale(1, -1);
-      ctx.drawImage(imgs.pillars, -p.w/2, -topH/2, p.w, topH);
-      ctx.restore();
-      // Bottom pillar: normal
-      ctx.drawImage(imgs.pillars, p.x, botY, p.w, botH);
+      if (hasTop && topH > 0) {
+        // Top pillar: flip vertically so tip points down
+        ctx.save();
+        ctx.translate(p.x + p.w/2, topH/2);
+        ctx.scale(1, -1);
+        ctx.drawImage(imgs.pillars, -p.w/2, -topH/2, p.w, topH);
+        ctx.restore();
+      }
+      if (hasBottom && botH > 0) {
+        // Bottom pillar: normal orientation, tip points up
+        ctx.drawImage(imgs.pillars, p.x, botY, p.w, botH);
+      }
     } else {
-      // Fallback rects
       ctx.fillStyle = '#4422aa';
-      ctx.fillRect(p.x, 0, p.w, topH);
-      ctx.fillRect(p.x, botY, p.w, botH);
+      if (hasTop)    ctx.fillRect(p.x, 0,    p.w, topH);
+      if (hasBottom) ctx.fillRect(p.x, botY, p.w, botH);
       ctx.fillStyle = '#6633cc';
-      ctx.fillRect(p.x, topH - 14, p.w, 14);
-      ctx.fillRect(p.x, botY, p.w, 14);
+      if (hasTop)    ctx.fillRect(p.x, topH - 14, p.w, 14);
+      if (hasBottom) ctx.fillRect(p.x, botY,       p.w, 14);
     }
   }
 }
