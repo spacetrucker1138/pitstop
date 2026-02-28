@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Space Haul - Afterverse Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #050510; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+canvas { display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; touch-action: none; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 480, H = 640;
+canvas.width = W; canvas.height = H;
+
+// ─── AUDIO ───────────────────────────────────────────────────────
+class AudioMgr {
+  constructor() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.muted = false;
+    this.volume = 0.4;
+  }
+  resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
+  play(freq, dur, type='square', vol=0.3) {
+    if (this.muted) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.value = vol * this.volume;
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(); o.stop(this.ctx.currentTime + dur);
+  }
+  thrust() { this.play(180, 0.08, 'sawtooth', 0.2); }
+  score()  { this.play(660, 0.1, 'square', 0.35); setTimeout(() => this.play(880, 0.1, 'square', 0.35), 80); }
+  die()    { this.play(220, 0.2, 'sawtooth', 0.5); setTimeout(() => this.play(110, 0.5, 'sawtooth', 0.5), 180); }
+  start()  { [330, 440, 550].forEach((f,i) => setTimeout(() => this.play(f, 0.1, 'square', 0.4), i*90)); }
+}
+const audio = new AudioMgr();
+
+// ─── STATE ───────────────────────────────────────────────────────
+let state = 'title'; // 'title' | 'playing' | 'gameover'
+let score = 0;
+let hiScore = parseInt(localStorage.getItem('sh_hi') || '0');
+let frame = 0;
+
+// ─── PHYSICS CONSTANTS ───────────────────────────────────────────
+const GRAVITY    = 0.32;   // truck gravity per frame
+const THRUST     = -7.5;   // upward impulse on tap
+const PIPE_SPEED = 3.2;    // obstacle scroll speed
+const PIPE_GAP   = 180;    // gap between top/bottom pillars
+const PIPE_SPAWN = 130;    // frames between new obstacle pairs
+const BEAM_LEN   = 90;     // tractor beam length (truck bottom to cargo center)
+const CARGO_DRAG = 0.04;   // pendulum swing damping
+
+// ─── TRUCK ───────────────────────────────────────────────────────
+const truck = {
+  x: 100, y: 250,
+  w: 110, h: 60,
+  vy: 0,
+  tilt: 0,  // visual lean angle
+};
+
+// ─── CARGO (pendulum) ───────────────────────────────────────────
+const cargo = {
+  r: 36,    // radius
+  angle: 0, // swing angle relative to truck (radians)
+  va: 0,    // angular velocity
+  // computed position:
+  x: 0, y: 0,
+};
+
+// ─── PIPES ───────────────────────────────────────────────────────
+let pipes = [];
+
+function spawnPipe() {
+  const gapY = 140 + Math.random() * (H - 280 - PIPE_GAP);
+  pipes.push({ x: W + 10, gapY, w: 80, scored: false });
+}
+
+// ─── BACKGROUND SCROLL ───────────────────────────────────────────
+let bgX = 0;
+const BG_SPEED = 1.0;
+
+// ─── IMAGES ──────────────────────────────────────────────────────
+const imgs = {};
+const imgSrcs = {
+  truck:   'truck.png',
+  cargo:   'cargo.png',
+  pillars: 'pillars.png',
+  bg:      'bg.jpg',
+  title:   'title.jpg',
+};
+let imgsLoaded = 0;
+const TOTAL_IMGS = Object.keys(imgSrcs).length;
+
+for (const [k, src] of Object.entries(imgSrcs)) {
+  const img = new Image();
+  img.onload  = () => { imgsLoaded++; };
+  img.onerror = () => { imgsLoaded++; }; // continue even if missing
+  img.src = src;
+  imgs[k] = img;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function truckRect() {
+  return { x: truck.x - truck.w/2, y: truck.y - truck.h/2, w: truck.w, h: truck.h };
+}
+
+function circleRect(cx, cy, cr, rx, ry, rw, rh) {
+  const nearX = clamp(cx, rx, rx + rw);
+  const nearY = clamp(cy, ry, ry + rh);
+  const dx = cx - nearX, dy = cy - nearY;
+  return dx*dx + dy*dy < cr*cr;
+}
+
+// ─── COLLISION ───────────────────────────────────────────────────
+function checkCollisions() {
+  const tr = truckRect();
+
+  // Walls
+  if (truck.y - truck.h/2 < 0 || truck.y + truck.h/2 > H) return true;
+
+  for (const p of pipes) {
+    const topH  = p.gapY;                       // top pillar height
+    const botY  = p.gapY + PIPE_GAP;            // bottom pillar top
+    const botH  = H - botY;
+
+    // Truck vs top pillar
+    if (rectsOverlap(tr, { x: p.x, y: 0, w: p.w, h: topH })) return true;
+    // Truck vs bottom pillar
+    if (rectsOverlap(tr, { x: p.x, y: botY, w: p.w, h: botH })) return true;
+
+    // Cargo vs pillars (circle)
+    if (circleRect(cargo.x, cargo.y, cargo.r, p.x, 0,    p.w, topH)) return true;
+    if (circleRect(cargo.x, cargo.y, cargo.r, p.x, botY, p.w, botH)) return true;
+  }
+  return false;
+}
+
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x &&
+         a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+// ─── INPUT ───────────────────────────────────────────────────────
+function handleInput() {
+  if (document.getElementById('shOverlay').classList.contains('active')) return;
+  audio.resume();
+  if (state === 'title') {
+    state = 'playing';
+    score = 0;
+    resetGame();
+    audio.start();
+    return;
+  }
+  if (state === 'playing') {
+    truck.vy = THRUST;
+    audio.thrust();
+  }
+}
+
+document.addEventListener('keydown',   e => { if (e.code === 'Space' || e.code === 'ArrowUp') handleInput(); });
+document.addEventListener('pointerdown', handleInput);
+
+// ─── GAME RESET ───────────────────────────────────────────────────
+function resetGame() {
+  truck.x = 100; truck.y = 250; truck.vy = 0; truck.tilt = 0;
+  cargo.angle = 0; cargo.va = 0;
+  pipes = [];
+  frame = 0;
+  score = 0;
+}
+
+// ─── UPDATE ──────────────────────────────────────────────────────
+function update() {
+  if (state !== 'playing') return;
+  frame++;
+
+  // Truck physics
+  truck.vy += GRAVITY;
+  truck.vy  = clamp(truck.vy, -12, 14);
+  truck.y  += truck.vy;
+  truck.tilt = clamp(truck.vy * 2.5, -25, 35); // lean with velocity
+
+  // Pendulum cargo physics
+  // Attachment point: bottom-center of truck
+  const attachX = truck.x;
+  const attachY = truck.y + truck.h / 2;
+
+  // Pendulum: gravity drives angle toward straight-down (angle=0)
+  // Truck horizontal acceleration creates pseudo-force that swings cargo
+  const pseudoForce = 0.0; // truck only moves vertically, no horizontal accel
+  cargo.va += -Math.sin(cargo.angle) * 0.04; // restoring force
+  cargo.va += pseudoForce;
+  cargo.va *= (1 - CARGO_DRAG); // damping
+  cargo.angle += cargo.va;
+  cargo.angle = clamp(cargo.angle, -1.2, 1.2);
+
+  // Cargo world position
+  cargo.x = attachX + Math.sin(cargo.angle) * BEAM_LEN;
+  cargo.y = attachY + Math.cos(cargo.angle) * BEAM_LEN;
+
+  // Pipes
+  if (frame % PIPE_SPAWN === 0) spawnPipe();
+  for (const p of pipes) {
+    p.x -= PIPE_SPEED;
+    if (!p.scored && p.x + p.w < truck.x - truck.w/2) {
+      p.scored = true;
+      score++;
+      if (score > hiScore) hiScore = score;
+      audio.score();
+    }
+  }
+  pipes = pipes.filter(p => p.x + p.w > -20);
+
+  // Background scroll
+  bgX -= BG_SPEED;
+  if (bgX <= -W) bgX += W;
+
+  // Collisions
+  if (checkCollisions()) {
+    state = 'gameover';
+    audio.die();
+    localStorage.setItem('sh_hi', hiScore);
+    setTimeout(() => shShowOverlay(score), 450);
+  }
+}
+
+// ─── DRAW ────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  if (imgsLoaded === TOTAL_IMGS && imgs.bg.complete && imgs.bg.naturalWidth > 0) {
+    // Two-copy horizontal tile
+    ctx.drawImage(imgs.bg, bgX,     0, W, H);
+    ctx.drawImage(imgs.bg, bgX + W, 0, W, H);
+  } else {
+    // Fallback gradient
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#050520');
+    grd.addColorStop(1, '#1a0030');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+    // Star field
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 137 + frame * 0.5) % W);
+      const sy = ((i * 53)  % H);
+      ctx.fillRect(sx, sy, 1, 1);
+    }
+  }
+
+  if (state === 'title') {
+    drawTitle();
+    return;
+  }
+
+  // Draw pipes
+  drawPipes();
+
+  // Tractor beam
+  const attachX = truck.x;
+  const attachY = truck.y + truck.h / 2;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,255,120,0.55)';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = '#00ff88';
+  ctx.shadowBlur = 12;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(attachX, attachY);
+  ctx.lineTo(cargo.x, cargo.y);
+  ctx.stroke();
+  ctx.restore();
+
+  // Cargo
+  if (imgs.cargo.complete && imgs.cargo.naturalWidth > 0) {
+    ctx.save();
+    ctx.translate(cargo.x, cargo.y);
+    ctx.rotate(cargo.angle * 0.6);
+    ctx.drawImage(imgs.cargo, -cargo.r, -cargo.r, cargo.r*2, cargo.r*2);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.translate(cargo.x, cargo.y);
+    ctx.fillStyle = '#b06080';
+    ctx.beginPath();
+    ctx.arc(0, 0, cargo.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Truck
+  ctx.save();
+  ctx.translate(truck.x, truck.y);
+  ctx.rotate(truck.tilt * Math.PI / 180);
+  if (imgs.truck.complete && imgs.truck.naturalWidth > 0) {
+    ctx.drawImage(imgs.truck, -truck.w/2, -truck.h/2, truck.w, truck.h);
+  } else {
+    ctx.fillStyle = '#8888aa';
+    ctx.fillRect(-truck.w/2, -truck.h/2, truck.w, truck.h);
+  }
+  ctx.restore();
+
+  // HUD
+  drawHUD();
+}
+
+function drawPipes() {
+  for (const p of pipes) {
+    const topH = p.gapY;
+    const botY = p.gapY + PIPE_GAP;
+    const botH = H - botY;
+
+    if (imgs.pillars.complete && imgs.pillars.naturalWidth > 0) {
+      // Top pillar: flip vertically
+      ctx.save();
+      ctx.translate(p.x + p.w/2, topH/2);
+      ctx.scale(1, -1);
+      ctx.drawImage(imgs.pillars, -p.w/2, -topH/2, p.w, topH);
+      ctx.restore();
+      // Bottom pillar: normal
+      ctx.drawImage(imgs.pillars, p.x, botY, p.w, botH);
+    } else {
+      // Fallback rects
+      ctx.fillStyle = '#4422aa';
+      ctx.fillRect(p.x, 0, p.w, topH);
+      ctx.fillRect(p.x, botY, p.w, botH);
+      ctx.fillStyle = '#6633cc';
+      ctx.fillRect(p.x, topH - 14, p.w, 14);
+      ctx.fillRect(p.x, botY, p.w, 14);
+    }
+  }
+}
+
+function drawHUD() {
+  ctx.font = 'bold 28px "Creepster", cursive';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillText(score, W/2 + 1, 45);
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText(score, W/2, 44);
+
+  ctx.font = '14px "Creepster", cursive';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillText('BEST: ' + hiScore, W - 11, 25);
+  ctx.fillStyle = '#c084fc';
+  ctx.fillText('BEST: ' + hiScore, W - 12, 24);
+}
+
+function drawTitle() {
+  if (imgs.title.complete && imgs.title.naturalWidth > 0) {
+    ctx.drawImage(imgs.title, 0, 0, W, H);
+    // Dark sheet so text is readable
+    ctx.fillStyle = 'rgba(0,0,0,0.52)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.font = '52px "Creepster", cursive';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillText('SPACE HAUL', W/2 + 2, H/2 - 52);
+  ctx.fillStyle = '#a855f7';
+  ctx.shadowColor = '#7c3aed';
+  ctx.shadowBlur = 18;
+  ctx.fillText('SPACE HAUL', W/2, H/2 - 54);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '18px "Creepster", cursive';
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('DRAG YOUR LOOT THROUGH THE FIELD', W/2, H/2 + 2);
+
+  if (hiScore > 0) {
+    ctx.font = '15px "Creepster", cursive';
+    ctx.fillStyle = '#c084fc';
+    ctx.fillText('BEST: ' + hiScore, W/2, H/2 + 28);
+  }
+
+  // Blinking press-to-start
+  if (Math.floor(Date.now() / 550) % 2 === 0) {
+    ctx.font = '22px "Creepster", cursive';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('TAP OR PRESS SPACE TO HAUL', W/2, H/2 + 68);
+  }
+}
+
+// ─── GAME LOOP ────────────────────────────────────────────────────
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ─── FIREBASE LEADERBOARD ─────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+  authDomain: "pitstop-wall.firebaseapp.com",
+  databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+  projectId: "pitstop-wall",
+  storageBucket: "pitstop-wall.firebasestorage.app",
+  messagingSenderId: "767668528451",
+  appId: "1:767668528451:web:107ef2d7230f7560fdfbf6"
+};
+firebase.initializeApp(firebaseConfig);
+const shHsRef = firebase.database().ref('highscores/space-haul');
+let shCachedScores = [];
+let shMyEntry = null;
+
+shHsRef.orderByChild('score').limitToLast(10).on('value', snap => {
+  const d = snap.val();
+  shCachedScores = d
+    ? Object.entries(d).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.score - a.score)
+    : [];
+});
+
+function shIsHighScore(s) {
+  return shCachedScores.length < 10 || s > (shCachedScores[shCachedScores.length-1]?.score || 0);
+}
+
+function shSaveScore(name, s) {
+  shMyEntry = { name, score: s, timestamp: Date.now() };
+  shHsRef.push({ name, score: s, timestamp: Date.now() });
+}
+
+function shRenderLeaderboard() {
+  const rows = document.getElementById('shLbRows');
+  const medals = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+  const colors = ['gold','silver','bronze'];
+  rows.innerHTML = shCachedScores.slice(0,10).map((s,i) => {
+    const isMe = shMyEntry && s.name===shMyEntry.name && s.score===shMyEntry.score;
+    const cls = isMe ? 'me' : (colors[i]||'normal');
+    const rank = medals[i] || ((i+1)+'.');
+    return '<div class="sh-lb-row '+cls+'"><span>'+rank+' '+(s.name||'???')+'</span><span>'+s.score+'</span></div>';
+  }).join('');
+  document.getElementById('shLeaderboard').style.display = 'block';
+}
+
+function shShowOverlay(finalScore) {
+  document.getElementById('shFinalScore').textContent = finalScore;
+  const bestLine = document.getElementById('shBestLine');
+  bestLine.textContent = '';
+  document.getElementById('shInitialsSection').style.display = 'none';
+  document.getElementById('shLeaderboard').style.display = 'none';
+  shMyEntry = null;
+
+  if (shIsHighScore(finalScore)) {
+    bestLine.textContent = '\u{1F3C6} NEW HIGH SCORE!';
+    bestLine.style.color = '#eab308';
+    document.getElementById('shInitialsSection').style.display = 'block';
+    const input = document.getElementById('shInitialsInput');
+    input.value = '';
+    setTimeout(() => input.focus(), 400);
+    const submitFn = () => {
+      const name = input.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+      if (!name) return;
+      shSaveScore(name, finalScore);
+      document.getElementById('shInitialsSection').style.display = 'none';
+      setTimeout(() => shRenderLeaderboard(), 600);
+    };
+    document.getElementById('shInitialsSubmit').onclick = submitFn;
+    input.onkeydown = e => { if (e.key==='Enter') submitFn(); };
+  } else {
+    if (shCachedScores.length > 0) {
+      bestLine.textContent = 'Best: ' + shCachedScores[0].score;
+      bestLine.style.color = '#c084fc';
+    }
+    shRenderLeaderboard();
+  }
+  document.getElementById('shOverlay').classList.add('active');
+}
+
+function shHideOverlay() {
+  document.getElementById('shOverlay').classList.remove('active');
+}
+
+</script>
+
+<style id="sh-lb-styles">
+#shOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+}
+#shOverlay.active { display: flex; }
+#shPanel {
+  background: #0d0d1a;
+  border: 1px solid #7c3aed;
+  border-radius: 8px;
+  padding: 24px 28px;
+  min-width: 280px;
+  text-align: center;
+  font-family: 'Creepster', cursive;
+  color: #e9d5ff;
+  box-shadow: 0 0 30px #7c3aed88;
+}
+#shPanel h2 { font-size: 2rem; color: #f87171; margin-bottom: 10px; }
+#shScoreLine { font-size: 1.5rem; margin-bottom: 4px; }
+#shBestLine { font-size: 1rem; min-height: 1.4em; margin-bottom: 8px; }
+#shInitialsSection { margin-bottom: 10px; }
+#shInitialsLabel { font-size: 0.8rem; color: #c084fc; margin-bottom: 6px; }
+#shInitialsInput {
+  width: 80px; font-size: 1.6rem; text-align: center;
+  background: #1a0a2e; border: 1px solid #7c3aed; color: #e9d5ff;
+  padding: 4px 8px; border-radius: 4px; font-family: monospace;
+  text-transform: uppercase; letter-spacing: 0.2em;
+}
+#shInitialsSubmit {
+  display: block; margin: 8px auto 0;
+  background: #7c3aed; color: #fff; border: none;
+  padding: 6px 18px; border-radius: 4px; cursor: pointer;
+  font-family: 'Creepster', cursive; font-size: 1rem;
+}
+#shLeaderboard { margin: 8px 0 12px; }
+.sh-lb-title { color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-bottom: 5px; letter-spacing: 0.08em; }
+.sh-lb-row { display: flex; justify-content: space-between; padding: 2px 4px; font-size: 0.95rem; }
+.sh-lb-row.gold   { color: #ffd700; }
+.sh-lb-row.silver { color: #c0c0c0; }
+.sh-lb-row.bronze { color: #cd7f32; }
+.sh-lb-row.normal { color: rgba(255,255,255,0.55); }
+.sh-lb-row.me     { color: #c084fc; font-weight: bold; }
+#shButtons { display: flex; gap: 12px; justify-content: center; margin-top: 4px; }
+.sh-btn {
+  background: #1a0a2e; border: 1px solid #7c3aed; color: #e9d5ff;
+  padding: 7px 16px; border-radius: 4px; cursor: pointer;
+  font-family: 'Creepster', cursive; font-size: 1rem;
+}
+.sh-btn:hover { background: #2d1b69; }
+</style>
+
+<div id="shOverlay">
+  <div id="shPanel">
+    <h2>GAME OVER</h2>
+    <div id="shScoreLine">Score: <span id="shFinalScore">0</span></div>
+    <div id="shBestLine"></div>
+    <div id="shInitialsSection" style="display:none;">
+      <div id="shInitialsLabel">NEW HIGH SCORE &mdash; enter your initials</div>
+      <input id="shInitialsInput" maxlength="3" autocomplete="off" spellcheck="false" />
+      <button id="shInitialsSubmit">SUBMIT</button>
+    </div>
+    <div id="shLeaderboard" style="display:none;">
+      <div class="sh-lb-title">TOP SCORES</div>
+      <div id="shLbRows"></div>
+    </div>
+    <div id="shButtons">
+      <button class="sh-btn" id="shPlayAgain">&#9654; PLAY AGAIN</button>
+      <button class="sh-btn" id="shTitleBtn">&#11013; TITLE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('shPlayAgain').onclick = () => {
+    shHideOverlay();
+    state = 'playing';
+    resetGame();
+    audio.start();
+  };
+  document.getElementById('shTitleBtn').onclick = () => {
+    shHideOverlay();
+    state = 'title';
+  };
+});
+</script>
+
+</body>
+</html>
