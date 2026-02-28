@@ -98,11 +98,12 @@ let playerScore = 0, aiScore = 0;
 let matchStartTime = 0, matchElapsed = 0;
 
 // Ball
+const GRAVITY = 0.06;  // downward pull keeps ball from drifting sideways forever
 let ball = { x: W/2, y: H/2, vx: 4, vy: 4, r: 12, visualR: 18, speed: 5 };
 
 // Ball sprites (3 cycling)
 const ballImgs = [];
-const ballSrcs = ['pongball.png','pongball2.png','eyeball.jpg','ball_guts.png','ball_bones.png','ball_tentacle.png','ball_hearts.png','ball_brain.png','ball_skull.png','ball_spider.png','ball_pumpkin.png','ball_maggots.png','ball_hand.png'];
+const ballSrcs = ['pongball.png','pongball2.png','eyeball.jpg','ball_guts.png','ball_bones.png','ball_hearts.png','ball_brain.png','ball_skull.png','ball_spider.png','ball_pumpkin.png','ball_maggots.png','ball_hand.png'];
 let currentBallIdx = 0;
 let ballImgsLoaded = 0;
 ballSrcs.forEach((src, i) => {
@@ -630,6 +631,8 @@ function update() {
   // Ball movement
   ball.x += ball.vx;
   ball.y += ball.vy;
+  ball.vy += (ball.vy >= 0 ? GRAVITY : -GRAVITY);  // gravity: accelerate toward nearest paddle
+  if (Math.abs(ball.vy) < 2.0) ball.vy += (ball.vy >= 0 ? 0.5 : -0.5);  // min vy floor
   skullAngle += ball.vx * 0.02;
 
   // Trail
