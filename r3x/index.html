@@ -170,8 +170,8 @@ const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
   //                                                          scale  yOffset  ← tune yOffset per-anim to align feet to floor
   stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3,  yOffset: 22 },
-  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.0,  yOffset: 8  },  // tight-crop; slight base lift
-  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.0,  yOffset: 8  },  // same crop as walk
+  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.35, yOffset: 22 },  // scale matched to idle size
+  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.35, yOffset: 22 },  // scale matched to idle size
   jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3,  yOffset: 22 },
   comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35, yOffset: 0  },  // this one was going BELOW floor; pulled back
   art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35, yOffset: 31 },  // large bottom padding in source
