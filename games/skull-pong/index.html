@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Skull Pong â Afterverse Arcade</title>
+<title>Skull Pong — Afterverse Arcade</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -878,10 +878,8 @@ function spHideOverlay() {
   document.getElementById('spOverlay').classList.remove('active');
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('spPlayAgain').onclick = () => { spHideOverlay(); startGame(); };
-  document.getElementById('spTitleBtn').onclick  = () => { spHideOverlay(); backToTitle(); };
-});
+document.getElementById('spPlayAgain').onclick = () => { spHideOverlay(); startGame(); };
+document.getElementById('spTitleBtn').onclick  = () => { spHideOverlay(); backToTitle(); };
 
 </script>
 
