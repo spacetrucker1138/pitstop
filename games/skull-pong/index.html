@@ -98,8 +98,13 @@ let playerScore = 0, aiScore = 0;
 let matchStartTime = 0, matchElapsed = 0;
 
 // Ball
-const GRAVITY = 0.06;  // downward pull keeps ball from drifting sideways forever
+const GRAVITY = 0.04;  // mild gravity — keeps ball moving without feeling heavy
 let ball = { x: W/2, y: H/2, vx: 4, vy: 4, r: 12, visualR: 18, speed: 5 };
+
+// AI state — human-like behavior
+let aiReactFrame = 0;        // frame counter for reaction delay
+let aiLockedTarget = null;   // AI's remembered (imperfect) target x
+let aiDrift = 0;             // random wander offset when ball is away
 
 // Ball sprites (3 cycling)
 const ballImgs = [];
@@ -378,6 +383,8 @@ function resetBall() {
   const dir = Math.random() > 0.5 ? 1 : -1;
   ball.vx = Math.sin(angle) * ball.speed;
   ball.vy = Math.cos(angle) * ball.speed * dir;
+  aiReactFrame = 0;
+  aiLockedTarget = null;  // AI re-acquires on next ball
 }
 
 function spawnParticles(x, y, color, count=8) {
@@ -621,18 +628,32 @@ function update() {
   if (smashAnim > 0) smashAnim--;
   if (smashArmed && Date.now() > smashWindowEnd) smashArmed = false;
 
-  // AI movement
-  const aiTarget = ball.x - ai.w/2;
-  const aiSpeed = 3.5 + Math.min(playerScore + aiScore, 10) * 0.15;
-  if (ai.x < aiTarget - 10) ai.x += aiSpeed;
-  else if (ai.x > aiTarget + 10) ai.x -= aiSpeed;
+  // AI — human-like: drifts to center when ball is moving away, tracks when incoming
+  const ballComingUp = ball.vy < 0;  // ball heading toward AI paddle
+  aiReactFrame++;
+  // Update target every 8 frames (reaction delay), or immediately if ball just turned toward AI
+  if (aiReactFrame >= 8 || (ballComingUp && aiLockedTarget === null)) {
+    aiReactFrame = 0;
+    aiDrift = (Math.random() - 0.5) * 24;  // ±12px human imprecision
+    if (ballComingUp) {
+      aiLockedTarget = ball.x - ai.w / 2 + aiDrift;
+    } else {
+      // Ball going away — drift lazily toward center
+      aiLockedTarget = W / 2 - ai.w / 2 + aiDrift * 0.5;
+    }
+  }
+  // Move toward locked target at scaled speed
+  const aiSpd = 2.8 + Math.min(playerScore + aiScore, 10) * 0.17;
+  const aiEffectiveSpd = ballComingUp ? aiSpd : aiSpd * 0.55;  // slower when relaxing to center
+  if (ai.x < aiLockedTarget - 8) ai.x += aiEffectiveSpd;
+  else if (ai.x > aiLockedTarget + 8) ai.x -= aiEffectiveSpd;
   ai.x = Math.max(0, Math.min(W - ai.w, ai.x));
 
   // Ball movement
   ball.x += ball.vx;
   ball.y += ball.vy;
   ball.vy += (ball.vy >= 0 ? GRAVITY : -GRAVITY);  // gravity: accelerate toward nearest paddle
-  if (Math.abs(ball.vy) < 2.0) ball.vy += (ball.vy >= 0 ? 0.5 : -0.5);  // min vy floor
+  if (Math.abs(ball.vy) < 1.5) ball.vy += (ball.vy >= 0 ? 0.4 : -0.4);  // min vy floor
   skullAngle += ball.vx * 0.02;
 
   // Trail
