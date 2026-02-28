@@ -102,7 +102,7 @@ let ball = { x: W/2, y: H/2, vx: 4, vy: 4, r: 12, visualR: 18, speed: 5 };
 
 // Ball sprites (3 cycling)
 const ballImgs = [];
-const ballSrcs = ['pongball.png','pongball2.png','eyeball.jpg','ball_guts.png','ball_bones.png','ball_tentacle.png','ball_hearts.png','ball_brain.png'];
+const ballSrcs = ['pongball.png','pongball2.png','eyeball.jpg','ball_guts.png','ball_bones.png','ball_tentacle.png','ball_hearts.png','ball_brain.png','ball_skull.png','ball_spider.png','ball_pumpkin.png','ball_maggots.png','ball_hand.png'];
 let currentBallIdx = 0;
 let ballImgsLoaded = 0;
 ballSrcs.forEach((src, i) => {
@@ -371,7 +371,7 @@ function startGame() {
 function backToTitle() { state = 'title'; }
 
 function resetBall() {
-  currentBallIdx = (currentBallIdx + 1) % ballImgs.length;
+  currentBallIdx = Math.floor(Math.random() * ballImgs.length);
   ball.x = W/2; ball.y = H/2;
   const angle = (Math.random() * 0.5 + 0.25) * Math.PI * (Math.random() > 0.5 ? 1 : -1);
   const dir = Math.random() > 0.5 ? 1 : -1;
@@ -458,9 +458,21 @@ function drawSkull(x, y, r) {
     const oc = offscreen.getContext('2d');
     oc.drawImage(img, 0, 0, offscreen.width, offscreen.height);
     const id = oc.getImageData(0, 0, offscreen.width, offscreen.height);
-    const d = id.data;
+    const d = id.data; const w = offscreen.width, h = offscreen.height;
+    // Pass 1: flag hot-pink and true-magenta pixels
+    const flagged = new Uint8Array(w * h);
     for (let i = 0; i < d.length; i += 4) {
-      if (d[i] > 180 && d[i+1] < 80 && d[i+2] > 180) d[i+3] = 0;
+      const r=d[i],g=d[i+1],b=d[i+2];
+      if ((r>140&&g<80&&b>90&&(r-g)>80)||(r>180&&g<80&&b>180)) flagged[i>>2]=1;
+    }
+    // Pass 2: 2px erosion — zero alpha on flagged + their neighbours
+    for (let y=0;y<h;y++) for (let x=0;x<w;x++) {
+      let kill=0;
+      for (let dy=-2;dy<=2&&!kill;dy++) for (let dx=-2;dx<=2&&!kill;dx++) {
+        const nx=x+dx,ny=y+dy;
+        if (nx>=0&&nx<w&&ny>=0&&ny<h&&flagged[ny*w+nx]) kill=1;
+      }
+      if (kill) d[(y*w+x)*4+3]=0;
     }
     oc.putImageData(id, 0, 0);
     ctx.shadowColor = '#a855f7';
