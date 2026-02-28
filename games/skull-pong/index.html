@@ -338,15 +338,11 @@ function handleKey(key) {
     state = state === 'playing' ? 'paused' : 'playing';
   }
   if (state === 'paused' && (key === 'p' || key === 'P' || key === 'Escape')) state = 'playing';
-  // Spacebar smash: arm a boost window during playing state
   // Spacebar smash: arm boost window AND trigger visual swing immediately
   if (state === 'playing' && key === ' ') {
     smashArmed = true;
     smashWindowEnd = Date.now() + SMASH_WINDOW;
     smashAnim = 8;  // always show swing animation on spacebar press
-  }
-    smashArmed = true;
-    smashWindowEnd = Date.now() + SMASH_WINDOW;
   }
 }
 function handleTouch(e) {
@@ -357,10 +353,6 @@ function handleTouch(e) {
 }
 function handleClick() {
   if (document.getElementById('spOverlay').classList.contains('active')) return;
-  audio.resume();
-  if (state === 'title') startGame();
-  if (state === 'gameover') backToTitle();
-}
   audio.resume();
   if (state === 'title') startGame();
   if (state === 'gameover') backToTitle();
