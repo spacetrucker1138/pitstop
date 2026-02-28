@@ -102,7 +102,7 @@ let ball = { x: W/2, y: H/2, vx: 4, vy: 4, r: 12, visualR: 18, speed: 5 };
 
 // Ball sprites (3 cycling)
 const ballImgs = [];
-const ballSrcs = ['pongball.png', 'pongball2.png', 'eyeball.jpg'];
+const ballSrcs = ['pongball.png','pongball2.png','eyeball.jpg','ball_guts.png','ball_bones.png','ball_tentacle.png','ball_hearts.png','ball_brain.png'];
 let currentBallIdx = 0;
 let ballImgsLoaded = 0;
 ballSrcs.forEach((src, i) => {
@@ -310,6 +310,12 @@ let skullAngle = 0;
 const PAD_W = 80, PAD_H = 26, PAD_SPEED = 6;
 let player = { x: W/2 - PAD_W/2, y: H - 50, w: PAD_W, h: PAD_H };
 let ai = { x: W/2 - PAD_W/2, y: 30, w: PAD_W, h: PAD_H };
+// Spacebar smash: arms a hit-boost window
+let smashArmed = false;       // spacebar pressed, window open
+let smashWindowEnd = 0;       // ms timestamp when window closes
+let smashAnim = 0;            // 0-8 frame counter for paddle swing visual
+const SMASH_WINDOW = 220;     // ms window after spacebar
+const SMASH_BOOST = 1.45;     // speed multiplier on smash hit
 
 // Particles
 let particles = [];
@@ -332,6 +338,11 @@ function handleKey(key) {
     state = state === 'playing' ? 'paused' : 'playing';
   }
   if (state === 'paused' && (key === 'p' || key === 'P' || key === 'Escape')) state = 'playing';
+  // Spacebar smash: arm a boost window during playing state
+  if (state === 'playing' && key === ' ') {
+    smashArmed = true;
+    smashWindowEnd = Date.now() + SMASH_WINDOW;
+  }
 }
 function handleTouch(e) {
   audio.resume();
@@ -381,19 +392,30 @@ function spawnParticles(x, y, color, count=8) {
 
 // Draw helpers
 function drawTombstone(x, y, w, h, color) {
-  // Sprite paddle — use image if loaded, fallback to defib shape
   const isPlayer = (color === '#22c55e');
   const img = isPlayer ? bottomPaddleImg : topPaddleImg;
   ctx.save();
+
+  // Swing animation: player paddle lunges forward (up) then retracts
+  let swingY = 0, scaleX = 1, scaleY = 1;
+  if (isPlayer && smashAnim > 0) {
+    const t = smashAnim / 8;  // 1.0 → 0
+    swingY = -Math.round(t * 10);          // lunge up to 10px
+    scaleX = 1 + t * 0.12;                 // slight widen on hit
+    scaleY = 1 - t * 0.08;                 // slight squish
+  }
+
+  const cx = x + w / 2, cy = y + h / 2;
+  ctx.translate(cx, cy + swingY);
+  ctx.scale(scaleX, scaleY);
+  ctx.translate(-cx, -cy);
+
   if (img.complete && img.naturalWidth > 0) {
-    // Draw sprite with glow
     ctx.shadowColor = color;
-    ctx.shadowBlur = 14;
-    // Draw image scaled to paddle bounds + slight padding for visual detail
+    ctx.shadowBlur = isPlayer && smashAnim > 0 ? 28 : 14;
     const pad = 4;
     ctx.drawImage(img, x - pad, y - pad, w + pad*2, h + pad*2);
   } else {
-    // Fallback: defib rect
     ctx.fillStyle = '#1a1a2e';
     ctx.shadowColor = color;
     ctx.shadowBlur = 18;
@@ -580,6 +602,9 @@ function update() {
     player.x += (target - player.x) * 0.15;
   }
   player.x = Math.max(0, Math.min(W - player.w, player.x));
+  // Smash animation tick + window expiry
+  if (smashAnim > 0) smashAnim--;
+  if (smashArmed && Date.now() > smashWindowEnd) smashArmed = false;
 
   // AI movement
   const aiTarget = ball.x - ai.w/2;
@@ -607,12 +632,19 @@ function update() {
     addHitFlash(ball.x, ball.y, 'red');
   }
 
-  // Paddle collision â player
+  // Paddle collision - player
   if (ball.vy > 0 && ball.y + ball.r >= player.y && ball.y - ball.r <= player.y + player.h &&
       ball.x >= player.x && ball.x <= player.x + player.w) {
-    ball.vy = -Math.abs(ball.vy) - 0.2;
-    const offset = (ball.x - (player.x + player.w/2)) / (player.w/2);
-    ball.vx = offset * 5;
+    const isSmash = smashArmed && Date.now() <= smashWindowEnd;
+    smashArmed = false;
+    const boost = isSmash ? SMASH_BOOST : 1.0;
+    ball.vy = (-Math.abs(ball.vy) - 0.2) * boost;
+    ball.vx = ((ball.x - (player.x + player.w/2)) / (player.w/2)) * 5 * boost;
+    if (isSmash) {
+      smashAnim = 8;  // trigger swing animation frames
+      spawnParticles(ball.x, player.y, '#ffffff', 10);
+      addHitFlash(ball.x, player.y - 5, 'lightning');
+    }
     audio.hitSound();
     spawnParticles(ball.x, player.y, '#ffff00', 5);
     addHitFlash(ball.x, player.y, 'lightning');
