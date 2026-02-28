@@ -876,7 +876,7 @@ function tick() {
     const hasCycle = !!(room.idleAnims || room.idleAnim2);
     if (hasCycle) {
       // Switch every ~15 seconds (900 frames at 60fps)
-      const switchAt = state.idleCyclePhase === 0 ? 900 : 540;
+      const switchAt = state.idleCyclePhase === 0 ? 1200 : 720;
       if (state.idleCycleTimer >= switchAt) {
         state.idleCycleTimer = 0;
         if (room.idleAnims) {
@@ -948,7 +948,7 @@ function performRoomSwitch() {
   const destX = 150 + Math.random() * 400;
   walkTo(destX, () => {
     setDialogue(pickDialogue(state.room));
-    state.patrolTimer = 280 + Math.floor(Math.random() * 120);
+    state.patrolTimer = 900 + Math.floor(Math.random() * 300);
   });
   // Update HUD
   document.getElementById("hud-room").textContent = ROOMS[state.room].label;
