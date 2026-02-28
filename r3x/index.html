@@ -1131,9 +1131,35 @@ function phantomTick() {
       ph.anim = "phantom_idle";
     }
 
+    // R3X awareness: notice phantom approaching
+    if (!r.moving) {
+      if (Math.abs(dx) < 180 && Math.abs(dx) >= 80) {
+        // Awareness zone — turn to face threat, look alert
+        r.facing = Math.sign(dx);   // face the phantom
+        if (r.anim !== "stand" && r.anim !== "run") {
+          r.anim = "stand";
+          r.frame = 0;
+        }
+        if (!state._phantomAlerted) {
+          state._phantomAlerted = true;
+          setDialogue("...");
+        }
+      } else if (Math.abs(dx) < 80 && Math.abs(dx) >= 30) {
+        // Back-away zone — R3X retreats but hasn't been caught yet
+        state._phantomAlerted = true;
+        r.facing = ph.facing === 1 ? -1 : 1;
+        r.anim = "run";
+        const backX = ph.facing === 1 ? 60 : W - 60;
+        if (!r.moving) walkTo(backX, null);
+      }
+    } else if (Math.abs(dx) >= 180) {
+      state._phantomAlerted = false;
+    }
+
     // If caught R3X (close enough)
     if (Math.abs(dx) < 30) {
       // R3X flinches, runs away
+      state._phantomAlerted = false;
       r.anim = "run"; r.facing = ph.facing === 1 ? -1 : 1;
       const escapeX = ph.facing === 1 ? 80 : W - 80;
       walkTo(escapeX, null);
@@ -1167,6 +1193,7 @@ function phantomTick() {
       ph.state = "dormant";
       ph.active = false;
       ph.x = -200;
+      state._phantomAlerted = false;
       // Respawn in 90-180s
       ph.spawnTimer = 5400 + Math.floor(Math.random() * 5400);
       setDialogue("sector clear.");
