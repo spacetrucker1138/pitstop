@@ -187,6 +187,9 @@ const ANIMS = {
   point:    { row: 15, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // pointing + talking
   sleep:    { row: 16, frames: 16, fps:  6,  scale: 1.35, yOffset: 24 },  // plugged in / good night
   charge:   { row: 17, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // battery charging
+  // ── PHANTOM-7 enemy (rows 18-19, 8-frame strips) ──
+  phantom_walk: { row: 18, frames: 8,  fps: 10,  scale: 1.25, yOffset: 18 },
+  phantom_idle: { row: 19, frames: 8,  fps:  6,  scale: 1.25, yOffset: 18 },
 };
 
 // ─────────────────────────────────────────────
@@ -221,6 +224,8 @@ const ROOMS = {
       { type: "monitor", x: 300, y: 180, w: 140, h: 100, color: "#0a1a0a", label: "PROCESS_ID: 4491", matrix: true },
       { type: "rack",    x: 560, y: 120, w: 80,  h: 180, color: "#101520", label: null,               matrix: true },
       { type: "cable",   x: 650, y: 280, w: 120, h: 10,  color: "#1a2a1a", label: null },
+      { type: "box",     x: 480, y: 262, w: 38,  h: 38,  color: "#162035", label: "UNIT", _climbTarget: true },
+      { type: "box",     x: 520, y: 224, w: 38,  h: 38,  color: "#162035", label: null, _climbTarget: true },
     ],
     ambientText: "Build in progress.",
     idleAnim: "repair",
@@ -236,6 +241,8 @@ const ROOMS = {
       { type: "canvas", x: 230, y: 130, w: 90,  h: 120, color: "#180a18", label: null },
       { type: "table",  x: 450, y: 250, w: 160, h: 50,  color: "#1a0f18", label: null },
       { type: "light",  x: 680, y: 60,  w: 40,  h: 80,  color: "#2a1a00", label: null },
+      { type: "box",     x: 580, y: 262, w: 40,  h: 38,  color: "#1a0f18", label: "ART", _climbTarget: true },
+      { type: "box",     x: 622, y: 224, w: 40,  h: 38,  color: "#1a0f18", label: null, _climbTarget: true },
     ],
     ambientText: "Running the renders.",
     idleAnim: "art",
@@ -307,7 +314,7 @@ const ctx = canvas.getContext("2d");
 const W = canvas.width, H = canvas.height;
 
 const sprite = new Image();
-sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v4_sprites.webp";
+sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v5_sprites.webp";
 
 let state = {
   room: "lobby",
@@ -348,6 +355,31 @@ let state = {
   monitorLines: {},           // keyed by "room:elIdx" → { line, alpha, timer }
   commsTicker: { msg: "", alpha: 0, timer: 0 },
   powerFlicker: { active: false, alpha: 0, dir: 1 },
+  // PHANTOM-7 enemy
+  phantom: {
+    active: false,
+    room: null,
+    x: -200,
+    y: 0,
+    facing: 1,
+    anim: "phantom_walk",
+    frame: 0,
+    frameTick: 0,
+    speed: 2.8,
+    chaseTimer: 0,      // how long it's been chasing this room visit
+    spawnTimer: 3600 + Math.floor(Math.random() * 3600), // first spawn 60-120s
+    retreatTimer: 0,
+    state: "dormant",   // dormant | spawning | chasing | retreating
+    roomsVisited: 0,    // how many rooms it has chased through
+    maxRooms: 1 + Math.floor(Math.random() * 2), // chase 1-2 rooms before retreating
+  },
+  // Wrong-room easter egg
+  wrongRoomTimer: 0,
+  wrongRoomActive: false,
+  // Stackable boxes for glitch-fix climbs
+  boxes: {},           // keyed by room → [{x, y, w, h, stacked}]
+  // Time-of-day modifiers
+  timeOfDay: "day",    // "day" | "night" | "late_night"
 };
 
 // Set floor Y from room config
@@ -619,6 +651,25 @@ function drawElement(el) {
         ctx.font = "9px 'Courier New'";
         ctx.fillText(el.label, el.x + 4, el.y + 14);
       }
+    case "box":
+      // Stackable box - industrial crate
+      ctx.fillStyle = el.color || "#162035";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#ffffff22";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+      // Cross-brace detail
+      ctx.strokeStyle = "#ffffff15";
+      ctx.beginPath();
+      ctx.moveTo(el.x, el.y); ctx.lineTo(el.x + el.w, el.y + el.h);
+      ctx.moveTo(el.x + el.w, el.y); ctx.lineTo(el.x, el.y + el.h);
+      ctx.stroke();
+      if (el.label) {
+        ctx.fillStyle = "#ffffff44";
+        ctx.font = "bold 7px 'Courier New'";
+        ctx.fillText(el.label, el.x + 4, el.y + 13);
+      }
+      break;
   }
   // Ambient matrix rain for tagged elements
   if (el.matrix) {
@@ -859,6 +910,12 @@ function tick() {
   if (state.mode === "auto") autoTheaterTick();
   // Power flicker tick
   powerFlickerTick();
+  // PHANTOM-7 enemy tick
+  if (state.mode === "auto") phantomTick();
+  // Idle interruption
+  if (state.mode === "auto") maybeIdleInterrupt();
+  // Time-of-day modifiers
+  applyTimeOfDayModifiers();
 }
 
 // ─────────────────────────────────────────────
@@ -932,10 +989,276 @@ function drawModeOverlay() {
 // ─────────────────────────────────────────────
 //  RENDER
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+//  TIME OF DAY
+// ─────────────────────────────────────────────
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h >= 0 && h < 6) return "late_night";
+  if (h >= 21 || h < 6) return "night";
+  return "day";
+}
+
+// ─────────────────────────────────────────────
+//  WRONG-ROOM EASTER EGG
+// ─────────────────────────────────────────────
+// 1-in-50 page loads: R3X spawns in the wrong room, notices you, bolts back
+function maybeWrongRoom() {
+  if (Math.random() > 0.02) return; // 1 in 50
+  const wrongRooms = Object.keys(ROOMS).filter(r => r !== "lobby");
+  const wrongRoom = wrongRooms[Math.floor(Math.random() * wrongRooms.length)];
+  // Teleport silently after 4s
+  setTimeout(() => {
+    if (!state.wrongRoomActive) {
+      state.wrongRoomActive = true;
+      const r = state.r3x;
+      state.room = wrongRoom;
+      document.getElementById("hud-room").textContent = ROOMS[wrongRoom].label;
+      updateTaskbar(wrongRoom);
+      r.x = 300 + Math.random() * 200;
+      r.y = ROOMS[wrongRoom].floorY + 30;
+      r.anim = ROOMS[wrongRoom].idleAnim;
+      r.facing = 1;
+      r.moving = false;
+      // After 2s R3X "notices" the visitor
+      setTimeout(() => {
+        r.anim = "stand"; r.facing = -1;
+        setDialogue("...you didn't see that.");
+        // After 1.5s, fast-walk back to lobby
+        setTimeout(() => {
+          r.anim = "run";
+          setDialogue("back to post.");
+          r._wrongRoomReturn = true;
+          walkTo(W + 80, () => {
+            // Transition to lobby
+            triggerRoomTransition("lobby");
+            state.wrongRoomActive = false;
+          });
+        }, 1500);
+      }, 2000);
+    }
+  }, 4000);
+}
+
+// ─────────────────────────────────────────────
+//  GLITCH CLIMB (box jump-to-fix)
+// ─────────────────────────────────────────────
+// R3X jumps up the boxes to fix a high glitch
+function r3xClimbBoxes(onTop) {
+  const r = state.r3x;
+  const room = ROOMS[state.room];
+  const boxes = room.elements.filter(el => el.type === "box" && el._climbTarget);
+  if (!boxes.length) { if (onTop) onTop(); return; }
+  // Walk to first box
+  const base = boxes[0];
+  const top  = boxes[1] || boxes[0];
+  walkTo(base.x + base.w/2, () => {
+    // Jump to top box
+    r.anim = "jump"; r.frame = 0;
+    r.grounded = false;
+    r.vy = -9;
+    // Land on top box after ~0.6s
+    setTimeout(() => {
+      r.grounded = true;
+      r.y = top.y;
+      r.vy = 0;
+      r.anim = "repair";
+      if (onTop) onTop();
+    }, 700);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  PHANTOM-7 ENEMY SYSTEM
+// ─────────────────────────────────────────────
+const PHANTOM_ROOMS = ["code", "art"]; // only chases in these rooms
+
+function phantomTick() {
+  const ph = state.phantom;
+  const r = state.r3x;
+  const tod = getTimeOfDay();
+
+  // Only spawn in auto mode
+  if (state.mode !== "auto") {
+    ph.active = false;
+    return;
+  }
+
+  // Anim frame advance
+  const anim = ANIMS[ph.anim] || ANIMS.phantom_walk;
+  ph.frameTick++;
+  if (ph.frameTick >= Math.round(60 / anim.fps)) {
+    ph.frame = (ph.frame + 1) % anim.frames;
+    ph.frameTick = 0;
+  }
+
+  if (ph.state === "dormant") {
+    ph.spawnTimer--;
+    if (ph.spawnTimer <= 0 && !state.transitioning) {
+      // Only spawn if R3X is in a phantom-eligible room
+      if (PHANTOM_ROOMS.includes(state.room)) {
+        ph.state = "chasing";
+        ph.active = true;
+        ph.room = state.room;
+        ph.roomsVisited = 0;
+        ph.maxRooms = 1 + Math.floor(Math.random() * 2);
+        // Spawn offscreen on the right
+        ph.x = W + 60;
+        ph.y = ROOMS[state.room].floorY + 30;
+        ph.facing = -1;
+        ph.anim = "phantom_walk";
+        ph.frame = 0;
+        ph.chaseTimer = 0;
+        setDialogue("--ALERT-- intruder in sector.");
+      } else {
+        // Try again in 20s
+        ph.spawnTimer = 1200;
+      }
+    }
+  }
+
+  if (ph.state === "chasing") {
+    ph.chaseTimer++;
+    const speed = tod === "late_night" ? 2.2 : (tod === "night" ? 2.5 : ph.speed);
+
+    // Move toward R3X
+    const dx = r.x - ph.x;
+    if (Math.abs(dx) > 4) {
+      ph.x += Math.sign(dx) * speed;
+      ph.facing = Math.sign(dx);
+      ph.anim = "phantom_walk";
+    } else {
+      ph.anim = "phantom_idle";
+    }
+
+    // If caught R3X (close enough)
+    if (Math.abs(dx) < 30) {
+      // R3X flinches, runs away
+      r.anim = "run"; r.facing = ph.facing === 1 ? -1 : 1;
+      const escapeX = ph.facing === 1 ? 80 : W - 80;
+      walkTo(escapeX, null);
+      setDialogue("intruder. clearing sector.");
+      ph.state = "retreating";
+      ph.retreatTimer = 120;
+      ph.roomsVisited++;
+    }
+
+    // Chase time limit (15s) or room switch
+    if (ph.chaseTimer > 900 || ph.room !== state.room) {
+      if (ph.roomsVisited < ph.maxRooms && PHANTOM_ROOMS.includes(state.room)) {
+        // Follow into next room
+        ph.room = state.room;
+        ph.x = W + 60;
+        ph.roomsVisited++;
+        ph.chaseTimer = 0;
+      } else {
+        ph.state = "retreating";
+        ph.retreatTimer = 180;
+      }
+    }
+  }
+
+  if (ph.state === "retreating") {
+    ph.retreatTimer--;
+    // Slide offscreen
+    ph.x += ph.facing === 1 ? ph.speed : -(ph.speed + 1);
+    ph.anim = "phantom_walk";
+    if (ph.retreatTimer <= 0 || ph.x < -100 || ph.x > W + 100) {
+      ph.state = "dormant";
+      ph.active = false;
+      ph.x = -200;
+      // Respawn in 90-180s
+      ph.spawnTimer = 5400 + Math.floor(Math.random() * 5400);
+      setDialogue("sector clear.");
+    }
+  }
+}
+
+function drawPhantom() {
+  const ph = state.phantom;
+  if (!ph.active) return;
+  const anim = ANIMS[ph.anim] || ANIMS.phantom_walk;
+  const frameIdx = Math.floor(ph.frame) % anim.frames;
+  const sx = frameIdx * CELL_W;
+  const sy = anim.row * CELL_H;
+  const drawSize = Math.round(80 * (anim.scale || 1.0));
+  const drawX = ph.x - drawSize / 2;
+  const drawY = ph.y - drawSize + (anim.yOffset || 0);
+
+  ctx.save();
+  if (ph.facing === -1) {
+    ctx.translate(ph.x * 2, 0);
+    ctx.scale(-1, 1);
+  }
+  // Red tint / menace overlay
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(sprite, sx, sy, CELL_W, CELL_H,
+    ph.facing === -1 ? (ph.x * 2 - ph.x - drawSize/2) : drawX,
+    drawY, drawSize, drawSize);
+
+  // Red glow under phantom
+  ctx.globalAlpha = 0.25 + 0.15 * Math.sin(Date.now()/200);
+  ctx.fillStyle = "#ff2244";
+  ctx.beginPath();
+  ctx.ellipse(ph.x, ph.y + 2, 20, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────
+//  IDLE INTERRUPTION (notice something offscreen)
+// ─────────────────────────────────────────────
+function maybeIdleInterrupt() {
+  if (state.r3x.moving || state.transitioning || state.phantom.active) return;
+  if (!state._idleInterruptTimer) state._idleInterruptTimer = 1800 + Math.floor(Math.random() * 1800);
+  state._idleInterruptTimer--;
+  if (state._idleInterruptTimer <= 0) {
+    state._idleInterruptTimer = 1800 + Math.floor(Math.random() * 1800);
+    const r = state.r3x;
+    const prevAnim = r.anim;
+    // Turn to look offscreen
+    r.anim = "stand"; r.facing = Math.random() > 0.5 ? 1 : -1;
+    setDialogue("...");
+    // After 2.5s, shrug and resume
+    setTimeout(() => {
+      if (!r.moving) {
+        r.anim = prevAnim;
+        if (Math.random() > 0.5) setDialogue("nothing. carry on.");
+      }
+    }, 2500);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  TIME-OF-DAY AMBIENT MODIFIERS
+// ─────────────────────────────────────────────
+function applyTimeOfDayModifiers() {
+  const tod = getTimeOfDay();
+  if (state.timeOfDay === tod) return;
+  state.timeOfDay = tod;
+  const r = state.r3x;
+  // Adjust patrol speed at night
+  if (tod === "late_night") {
+    // Slow things down — increase frame ticks
+    ANIMS.walk.fps = 7;
+    ANIMS.run.fps  = 15;
+    if (!r.moving) { r.anim = "sleep"; r.frame = 0; }
+    setDialogue("...late shift. just me and the static.");
+  } else if (tod === "night") {
+    ANIMS.walk.fps = 8;
+    ANIMS.run.fps  = 18;
+  } else {
+    ANIMS.walk.fps = 10;
+    ANIMS.run.fps  = 22;
+  }
+}
+
+
 function render() {
   ctx.clearRect(0, 0, W, H);
   drawRoom(state.room);
   drawSmoke();
+  drawPhantom();
   drawR3X();
   drawMonitorLines();
   drawCommsTickerOverlay();
@@ -1161,8 +1484,10 @@ function glitchTick() {
       const el = ROOMS[localGlitch.room].elements[localGlitch.elIdx];
       localGlitch.cleaning = true;
       const prevAnim = state.r3x.anim;
-      walkTo(el.x + el.w/2, () => {
-        // Sweep animation while cleaning
+      // Use box-climb if boxes in this room and coin flip
+      const roomBoxes = ROOMS[localGlitch.room].elements.filter(e => e.type === "box" && e._climbTarget);
+      const useClimb = roomBoxes.length >= 2 && Math.random() > 0.5;
+      const doClean = () => {
         state.r3x.anim = "portal";
         setDialogue("--G̷̛L̵I̷T̶C̵H̷-- detected. cleaning.");
         setTimeout(() => {
@@ -1170,9 +1495,19 @@ function glitchTick() {
           localGlitch.cleanAge = localGlitch.age;
           delete state.matrixRains["glitch:" + localGlitch.room + ":" + localGlitch.elIdx];
           setDialogue("sector clean.");
-          state.r3x.anim = ROOMS[state.room].idleAnim;
+          if (useClimb) {
+            state.r3x.anim = "jump"; state.r3x.grounded = false; state.r3x.vy = -4;
+            setTimeout(() => { state.r3x.grounded = true; state.r3x.anim = ROOMS[state.room].idleAnim; }, 500);
+          } else {
+            state.r3x.anim = ROOMS[state.room].idleAnim;
+          }
         }, 2400);
-      });
+      };
+      if (useClimb) {
+        r3xClimbBoxes(doClean);
+      } else {
+        walkTo(el.x + el.w/2, doClean);
+      }
     }
   }
 }
@@ -1650,6 +1985,7 @@ sprite.onload = () => {
     state.patrolTimer = 9999;
     state.glitchSpawnTimer = 600 + Math.floor(Math.random() * 600); // first glitch after 10–20s
     scheduleCounterVisit();
+    maybeWrongRoom();
   });
 
   // Start heartbeat poll
