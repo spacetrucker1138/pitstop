@@ -182,7 +182,7 @@ const ANIMS = {
   portal:   { row: 10, frames: 16, fps: 14,  scale: 1.48, yOffset: 24 },  // tasks active (+10% scale)
   angry:    { row: 11, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // angry + steam
   defend:   { row: 12, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // shield defense
-  code2:    { row: 13, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // holographic typing
+  coding:   { row: 13, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // holographic typing / task board idle
   celebrate:{ row: 14, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // celebration
   point:    { row: 15, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // pointing + talking
   sleep:    { row: 16, frames: 16, fps:  6,  scale: 1.35, yOffset: 24 },  // plugged in / good night
@@ -277,7 +277,7 @@ const ROOMS = {
     ],
     ambientText: "Tasks queued. Standing by.",
     idleAnim: "sweep",
-    idleAnim2: "portal",
+    idleAnim2: "coding",
     walkAnim: "walk",
   },
 };
@@ -1817,9 +1817,9 @@ canvas.addEventListener("click", function(e) {
 
   // ── Element-specific interactions ───────────────────────────
   if (hit.type === "monitor") {
-    // R3X walks over, does code2 anim, prints a syslog line
+    // R3X walks over, does coding anim, prints a syslog line
     walkTo(destX, () => {
-      r.anim = "code2"; r.frame = 0;
+      r.anim = "coding"; r.frame = 0;
       const line = SYSLOG_LINES[Math.floor(Math.random() * SYSLOG_LINES.length)];
       const elIdx = ROOMS[state.room].elements.indexOf(hit);
       const key = state.room + ":" + elIdx;
