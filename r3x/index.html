@@ -155,6 +155,7 @@
   <span onclick="R3X.setRoom('art')"      id="btn-art"           >[ ART STUDIO ]</span>
   <span onclick="R3X.setRoom('comms')"    id="btn-comms"         >[ COMMS ]</span>
   <span onclick="R3X.setRoom('tasks')"    id="btn-tasks"         >[ TASK BOARD ]</span>
+  <span onclick="R3X.setRoom('vault')"    id="btn-vault"         >[ SERVER VAULT ]</span>
 </div>
 
 <script>
@@ -284,6 +285,23 @@ const ROOMS = {
     idleAnim2: "coding",
     walkAnim: "walk",
   },
+  vault: {
+    label: "SERVER VAULT",
+    bg: "#06080f",
+    accent: "#150505",
+    floorY: 300,
+    elements: [
+      { type: "rack",        x: 50,  y: 80,  w: 80,  h: 210, color: "#0a0a1a", label: null },
+      { type: "rack",        x: 145, y: 110, w: 80,  h: 180, color: "#0c0a1c", label: null },
+      { type: "powercore",   x: 300, y: 100, w: 180, h: 180, color: "#0a0505", label: null },
+      { type: "threatscreen",x: 560, y: 130, w: 120, h: 110, color: "#050a0a", label: null },
+      { type: "cable",       x: 240, y: 290, w: 320, h: 10,  color: "#1a0505", label: null },
+      { type: "box",         x: 660, y: 262, w: 40,  h: 38,  color: "#1a0808", label: "SRV", _climbTarget: true },
+    ],
+    ambientText: "Deep sector. Restricted access.",
+    idleAnim: "charge",
+    walkAnim: "walk",
+  },
 };
 
 // ─────────────────────────────────────────────
@@ -295,12 +313,13 @@ const DIALOGUE = {
   art:    ["Rendering.", "Pixels take time. So do cigars.", "Waiting on the pipeline.", "Frame 1 of too many.", "Color pass. Looking good."],
   comms:  ["Message received.", "Relay confirmed.", "Signal strong.", "Transmitting now.", "Inbox clear."],
   tasks:  ["Tasks queued.", "Working the board.", "Nothing falls through here.", "Priority order maintained.", "Next item loading..."],
+  vault:  ["Deep sector. Running hot.", "Power draw nominal.", "Topping off.", "Nobody gets in here.", "Charging... don't touch the conduit."],
 };
 
 // ─────────────────────────────────────────────
 //  FALLBACK PATROL SCRIPT
 // ─────────────────────────────────────────────
-const PATROL = ["lobby", "code", "art", "comms", "tasks", "lobby"];
+const PATROL = ["lobby", "code", "art", "comms", "tasks", "vault", "lobby"];
 
 
 // ─────────────────────────────────────────────
@@ -355,6 +374,9 @@ let state = {
   taskBoardTimer: 600,        // task board auto-update timer
   commsTickTimer: 0,          // comms ticker message cycle
   powerFlickerTimer: 3600,    // power fluctuation event (~60s)
+  powerLevel: 100,             // 0–100, drains slowly, restores in vault
+  powerDrainTimer: 0,          // ticks down to drain power
+  _vaultChargeTimer: 0,        // how long R3X holds charge anim in vault
   boredTimer: 0,              // idle boredom escalation
   cascadeAlerted: false,      // glitch cascade alert active
   // Per-element syslog/output lines displayed on monitors
@@ -473,6 +495,11 @@ function drawRoom(room) {
     drawElement(el);
   }
   drawGlitches(room);
+  // Server Vault: subtle red fog overlay for restricted zone atmosphere
+  if (room === "vault") {
+    ctx.fillStyle = "rgba(80,0,0,0.06)";
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // Room label
   ctx.font = "bold 10px 'Courier New'";
@@ -646,6 +673,216 @@ function drawElement(el) {
       }
       break;
     }
+    case "rack": {
+      // Server rack — blinking LED grid, ventilation grilles, status bars
+      const t = Date.now();
+      const inVault = state.room === "vault";
+
+      // Main chassis
+      ctx.fillStyle = inVault ? "#0c0a14" : "#101520";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = inVault ? "#220022" : "#1a2a40";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+      // Rack unit rows
+      const rowH = 18;
+      const rowCount = Math.floor((el.h - 12) / rowH);
+      for (let rr = 0; rr < rowCount; rr++) {
+        const ry = el.y + 6 + rr * rowH;
+
+        // Row background
+        ctx.fillStyle = rr % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.1)";
+        ctx.fillRect(el.x + 2, ry, el.w - 4, rowH - 2);
+
+        // LED indicators (3 per row)
+        const ledColors = ["#ff2200","#00ff44","#ff8800","#00aaff","#ff00aa"];
+        for (let led = 0; led < 3; led++) {
+          const ledColor = ledColors[(rr * 3 + led) % ledColors.length];
+          // Blink: each LED has its own phase
+          const blinkPhase = Math.sin(t / (600 + rr * 80 + led * 120));
+          const on = blinkPhase > (inVault ? -0.3 : 0.2); // vault has more active LEDs
+          ctx.fillStyle = on ? ledColor : "#1a1a1a";
+          ctx.fillRect(el.x + 5 + led * 8, ry + 5, 5, 5);
+        }
+
+        // Mini status bar on right side of each row
+        const barW = el.w - 36;
+        const barFill = 0.2 + 0.7 * ((Math.sin(t / (800 + rr * 150) + rr) + 1) / 2);
+        const barColor = inVault
+          ? `rgba(${180 + Math.floor(75 * barFill)},${Math.floor(50 * barFill)},0,0.6)`
+          : `rgba(0,${Math.floor(200 * barFill)},${Math.floor(100 + 80 * barFill)},0.5)`;
+        ctx.fillStyle = "#0a0a0a";
+        ctx.fillRect(el.x + 29, ry + 6, barW, 6);
+        ctx.fillStyle = barColor;
+        ctx.fillRect(el.x + 29, ry + 6, barW * barFill, 6);
+      }
+
+      // Label at bottom
+      if (el.label) {
+        ctx.fillStyle = "#ffffff22";
+        ctx.font = "bold 6px 'Courier New'";
+        ctx.fillText(el.label, el.x + 4, el.y + el.h - 3);
+      }
+      break;
+    }
+
+    case "powercore": {
+      // Central reactor / power conduit — glowing energy core with pulsing aura
+      const t = Date.now();
+      const isFlicker = state.powerFlicker && state.powerFlicker.active;
+      const pwr = (typeof state.powerLevel === "number") ? state.powerLevel : 100;
+      const coreGlow  = isFlicker ? "#ff2200" : `hsl(${20 + pwr * 0.4},100%,${20 + pwr * 0.2}%)`;
+      const coreFade  = isFlicker ? "#440000" : "#1a0800";
+      const pulseAmt  = 0.5 + 0.5 * Math.sin(t / 400);
+
+      // Outer housing
+      ctx.fillStyle = "#0c0a10";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = isFlicker ? "#ff220066" : "#ff440033";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+      // Conduit pipe (horizontal through center)
+      const pipeY = el.y + el.h / 2 - 10;
+      ctx.fillStyle = "#1a1020";
+      ctx.fillRect(el.x + 10, pipeY, el.w - 20, 20);
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x + 10, pipeY, el.w - 20, 20);
+
+      // Energy flow inside pipe (moving segments)
+      const segCount = 5;
+      const segW = (el.w - 30) / segCount;
+      const flowOffset = ((t / 200) % 1) * segW;
+      for (let s = 0; s < segCount + 1; s++) {
+        const sx = el.x + 15 + s * segW - flowOffset;
+        const segAlpha = 0.4 + 0.5 * pulseAmt;
+        ctx.fillStyle = `rgba(${isFlicker ? "255,30,0" : "255,100,20"},${segAlpha})`;
+        if (sx > el.x + 14 && sx + segW * 0.7 < el.x + el.w - 14) {
+          ctx.fillRect(sx, pipeY + 3, segW * 0.7, 14);
+        }
+      }
+
+      // Central core circle
+      const cx2 = el.x + el.w / 2, cy2 = el.y + el.h / 2;
+      const r2 = 28 + 4 * pulseAmt;
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, r2 * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${isFlicker ? "180,0,0" : "80,20,0"},${0.15 + 0.1 * pulseAmt})`;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${isFlicker ? "255,50,0" : "200,80,10"},${0.5 + 0.3 * pulseAmt})`;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, r2 * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = isFlicker ? "#ff6600" : "#ffaa44";
+      ctx.fill();
+
+      // Warning stripes on housing
+      const stripeH = 10;
+      for (let i = 0; i < 3; i++) {
+        const sy2 = el.y + 8 + i * (stripeH + 4);
+        ctx.fillStyle = (i % 2 === 0) ? "#ffcc0022" : "#00000000";
+        ctx.fillRect(el.x + 4, sy2, el.w - 8, stripeH);
+      }
+
+      // POWER label + meter bar
+      ctx.font = "bold 7px 'Courier New'";
+      ctx.fillStyle = isFlicker ? "#ff4444" : "#ff8844aa";
+      ctx.textAlign = "center";
+      ctx.fillText("PWR CORE", cx2, el.y + el.h - 16);
+      // meter bar
+      const meterW = el.w - 20;
+      ctx.fillStyle = "#1a0a00";
+      ctx.fillRect(el.x + 10, el.y + el.h - 12, meterW, 8);
+      ctx.fillStyle = pwr > 60 ? "#ff6600" : pwr > 30 ? "#ff9900" : "#ff2200";
+      ctx.fillRect(el.x + 10, el.y + el.h - 12, meterW * pwr / 100, 8);
+      ctx.strokeStyle = "#33200088";
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(el.x + 10, el.y + el.h - 12, meterW, 8);
+      ctx.textAlign = "left";
+      break;
+    }
+
+    case "threatscreen": {
+      // PHANTOM-7 threat level display
+      const t = Date.now();
+      const ph = state.phantom;
+      const isActive  = ph && ph.active;
+      const numVisits = (state._phantomSpawnCount || 0);
+      const threatPct = Math.min(100, numVisits * 20); // 0-100, 5 visits = max
+      const threatColor = threatPct > 66 ? "#ff1100" : threatPct > 33 ? "#ff8800" : "#ff3300";
+
+      ctx.fillStyle = "#050a08";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = isActive ? "#ff220066" : "#ff220033";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+      // Header
+      ctx.fillStyle = isActive ? "#ff4444" : "#ff222266";
+      ctx.font = "bold 7px 'Courier New'";
+      ctx.textAlign = "center";
+      ctx.fillText("PHANTOM-7", el.x + el.w / 2, el.y + 12);
+
+      // Skull pixel icon (8x8 block skull rendered with fillRect)
+      const skullX = el.x + el.w / 2 - 12, skullY = el.y + 18;
+      const px = 3; // pixel size
+      const skullAlpha = isActive ? (0.6 + 0.4 * Math.sin(t / 300)) : 0.35;
+      ctx.fillStyle = `rgba(255,30,0,${skullAlpha})`;
+      // skull outline pattern (8 wide, 8 tall grid)
+      const skullPx = [
+        [0,1,1,0,0,1,1,0],
+        [1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1],
+        [1,1,0,1,1,0,1,1],
+        [1,1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,1,0],
+        [0,0,1,0,0,1,0,0],
+        [0,1,1,0,0,1,1,0],
+      ];
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          if (skullPx[row][col]) {
+            ctx.fillRect(skullX + col * px, skullY + row * px, px - 1, px - 1);
+          }
+        }
+      }
+
+      // THREAT LEVEL label
+      ctx.fillStyle = "#ff333366";
+      ctx.font = "6px 'Courier New'";
+      ctx.fillText("THREAT LEVEL", el.x + el.w / 2, el.y + 58);
+
+      // Threat bar
+      const bx = el.x + 10, by = el.y + 62, bw = el.w - 20, bh = 8;
+      ctx.fillStyle = "#1a0505";
+      ctx.fillRect(bx, by, bw, bh);
+      if (threatPct > 0) {
+        ctx.fillStyle = threatColor;
+        ctx.fillRect(bx, by, bw * threatPct / 100, bh);
+      }
+      ctx.strokeStyle = "#44000066";
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(bx, by, bw, bh);
+
+      // Status line
+      const statusTxt = isActive ? "ACTIVE" : (numVisits === 0 ? "DORMANT" : `SIGHTINGS: ${numVisits}`);
+      ctx.fillStyle = isActive ? `rgba(255,60,60,${0.7 + 0.3 * Math.sin(t/200)})` : "#ff222255";
+      ctx.font = "6px 'Courier New'";
+      ctx.fillText(statusTxt, el.x + el.w / 2, el.y + el.h - 10);
+
+      // Scanline overlay
+      for (let sl = el.y + 2; sl < el.y + el.h - 2; sl += 4) {
+        ctx.fillStyle = "rgba(0,0,0,0.12)";
+        ctx.fillRect(el.x + 1, sl, el.w - 2, 1);
+      }
+      ctx.textAlign = "left";
+      break;
+    }
+
     case "door": {
       // Security door — animated panels, status reacts to phantom
       const isAlert = state.phantom && state.phantom.active;
@@ -1089,6 +1326,11 @@ function performRoomSwitch() {
   const destX = 150 + Math.random() * 400;
   walkTo(destX, () => {
     setDialogue(pickDialogue(state.room));
+    // Vault: R3X charges up — restore power level
+    if (state.room === "vault") {
+      if (!state.powerLevel) state.powerLevel = 100;
+      state._vaultChargeTimer = 300; // ~5 seconds of charge anim before wandering
+    }
     state.patrolTimer = 900 + Math.floor(Math.random() * 300);
   });
   // Update HUD
@@ -1097,7 +1339,7 @@ function performRoomSwitch() {
 }
 
 function updateTaskbar(room) {
-  for (const id of ["lobby","code","art","comms","tasks"]) {
+  for (const id of ["lobby","code","art","comms","tasks","vault"]) {
     document.getElementById("btn-"+id).classList.toggle("active", id === room);
   }
 }
@@ -1212,7 +1454,7 @@ function r3xClimbBoxes(onTop) {
 // ─────────────────────────────────────────────
 //  PHANTOM-7 ENEMY SYSTEM
 // ─────────────────────────────────────────────
-const PHANTOM_ROOMS = ["code", "art"]; // only chases in these rooms
+const PHANTOM_ROOMS = ["code", "art", "vault"]; // phantom home: vault + stalking rooms
 
 function phantomTick() {
   const ph = state.phantom;
@@ -1238,6 +1480,7 @@ function phantomTick() {
     if (ph.spawnTimer <= 0 && !state.transitioning) {
       // Only spawn if R3X is in a phantom-eligible room
       if (PHANTOM_ROOMS.includes(state.room)) {
+        state._phantomSpawnCount = (state._phantomSpawnCount || 0) + 1;
         ph.state = "chasing";
         ph.active = true;
         ph.room = state.room;
@@ -1825,6 +2068,24 @@ function autoTheaterTick() {
 //  POWER FLUCTUATION EVENT
 // ─────────────────────────────────────────────
 function powerFlickerTick() {
+  // Power drain: slowly depletes; vault visit restores it
+  state.powerDrainTimer++;
+  if (state.powerDrainTimer >= 180) { // drain 1 unit every 3 seconds
+    state.powerDrainTimer = 0;
+    if (state.room !== "vault") {
+      state.powerLevel = Math.max(0, state.powerLevel - 1);
+    } else {
+      state.powerLevel = Math.min(100, state.powerLevel + 4); // charges 4x faster
+    }
+  }
+  // Vault charge timer — keep R3X in charge anim briefly
+  if (state._vaultChargeTimer > 0) {
+    state._vaultChargeTimer--;
+    if (state.room === "vault" && !state.r3x.moving) {
+      state.r3x.anim = "charge";
+    }
+  }
+
   if (state.mode !== "auto") return;
   state.powerFlickerTimer--;
   if (state.powerFlickerTimer <= 0) {
