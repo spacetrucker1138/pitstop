@@ -169,17 +169,17 @@
 const CELL_W = 128, CELL_H = 128;
 const ANIMS = {
   //                                                          scale  yOffset  ← tune yOffset per-anim to align feet to floor
-  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.3,  yOffset: 22 },
-  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.35, yOffset: 22 },  // scale matched to idle size
-  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.35, yOffset: 22 },  // scale matched to idle size
-  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.3,  yOffset: 22 },
+  stand:    { row: 0,  frames: 1,  fps: 4,   scale: 1.55, yOffset: 30 },
+  walk:     { row: 1,  frames: 16, fps: 10,  scale: 1.40, yOffset: 10 },  // scale matched to idle size
+  run:      { row: 2,  frames: 16, fps: 22,  scale: 1.40, yOffset: 14 },  // scale matched to idle size
+  jump:     { row: 3,  frames: 16, fps: 16,  scale: 1.55, yOffset: 40 },
   comms:    { row: 4,  frames: 16, fps: 12,  scale: 1.35, yOffset: 0  },  // this one was going BELOW floor; pulled back
-  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.35, yOffset: 31 },  // large bottom padding in source
-  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.35, yOffset: 26 },
+  art:      { row: 5,  frames: 16, fps: 14,  scale: 1.55, yOffset: 31 },  // large bottom padding in source
+  repair:   { row: 6,  frames: 16, fps: 10,  scale: 1.45, yOffset: 20 },
   pingpong: { row: 7,  frames: 16, fps: 8,   scale: 1.55, yOffset: 20 },  // lobby idle 1 (+10% scale)
-  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.48, yOffset: 24 },  // lobby idle 2 (+10% scale)
+  march:    { row: 8,  frames: 16, fps: 10,  scale: 1.65, yOffset: 40 },  // lobby idle 2 - bumped for fill%
   sweep:    { row: 9,  frames: 16, fps: 12,  scale: 1.48, yOffset: 40 },  // taskboard (+10% scale)
-  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.48, yOffset: 24 },  // tasks active (+10% scale)
+  portal:   { row: 10, frames: 16, fps: 14,  scale: 1.60, yOffset: 36 },  // tasks active - bumped for fill%
   angry:    { row: 11, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // angry + steam
   defend:   { row: 12, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // shield defense
   coding:   { row: 13, frames: 16, fps: 12,  scale: 1.35, yOffset: 24 },  // holographic typing / task board idle
@@ -316,6 +316,8 @@ const HEARTBEAT_MISS_LIMIT = 3;
 const canvas = document.getElementById("world");
 const ctx = canvas.getContext("2d");
 const W = canvas.width, H = canvas.height;
+window._R3X_PAGE_START = window._R3X_PAGE_START || Date.now();
+window._R3X_SYSLOG_LINES = window._R3X_SYSLOG_LINES || ["> SYSTEM ONLINE", "> R3X INIT", "> AWAITING.."];
 
 const sprite = new Image();
 sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v5_sprites.webp";
@@ -644,6 +646,141 @@ function drawElement(el) {
       }
       break;
     }
+    case "door": {
+      // Security door — animated panels, status reacts to phantom
+      const isAlert = state.phantom && state.phantom.active;
+      const isWarning = state.phantom && state.phantom.state === "chasing";
+      const doorColor  = isAlert ? "#1a0a0a" : "#0a1a0a";
+      const borderCol  = isAlert ? "#ff000088" : "#00ff8855";
+      const labelColor = isAlert ? "#ff4444" : "#00ff88aa";
+      const t = Date.now();
+
+      // Body fill
+      ctx.fillStyle = doorColor;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = borderCol;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+      // Sliding door panel lines (3 horizontal slats that animate open/close)
+      const slats = 3;
+      const slotH = Math.floor((el.h - 24) / slats);
+      for (let s = 0; s < slats; s++) {
+        const sy2 = el.y + 10 + s * slotH;
+        // Slat panels slide apart slightly with time oscillation when clear
+        const openAmt = isAlert ? 0 : Math.abs(Math.sin(t / 1800 + s)) * 4;
+        ctx.fillStyle = isAlert ? "#2a0505" : "#0d1f0d";
+        ctx.fillRect(el.x + 3,        sy2, el.w/2 - 3 - openAmt, slotH - 2);
+        ctx.fillRect(el.x + el.w/2 + openAmt, sy2, el.w/2 - 3 - openAmt, slotH - 2);
+        // Slat separator line
+        ctx.strokeStyle = borderCol;
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(el.x + 3,        sy2, el.w/2 - 3 - openAmt, slotH - 2);
+        ctx.strokeRect(el.x + el.w/2 + openAmt, sy2, el.w/2 - 3 - openAmt, slotH - 2);
+      }
+
+      // Status label
+      const label = isAlert ? "ALERT" : (Math.floor(t / 1200) % 2 === 0 ? "LOCKED" : "SECURE");
+      ctx.font = "bold 7px 'Courier New'";
+      ctx.textAlign = "center";
+      ctx.fillStyle = labelColor;
+      ctx.fillText(label, el.x + el.w / 2, el.y + el.h - 5);
+      ctx.textAlign = "left";
+
+      // Blink pip top-center
+      if (Math.floor(t / 500) % 2 === 0) {
+        ctx.fillStyle = isAlert ? "#ff4444cc" : "#00ff88cc";
+        ctx.fillRect(el.x + el.w/2 - 3, el.y + 3, 6, 4);
+      }
+      break;
+    }
+
+    case "vent": {
+      // UPTIME / SIGNAL readout — shows seconds since page load + pulsing freq
+      const upSec = Math.floor((Date.now() - window._R3X_PAGE_START) / 1000) || 0;
+      const hrs   = Math.floor(upSec / 3600);
+      const mins  = Math.floor((upSec % 3600) / 60);
+      const secs  = upSec % 60;
+      const freqVal = (2.4 + 0.8 * Math.sin(Date.now() / 900)).toFixed(1);
+
+      ctx.fillStyle = "#060d0d";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#00ff8840";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+      // Header
+      ctx.fillStyle = "#00ff8877";
+      ctx.font = "bold 6px 'Courier New'";
+      ctx.fillText("UPTIME", el.x + 4, el.y + 8);
+
+      // HH:MM:SS display
+      const timeStr = String(hrs).padStart(2,"0") + ":" +
+                      String(mins).padStart(2,"0") + ":" +
+                      String(secs).padStart(2,"0");
+      ctx.fillStyle = `rgba(0,255,136,${0.7 + 0.25 * Math.sin(Date.now()/600)})`;
+      ctx.font = "bold 8px 'Courier New'";
+      ctx.fillText(timeStr, el.x + 4, el.y + 19);
+
+      // FREQ line
+      ctx.fillStyle = "#00ff8855";
+      ctx.font = "6px 'Courier New'";
+      ctx.fillText("FREQ " + freqVal + " GHz", el.x + 4, el.y + 31);
+
+      // Tiny signal bar (3 bars)
+      for (let b = 0; b < 3; b++) {
+        const bh2 = (b + 1) * 3;
+        const active = b <= Math.floor((Math.sin(Date.now()/700)+1)/2 * 2);
+        ctx.fillStyle = active ? "#00ff8866" : "#0a1a0a";
+        ctx.fillRect(el.x + el.w - 16 + b*4, el.y + el.h - bh2 - 3, 3, bh2);
+      }
+      break;
+    }
+
+    case "desk": {
+      // R3X's workspace — terminal surface with scrolling syslog lines
+      ctx.fillStyle = "#080e14";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      ctx.strokeStyle = "#00ff8830";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+      // Tabletop surface line
+      ctx.strokeStyle = "#00ff8820";
+      ctx.beginPath();
+      ctx.moveTo(el.x + 3, el.y + 14);
+      ctx.lineTo(el.x + el.w - 3, el.y + 14);
+      ctx.stroke();
+
+      // "TERMINAL" header
+      ctx.fillStyle = "#00ff8855";
+      ctx.font = "bold 6px 'Courier New'";
+      ctx.fillText("TERMINAL", el.x + 4, el.y + 10);
+
+      // Scrolling syslog text — pull from state.syslog if available, else static
+      const logLines = (window._R3X_SYSLOG_LINES && window._R3X_SYSLOG_LINES.length)
+        ? window._R3X_SYSLOG_LINES
+        : ["> SYSTEM ONLINE", "> AWAITING INPUT", "> IDLE"];
+      const displayLines = logLines.slice(-3);
+      ctx.font = "6px 'Courier New'";
+      for (let li = 0; li < displayLines.length; li++) {
+        const alpha = 0.3 + 0.4 * ((li + 1) / displayLines.length);
+        ctx.fillStyle = `rgba(0,255,136,${alpha})`;
+        const truncated = displayLines[li].slice(0, 20);
+        ctx.fillText(truncated, el.x + 4, el.y + 24 + li * 10);
+      }
+
+      // Cursor blink at end of last line
+      if (Math.floor(Date.now() / 500) % 2 === 0) {
+        const lastLine = (displayLines[displayLines.length-1] || "").slice(0,20);
+        ctx.font = "6px 'Courier New'";
+        const tw2 = ctx.measureText(lastLine).width;
+        ctx.fillStyle = "#00ff88cc";
+        ctx.fillRect(el.x + 4 + tw2 + 1, el.y + 16 + (displayLines.length - 1) * 10, 3, 5);
+      }
+      break;
+    }
+
     default:
       ctx.fillStyle = el.color;
       ctx.fillRect(el.x, el.y, el.w, el.h);
@@ -1645,6 +1782,9 @@ function autoTheaterTick() {
         const key = "code:" + elIdx;
         const line = SYSLOG_LINES[Math.floor(Math.random() * SYSLOG_LINES.length)];
         state.monitorLines[key] = { line, alpha: 1, timer: 240 };
+        window._R3X_SYSLOG_LINES = window._R3X_SYSLOG_LINES || [];
+        window._R3X_SYSLOG_LINES.push("> " + line);
+        if (window._R3X_SYSLOG_LINES.length > 3) window._R3X_SYSLOG_LINES.shift();
       }
     }
   }
@@ -1828,6 +1968,9 @@ canvas.addEventListener("click", function(e) {
       const elIdx = ROOMS[state.room].elements.indexOf(hit);
       const key = state.room + ":" + elIdx;
       state.monitorLines[key] = { line, alpha: 1, timer: 200 };
+      window._R3X_SYSLOG_LINES = window._R3X_SYSLOG_LINES || [];
+      window._R3X_SYSLOG_LINES.push("> " + line);
+      if (window._R3X_SYSLOG_LINES.length > 3) window._R3X_SYSLOG_LINES.shift();
       setDialogue(line.toLowerCase());
       setTimeout(() => { if (!state.r3x.moving) r.anim = ROOMS[state.room].idleAnim; }, 2000);
     });
