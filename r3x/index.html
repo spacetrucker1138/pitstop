@@ -187,9 +187,6 @@ const ANIMS = {
   point:    { row: 15, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // pointing + talking
   sleep:    { row: 16, frames: 16, fps:  6,  scale: 1.35, yOffset: 24 },  // plugged in / good night
   charge:   { row: 17, frames: 16, fps: 10,  scale: 1.35, yOffset: 24 },  // battery charging
-  dance:    { row: 20, frames: 16, fps: 12,  scale: 1.35, yOffset: 22 },  // lobby idle (new)
-  fear:     { row: 21, frames: 16, fps: 22,  scale: 1.35, yOffset: 22 },  // phantom flee run
-  burn:     { row: 22, frames: 16, fps: 14,  scale: 1.35, yOffset: 22 },  // power / event anim
   // ── PHANTOM-7 enemy (rows 18-19, 8-frame strips) ──
   phantom_walk: { row: 18, frames: 8,  fps: 10,  scale: 1.25, yOffset: 18 },
   phantom_idle: { row: 19, frames: 8,  fps:  6,  scale: 1.25, yOffset: 18 },
@@ -214,7 +211,7 @@ const ROOMS = {
     ambientText: "Security sweep. All clear.",
     idleAnim: "pingpong",
     idleAnim2: "march",
-    idleAnims: ["pingpong", "march", "sleep", "charge", "dance"],  // extended lobby idle pool
+    idleAnims: ["pingpong", "march", "sleep", "charge"],  // extended lobby idle pool
     walkAnim: "walk",
   },
   code: {
@@ -1151,7 +1148,7 @@ function phantomTick() {
         // Back-away zone — R3X retreats but hasn't been caught yet
         state._phantomAlerted = true;
         r.facing = ph.facing === 1 ? -1 : 1;
-        r.anim = "fear";
+        r.anim = "run";
         const backX = ph.facing === 1 ? 60 : W - 60;
         if (!r.moving) walkTo(backX, null);
       }
@@ -1163,7 +1160,7 @@ function phantomTick() {
     if (Math.abs(dx) < 30) {
       // R3X flinches, runs away
       state._phantomAlerted = false;
-      r.anim = "fear"; r.facing = ph.facing === 1 ? -1 : 1;
+      r.anim = "run"; r.facing = ph.facing === 1 ? -1 : 1;
       const escapeX = ph.facing === 1 ? 80 : W - 80;
       walkTo(escapeX, null);
       setDialogue("intruder. clearing sector.");
@@ -1518,8 +1515,8 @@ function glitchTick() {
       const roomBoxes = ROOMS[localGlitch.room].elements.filter(e => e.type === "box" && e._climbTarget);
       const useClimb = roomBoxes.length >= 2 && Math.random() > 0.5;
       const doClean = () => {
-        state.r3x.anim = "portal";
-        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- detected. cleaning.");
+        state.r3x.anim = "burn";
+        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- flushing sector.");
         setTimeout(() => {
           localGlitch.cleaned = true;
           localGlitch.cleanAge = localGlitch.age;
@@ -1876,12 +1873,12 @@ canvas.addEventListener("click", function(e) {
     });
     if (g) {
       g.cleaning = true;
-      r.anim = "portal";
+      r.anim = "burn";
       setTimeout(() => {
         g.cleaned = true;
         g.cleanAge = g.age;
         delete state.matrixRains["glitch:" + g.room + ":" + g.elIdx];
-        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- cleared.");
+        setDialogue("--G̷̛L̵I̷T̶C̵H̷-- torched.");
         r.anim = ROOMS[state.room].idleAnim;
       }, 1800);
     }
