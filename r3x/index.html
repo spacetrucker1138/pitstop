@@ -194,7 +194,7 @@ const ANIMS = {
   // ── Extra anims (rows 20-22) ──
   dance:        { row: 20, frames: 16, fps: 12,  scale: 1.48, yOffset: 24 },  // lobby idle 3
   fear:         { row: 21, frames: 16, fps: 18,  scale: 1.35, yOffset: 22 },  // phantom flee run
-  burn:         { row: 22, frames: 16, fps: 14,  scale: 1.35, yOffset: 22 },  // glitch clean
+  burn:         { row: 22, frames: 16, fps: 14,  scale: 1.50, yOffset: 22 },  // glitch clean — bumped for flame FX
 };
 
 // ─────────────────────────────────────────────
@@ -216,7 +216,7 @@ const ROOMS = {
     ambientText: "Security sweep. All clear.",
     idleAnim: "pingpong",
     idleAnim2: "march",
-    idleAnims: ["pingpong", "march", "sleep", "charge", "dance"],  // extended lobby idle pool
+    idleAnims: ["march", "sleep", "charge", "dance"],  // pingpong removed from pool - less common
     walkAnim: "walk",
   },
   code: {
@@ -242,12 +242,14 @@ const ROOMS = {
     accent: "#2a0a20",
     floorY: 300,
     elements: [
-      { type: "canvas", x: 80,  y: 100, w: 120, h: 160, color: "#1a0a1a", label: null },
-      { type: "canvas", x: 230, y: 130, w: 90,  h: 120, color: "#180a18", label: null },
-      { type: "table",  x: 450, y: 250, w: 160, h: 50,  color: "#1a0f18", label: null },
-      { type: "light",  x: 680, y: 60,  w: 40,  h: 80,  color: "#2a1a00", label: null },
-      { type: "box",     x: 580, y: 262, w: 40,  h: 38,  color: "#1a0f18", label: "ART", _climbTarget: true },
-      { type: "box",     x: 622, y: 224, w: 40,  h: 38,  color: "#1a0f18", label: null, _climbTarget: true },
+      { type: "painting", x: 75,  y: 90,  w: 130, h: 170, color: "#1a0a1a", label: null, artKey: "art_undead",    frameColor: "#2a0a0a" },
+      { type: "painting", x: 225, y: 125, w: 100, h: 130, color: "#180a18", label: null, artKey: "art_vox",       frameColor: "#1a1a0a" },
+      { type: "painting", x: 360, y: 185, w: 60,  h: 60,  color: "#150a15", label: null, artKey: "art_skullbadge",frameColor: "#0a0a0a" },
+      { type: "easel",    x: 490, y: 145, w: 90,  h: 145, color: "#1a0f18", label: null, artKey: "art_plastic" },
+      { type: "table",    x: 445, y: 250, w: 180, h: 50,  color: "#1a0f18", label: null, artKey: "art_spacerv" },
+      { type: "light",    x: 680, y: 60,  w: 40,  h: 80,  color: "#2a1a00", label: null },
+      { type: "box",      x: 620, y: 262, w: 40,  h: 38,  color: "#1a0f18", label: "ART", _climbTarget: true },
+      { type: "box",      x: 662, y: 224, w: 40,  h: 38,  color: "#1a0f18", label: null, _climbTarget: true },
     ],
     ambientText: "Running the renders.",
     idleAnim: "art",
@@ -340,6 +342,18 @@ window._R3X_SYSLOG_LINES = window._R3X_SYSLOG_LINES || ["> SYSTEM ONLINE", "> R3
 
 const sprite = new Image();
 sprite.src = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/r3x_v5_sprites.webp";
+// Art studio paintings — preloaded for canvas renderer
+const ART_IMGS = {};
+const ART_SRCS = {
+  "art_undead":    "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/art_undead.webp",
+  "art_vox":       "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/art_vox.webp",
+  "art_plastic":   "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/art_plastic.webp",
+  "art_skullbadge":"https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/art_skullbadge.webp",
+  "art_spacerv":   "https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/assets/r3x/art_spacerv.webp",
+};
+Object.entries(ART_SRCS).forEach(([k, src]) => {
+  const img = new Image(); img.src = src; ART_IMGS[k] = img;
+});
 
 let state = {
   room: "lobby",
@@ -883,6 +897,143 @@ function drawElement(el) {
       break;
     }
 
+    case "painting": {
+      // Framed artwork — draws real image with ornate pixel frame
+      const frameColor = el.frameColor || "#2a1a00";
+      const frameW = 5;
+
+      // Outer frame
+      ctx.fillStyle = frameColor;
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+
+      // Inner canvas area
+      const ix = el.x + frameW, iy = el.y + frameW;
+      const iw = el.w - frameW * 2, ih = el.h - frameW * 2;
+
+      // Draw image if loaded
+      const artImg = ART_IMGS && ART_IMGS[el.artKey];
+      if (artImg && artImg.complete && artImg.naturalWidth > 0) {
+        ctx.drawImage(artImg, ix, iy, iw, ih);
+      } else {
+        // Placeholder while loading
+        ctx.fillStyle = "#1a0a1a";
+        ctx.fillRect(ix, iy, iw, ih);
+        ctx.fillStyle = "#ffffff22";
+        ctx.font = "7px 'Courier New'";
+        ctx.textAlign = "center";
+        ctx.fillText("...", el.x + el.w/2, el.y + el.h/2);
+        ctx.textAlign = "left";
+      }
+
+      // Frame highlight/shadow lines for depth
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(el.x+1, el.y+1); ctx.lineTo(el.x+el.w-1, el.y+1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(el.x+1, el.y+1); ctx.lineTo(el.x+1, el.y+el.h-1); ctx.stroke();
+      ctx.strokeStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath(); ctx.moveTo(el.x+el.w-1, el.y+1); ctx.lineTo(el.x+el.w-1, el.y+el.h-1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(el.x+1, el.y+el.h-1); ctx.lineTo(el.x+el.w-1, el.y+el.h-1); ctx.stroke();
+
+      // Mounting wire at top-center
+      ctx.strokeStyle = "#33333366";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(el.x + el.w*0.3, el.y);
+      ctx.lineTo(el.x + el.w/2, el.y - 6);
+      ctx.lineTo(el.x + el.w*0.7, el.y);
+      ctx.stroke();
+      break;
+    }
+
+    case "easel": {
+      // Wooden easel holding a canvas painting
+      const legColor = "#3a2510";
+      const cx3 = el.x + el.w / 2;
+
+      // Two front legs
+      ctx.strokeStyle = legColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(el.x + 8,      el.y + el.h);
+      ctx.lineTo(el.x + el.w/2 - 4, el.y + 20);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(el.x + el.w - 8, el.y + el.h);
+      ctx.lineTo(el.x + el.w/2 + 4, el.y + 20);
+      ctx.stroke();
+      // Back leg
+      ctx.strokeStyle = "#2a1a08";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx3, el.y + el.h);
+      ctx.lineTo(cx3, el.y + 20);
+      ctx.stroke();
+      // Cross brace
+      ctx.strokeStyle = legColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(el.x + 14, el.y + el.h - 30);
+      ctx.lineTo(el.x + el.w - 14, el.y + el.h - 30);
+      ctx.stroke();
+      // Tray ledge
+      ctx.fillStyle = legColor;
+      ctx.fillRect(el.x + 6, el.y + 20, el.w - 12, 4);
+
+      // Canvas on easel
+      const canvasY = el.y + 4;
+      const canvasH = el.h - 50;
+      const canvasW = el.w - 14;
+      const canvasX = el.x + 7;
+
+      ctx.fillStyle = "#eeead4";  // canvas texture
+      ctx.fillRect(canvasX, canvasY, canvasW, canvasH);
+
+      const artImg2 = ART_IMGS && ART_IMGS[el.artKey];
+      if (artImg2 && artImg2.complete && artImg2.naturalWidth > 0) {
+        ctx.drawImage(artImg2, canvasX + 2, canvasY + 2, canvasW - 4, canvasH - 4);
+      } else {
+        ctx.fillStyle = "#d4cdb0";
+        ctx.fillRect(canvasX + 2, canvasY + 2, canvasW - 4, canvasH - 4);
+      }
+
+      // Canvas border
+      ctx.strokeStyle = "#8B6914";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(canvasX, canvasY, canvasW, canvasH);
+      break;
+    }
+
+    case "table": {
+      // Work table — draws surface with optional concept art/blueprint lying on it
+      ctx.fillStyle = el.color || "#1a0f18";
+      ctx.fillRect(el.x, el.y, el.w, el.h);
+      // Table top edge highlight
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      ctx.fillRect(el.x, el.y, el.w, 3);
+      // Table legs
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillRect(el.x + 5,       el.y + el.h, 8, 8);
+      ctx.fillRect(el.x + el.w-13, el.y + el.h, 8, 8);
+      // Art/blueprint on table surface
+      if (el.artKey && ART_IMGS && ART_IMGS[el.artKey]) {
+        const timg = ART_IMGS[el.artKey];
+        if (timg.complete && timg.naturalWidth > 0) {
+          const pad = 4;
+          const tw2 = el.w - pad*2, th2 = el.h - pad - 2;
+          ctx.save();
+          ctx.globalAlpha = 0.85;
+          ctx.drawImage(timg, el.x + pad, el.y + 2, tw2, th2);
+          ctx.restore();
+        }
+      }
+      if (el.label) {
+        ctx.fillStyle = "#ffffff33";
+        ctx.font = "6px 'Courier New'";
+        ctx.fillText(el.label, el.x + 4, el.y + el.h - 3);
+      }
+      break;
+    }
+
     case "door": {
       // Security door — animated panels, status reacts to phantom
       const isAlert = state.phantom && state.phantom.active;
@@ -1254,7 +1405,7 @@ function tick() {
     const hasCycle = !!(room.idleAnims || room.idleAnim2);
     if (hasCycle) {
       // Switch every ~15 seconds (900 frames at 60fps)
-      const switchAt = state.idleCyclePhase === 0 ? 1200 : 720;
+      const switchAt = state.idleCyclePhase === 0 ? 1800 : 1200;  // longer dwell — more wandering
       if (state.idleCycleTimer >= switchAt) {
         state.idleCycleTimer = 0;
         if (room.idleAnims) {
