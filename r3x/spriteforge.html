@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R3X SPRITE FORGE</title>
+  <style>
+    /* ─── RESET & BASE ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0a0f;
+      --bg2:        #111118;
+      --bg3:        #1a1a25;
+      --panel:      #14141e;
+      --border:     #2a2a3e;
+      --neon:       #00ffe7;
+      --neon2:      #ff4fce;
+      --neon3:      #ffe600;
+      --dim:        #4a4a6a;
+      --text:       #c8c8e8;
+      --text-bright:#f0f0ff;
+      --font-mono:  'Courier New', monospace;
+      --font-ui:    'Segoe UI', system-ui, sans-serif;
+      --glow:       0 0 8px var(--neon), 0 0 20px rgba(0,255,231,0.3);
+      --glow2:      0 0 8px var(--neon2), 0 0 20px rgba(255,79,206,0.3);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      overflow: hidden;
+    }
+
+    /* ─── SCANLINE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ─── LAYOUT ─── */
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+      gap: 0;
+    }
+
+    /* ─── HEADER ─── */
+    #header {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      gap: 12px;
+    }
+
+    #logo {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      letter-spacing: 0.18em;
+      color: var(--neon);
+      text-shadow: var(--glow);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #logo span { color: var(--neon2); text-shadow: var(--glow2); }
+
+    /* ─── PREVIEW STRIP (header center) ─── */
+    #preview-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    #preview-canvas {
+      border: 1px solid var(--border);
+      background: #000;
+      image-rendering: pixelated;
+      /* sized by JS */
+    }
+
+    .preview-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .preview-controls label {
+      font-size: 0.7rem;
+      color: var(--dim);
+      font-family: var(--font-mono);
+      letter-spacing: 0.1em;
+    }
+    .preview-controls select {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 2px 6px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+    #preview-speed {
+      width: 80px;
+      accent-color: var(--neon);
+    }
+
+    /* ─── HEADER BUTTONS ─── */
+    .btn {
+      background: transparent;
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      text-transform: uppercase;
+    }
+    .btn:hover {
+      background: rgba(0,255,231,0.1);
+      box-shadow: var(--glow);
+    }
+    .btn.pink {
+      border-color: var(--neon2);
+      color: var(--neon2);
+    }
+    .btn.pink:hover {
+      background: rgba(255,79,206,0.1);
+      box-shadow: var(--glow2);
+    }
+    .btn.yellow {
+      border-color: var(--neon3);
+      color: var(--neon3);
+    }
+    .btn.yellow:hover {
+      background: rgba(255,230,0,0.1);
+      box-shadow: 0 0 8px var(--neon3);
+    }
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* ─── SIDEBAR ─── */
+    #sidebar {
+      grid-row: 2;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0;
+    }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-track { background: var(--bg); }
+    #sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .layer-section {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .layer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      cursor: pointer;
+      background: var(--bg2);
+      user-select: none;
+      transition: background 0.1s;
+    }
+    .layer-header:hover { background: var(--bg3); }
+
+    .layer-title {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--neon);
+    }
+    .layer-header.off .layer-title { color: var(--dim); }
+
+    .layer-toggle {
+      width: 14px; height: 14px;
+      border: 1px solid var(--neon);
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .layer-toggle.on::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: var(--neon);
+    }
+    .layer-header.off .layer-toggle {
+      border-color: var(--dim);
+    }
+
+    .layer-body {
+      padding: 10px 12px;
+      display: none;
+    }
+    .layer-body.open { display: block; }
+
+    .file-drop-zone {
+      border: 1px dashed var(--border);
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--dim);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      margin-bottom: 8px;
+    }
+    .file-drop-zone:hover,
+    .file-drop-zone.drag-over {
+      border-color: var(--neon);
+      color: var(--neon);
+    }
+    .file-drop-zone input[type=file] {
+      display: none;
+    }
+
+    .thumb-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .thumb {
+      width: 48px; height: 48px;
+      border: 1px solid var(--border);
+      background: #000;
+      image-rendering: pixelated;
+      cursor: pointer;
+      object-fit: contain;
+      transition: border-color 0.1s;
+    }
+    .thumb.selected {
+      border-color: var(--neon);
+      box-shadow: 0 0 4px var(--neon);
+    }
+    .thumb-label {
+      font-size: 0.6rem;
+      font-family: var(--font-mono);
+      color: var(--dim);
+      text-align: center;
+      display: block;
+      margin-top: 1px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 48px;
+    }
+
+    .layer-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .layer-meta label {
+      font-size: 0.65rem;
+      color: var(--dim);
+      font-family: var(--font-mono);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .layer-meta input[type=number],
+    .layer-meta input[type=range] {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 3px 6px;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+    }
+    .layer-meta input[type=range] {
+      accent-color: var(--neon);
+      padding: 0;
+    }
+
+    /* ─── MAIN CANVAS AREA ─── */
+    #canvas-area {
+      grid-row: 2;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      border: 1px solid var(--border);
+      box-shadow: 0 0 30px rgba(0,255,231,0.05);
+    }
+    /* checkerboard behind canvas */
+    #canvas-wrap::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(45deg, #1a1a1a 25%, transparent 25%),
+        linear-gradient(-45deg, #1a1a1a 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1a1a1a 75%),
+        linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      background-color: #111;
+      z-index: 0;
+    }
+
+    #spritesheet {
+      position: relative;
+      z-index: 1;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    /* ─── ZOOM BADGE ─── */
+    #zoom-badge {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--dim);
+      padding: 2px 8px;
+      z-index: 10;
+    }
+
+    /* ─── STATUS BAR ─── */
+    #footer {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 5px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--dim);
+    }
+    #footer .status-item span { color: var(--text); }
+    #footer .sep { color: var(--border); }
+    #footer .credit {
+      margin-left: auto;
+      font-size: 0.6rem;
+      color: var(--dim);
+    }
+    #footer .credit a { color: var(--neon); text-decoration: none; }
+    #footer .credit a:hover { text-decoration: underline; }
+
+    /* ─── CHROMA KEY PANEL ─── */
+    #chroma-panel {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    #chroma-panel .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 6px;
+    }
+    .chroma-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .chroma-swatch {
+      width: 14px; height: 14px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chroma-row label {
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      color: var(--text);
+      flex: 1;
+    }
+    .chroma-row input[type=checkbox] {
+      accent-color: var(--neon);
+    }
+
+    /* ─── ANIM SLOTS ─── */
+    #anim-slots-panel {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    #anim-slots-panel .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 6px;
+    }
+    .anim-slot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+    }
+    .anim-slot input[type=checkbox] { accent-color: var(--neon2); }
+    .anim-slot .slot-name { color: var(--text); flex: 1; }
+    .anim-slot .slot-row { color: var(--dim); font-size: 0.6rem; }
+
+    /* ─── TOAST ─── */
+    #toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--panel);
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      padding: 8px 20px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 9999;
+      box-shadow: var(--glow);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div id="logo">R3X <span>SPRITE</span> FORGE</div>
+
+    <div id="preview-wrap">
+      <canvas id="preview-canvas" width="64" height="64"></canvas>
+      <div class="preview-controls">
+        <label>ANIM
+          <select id="preview-anim-select"></select>
+        </label>
+        <label>FPS
+          <input type="range" id="preview-speed" min="1" max="30" value="8">
+        </label>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn pink" id="btn-clear">CLEAR ALL</button>
+      <button class="btn" id="btn-zoom-out">ZOOM -</button>
+      <button class="btn" id="btn-zoom-in">ZOOM +</button>
+      <button class="btn yellow" id="btn-download" disabled>EXPORT PNG</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+
+    <!-- CHROMA KEY -->
+    <div id="chroma-panel">
+      <div class="section-label">CHROMA MASK</div>
+      <div class="chroma-row">
+        <div class="chroma-swatch" style="background:#ff4dff;"></div>
+        <label>True Magenta (R>200, G&lt;20, B>200)</label>
+        <input type="checkbox" id="chroma-magenta" checked>
+      </div>
+      <div class="chroma-row">
+        <div class="chroma-swatch" style="background:#e8446e;"></div>
+        <label>Hot Pink / Gemini BG (R>140, G&lt;80, B>90)</label>
+        <input type="checkbox" id="chroma-hotpink" checked>
+      </div>
+    </div>
+
+    <!-- ANIMATION SLOTS -->
+    <div id="anim-slots-panel">
+      <div class="section-label">OUTPUT ROWS</div>
+      <div id="anim-slots-list"></div>
+    </div>
+
+    <!-- LAYER SECTIONS (populated by JS) -->
+    <div id="layer-list"></div>
+
+  </aside>
+
+  <!-- CANVAS AREA -->
+  <main id="canvas-area">
+    <div id="canvas-wrap">
+      <canvas id="spritesheet"></canvas>
+    </div>
+    <div id="zoom-badge">1x</div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <div class="status-item">CANVAS: <span id="stat-size">—</span></div>
+    <div class="sep">|</div>
+    <div class="status-item">LAYERS: <span id="stat-layers">0</span></div>
+    <div class="sep">|</div>
+    <div class="status-item">ROWS: <span id="stat-rows">—</span></div>
+    <div class="sep">|</div>
+    <div class="status-item" id="stat-msg">DROP SPRITE SHEETS TO BEGIN</div>
+    <div class="credit">
+      CC-BY-SA — LPC assets via <a href="https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles" target="_blank">OpenGameArt</a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  R3X SPRITE FORGE — Self-contained compositor
+//  Inspired by BenCreating/LPC-Spritesheet-Generator (CC-BY-SA)
+//  R3X UI by The JURN / thejurn.com
+// ═══════════════════════════════════════════════════════════
+
+// ─── R3X ANIMATION TABLE ───
+// Rows 0-17 = R3X, Row 18-19 = PHANTOM-7, Row 20 = dance, Row 21 = fear, Row 22 = burn
+const R3X_ANIMS = [
+  { id: 'idle',       label: 'IDLE',            rows: 1, cols: 4,  enabled: true,  r3xRow: 0  },
+  { id: 'walk_n',     label: 'WALK N',          rows: 1, cols: 8,  enabled: true,  r3xRow: 1  },
+  { id: 'walk_nw',    label: 'WALK NW',         rows: 1, cols: 8,  enabled: true,  r3xRow: 2  },
+  { id: 'walk_w',     label: 'WALK W',          rows: 1, cols: 8,  enabled: true,  r3xRow: 3  },
+  { id: 'walk_sw',    label: 'WALK SW',         rows: 1, cols: 8,  enabled: true,  r3xRow: 4  },
+  { id: 'walk_s',     label: 'WALK S',          rows: 1, cols: 8,  enabled: true,  r3xRow: 5  },
+  { id: 'walk_se',    label: 'WALK SE',         rows: 1, cols: 8,  enabled: true,  r3xRow: 6  },
+  { id: 'walk_e',     label: 'WALK E',          rows: 1, cols: 8,  enabled: true,  r3xRow: 7  },
+  { id: 'walk_ne',    label: 'WALK NE',         rows: 1, cols: 8,  enabled: true,  r3xRow: 8  },
+  { id: 'run',        label: 'RUN',             rows: 1, cols: 6,  enabled: true,  r3xRow: 9  },
+  { id: 'slash',      label: 'SLASH',           rows: 1, cols: 6,  enabled: false, r3xRow: 10 },
+  { id: 'thrust',     label: 'THRUST',          rows: 1, cols: 8,  enabled: false, r3xRow: 11 },
+  { id: 'shoot',      label: 'SHOOT',           rows: 1, cols: 13, enabled: false, r3xRow: 12 },
+  { id: 'cast',       label: 'CAST',            rows: 1, cols: 7,  enabled: false, r3xRow: 13 },
+  { id: 'hurt',       label: 'HURT',            rows: 1, cols: 6,  enabled: true,  r3xRow: 14 },
+  { id: 'die',        label: 'DIE',             rows: 1, cols: 6,  enabled: true,  r3xRow: 15 },
+  { id: 'jump',       label: 'JUMP',            rows: 1, cols: 5,  enabled: true,  r3xRow: 16 },
+  { id: 'sit',        label: 'SIT',             rows: 1, cols: 3,  enabled: false, r3xRow: 17 },
+  { id: 'phantom_a',  label: 'PHANTOM-7 A',     rows: 1, cols: 4,  enabled: false, r3xRow: 18 },
+  { id: 'phantom_b',  label: 'PHANTOM-7 B',     rows: 1, cols: 4,  enabled: false, r3xRow: 19 },
+  { id: 'dance',      label: 'DANCE',           rows: 1, cols: 8,  enabled: true,  r3xRow: 20 },
+  { id: 'fear',       label: 'FEAR (Phantom chase)', rows: 1, cols: 6, enabled: true, r3xRow: 21 },
+  { id: 'burn',       label: 'BURN (Glitch clean)',  rows: 1, cols: 8, enabled: true, r3xRow: 22 },
+];
+
+// ─── LAYER DEFINITIONS ───
+const LAYER_DEFS = [
+  { id: 'body',     label: 'BODY',        z: 1  },
+  { id: 'head',     label: 'HEAD',        z: 2  },
+  { id: 'arms',     label: 'ARMS',        z: 3  },
+  { id: 'torso',    label: 'TORSO',       z: 4  },
+  { id: 'legs',     label: 'LEGS',        z: 5  },
+  { id: 'weapon',   label: 'WEAPON',      z: 6  },
+  { id: 'overlay1', label: 'OVERLAY A',   z: 7  },
+  { id: 'overlay2', label: 'OVERLAY B',   z: 8  },
+];
+
+// ─── STATE ───
+const state = {
+  layers: {},      // layerId -> { enabled, sheets: [{anim_id, img, canvas, name}], frameSize, scale, yOffset }
+  zoom: 2,
+  previewAnim: 'walk_s',
+  previewFPS: 8,
+  previewFrame: 0,
+  previewTimer: null,
+};
+
+// Init layers
+LAYER_DEFS.forEach(def => {
+  state.layers[def.id] = { enabled: false, sheets: [], frameSize: 64, scale: 1.0, yOffset: 0, z: def.z };
+});
+
+// ─── DOM REFS ───
+const $canvas     = document.getElementById('spritesheet');
+const $preview    = document.getElementById('preview-canvas');
+const $ctx        = $canvas.getContext('2d');
+const $prevCtx    = $preview.getContext('2d');
+const $zoomBadge  = document.getElementById('zoom-badge');
+const $statSize   = document.getElementById('stat-size');
+const $statLayers = document.getElementById('stat-layers');
+const $statRows   = document.getElementById('stat-rows');
+const $statMsg    = document.getElementById('stat-msg');
+const $btnDownload= document.getElementById('btn-download');
+const $animSelect = document.getElementById('preview-anim-select');
+const $toast      = document.getElementById('toast');
+
+// ─── TOAST ───
+function toast(msg, duration=2200) {
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  setTimeout(() => $toast.classList.remove('show'), duration);
+}
+
+// ─── BUILD SIDEBAR ───
+function buildSidebar() {
+  // Anim slots
+  const $list = document.getElementById('anim-slots-list');
+  $list.innerHTML = '';
+  R3X_ANIMS.forEach(anim => {
+    const div = document.createElement('div');
+    div.className = 'anim-slot';
+    div.innerHTML = `
+      <input type="checkbox" id="anim-${anim.id}" ${anim.enabled ? 'checked' : ''} data-anim="${anim.id}">
+      <span class="slot-name">${anim.label}</span>
+      <span class="slot-row">R${anim.r3xRow}</span>
+    `;
+    div.querySelector('input').addEventListener('change', () => redraw());
+    $list.appendChild(div);
+  });
+
+  // Layer sections
+  const $layerList = document.getElementById('layer-list');
+  $layerList.innerHTML = '';
+  LAYER_DEFS.forEach(def => {
+    const section = document.createElement('div');
+    section.className = 'layer-section';
+    section.dataset.layerId = def.id;
+
+    section.innerHTML = `
+      <div class="layer-header off" data-layer="${def.id}">
+        <span class="layer-title">${def.label}</span>
+        <div class="layer-toggle" data-toggle="${def.id}"></div>
+      </div>
+      <div class="layer-body" data-body="${def.id}">
+        <div class="file-drop-zone" data-zone="${def.id}">
+          <input type="file" accept="image/png,image/gif" multiple data-input="${def.id}">
+          DROP SHEET(S) HERE<br><span style="font-size:0.6rem;color:var(--dim)">or click to browse</span>
+        </div>
+        <div class="thumb-row" data-thumbs="${def.id}"></div>
+        <div class="layer-meta">
+          <label>FRAME SIZE (px)
+            <input type="number" min="8" max="256" value="64" step="8" data-framesize="${def.id}">
+          </label>
+          <label>SCALE
+            <input type="number" min="0.1" max="4" value="1.0" step="0.05" data-scale="${def.id}">
+          </label>
+          <label>Y OFFSET (px)
+            <input type="number" min="-256" max="256" value="0" step="1" data-yoffset="${def.id}">
+          </label>
+          <label>Z ORDER
+            <input type="number" min="0" max="20" value="${def.z}" step="1" data-zorder="${def.id}">
+          </label>
+        </div>
+      </div>
+    `;
+    $layerList.appendChild(section);
+
+    // Toggle header click
+    const header = section.querySelector('.layer-header');
+    header.addEventListener('click', e => {
+      if (e.target.dataset.toggle) return; // handled separately below
+      const body = section.querySelector('.layer-body');
+      body.classList.toggle('open');
+    });
+
+    // Toggle checkbox
+    const toggle = section.querySelector('.layer-toggle');
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      const layer = state.layers[def.id];
+      layer.enabled = !layer.enabled;
+      toggle.classList.toggle('on', layer.enabled);
+      header.classList.toggle('off', !layer.enabled);
+      redraw();
+    });
+
+    // Drop zone
+    const zone = section.querySelector('.file-drop-zone');
+    const input = zone.querySelector('input[type=file]');
+    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      handleFiles(def.id, [...e.dataTransfer.files]);
+    });
+    input.addEventListener('change', () => handleFiles(def.id, [...input.files]));
+
+    // Param changes
+    section.querySelector(`[data-framesize="${def.id}"]`).addEventListener('change', e => {
+      state.layers[def.id].frameSize = parseInt(e.target.value) || 64;
+      redraw();
+    });
+    section.querySelector(`[data-scale="${def.id}"]`).addEventListener('change', e => {
+      state.layers[def.id].scale = parseFloat(e.target.value) || 1;
+      redraw();
+    });
+    section.querySelector(`[data-yoffset="${def.id}"]`).addEventListener('change', e => {
+      state.layers[def.id].yOffset = parseInt(e.target.value) || 0;
+      redraw();
+    });
+    section.querySelector(`[data-zorder="${def.id}"]`).addEventListener('change', e => {
+      state.layers[def.id].z = parseInt(e.target.value) || def.z;
+      redraw();
+    });
+  });
+}
+
+// ─── FILE HANDLER ───
+function handleFiles(layerId, files) {
+  const layer = state.layers[layerId];
+  const pngFiles = files.filter(f => f.type === 'image/png' || f.name.endsWith('.png'));
+  if (!pngFiles.length) { toast('PNG files only'); return; }
+
+  pngFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        // Try to match to an anim slot by filename
+        const baseName = file.name.replace(/\.png$/i,'').toLowerCase();
+        const matched = R3X_ANIMS.find(a =>
+          baseName.includes(a.id) || baseName.includes(a.label.toLowerCase().replace(/ /g,'_'))
+        );
+        const animId = matched ? matched.id : null;
+
+        // Create offscreen canvas for this sheet
+        const oc = document.createElement('canvas');
+        oc.width = img.width; oc.height = img.height;
+        const octx = oc.getContext('2d');
+        octx.drawImage(img, 0, 0);
+        applyChroma(octx, oc.width, oc.height);
+
+        layer.sheets.push({ animId, img, canvas: oc, name: file.name });
+        layer.enabled = true;
+
+        // Enable the toggle
+        const toggle = document.querySelector(`[data-toggle="${layerId}"]`);
+        const header = document.querySelector(`[data-layer="${layerId}"]`);
+        toggle.classList.add('on');
+        header.classList.remove('off');
+
+        // Add thumb
+        const thumbRow = document.querySelector(`[data-thumbs="${layerId}"]`);
+        const wrap = document.createElement('div');
+        wrap.style.display = 'inline-flex'; wrap.style.flexDirection = 'column'; wrap.style.alignItems = 'center';
+        const thumb = document.createElement('canvas');
+        thumb.className = 'thumb';
+        // Show first frame
+        const fs = layer.frameSize;
+        thumb.width = 48; thumb.height = 48;
+        const tctx = thumb.getContext('2d');
+        tctx.imageSmoothingEnabled = false;
+        tctx.drawImage(oc, 0, 0, Math.min(fs, oc.width), Math.min(fs, oc.height), 0, 0, 48, 48);
+        const lbl = document.createElement('span');
+        lbl.className = 'thumb-label';
+        lbl.textContent = animId ? animId : file.name.replace(/\.png$/i,'').slice(0,7);
+        wrap.appendChild(thumb);
+        wrap.appendChild(lbl);
+        thumbRow.appendChild(wrap);
+
+        updateLayerCount();
+        redraw();
+        toast(`✓ ${file.name}${animId ? ' → '+animId : ''}`);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ─── CHROMA KEY ───
+function applyChroma(ctx, w, h) {
+  const doMagenta = document.getElementById('chroma-magenta').checked;
+  const doHotpink = document.getElementById('chroma-hotpink').checked;
+  if (!doMagenta && !doHotpink) return;
+
+  const id = ctx.getImageData(0, 0, w, h);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    let hit = false;
+    if (doMagenta && r > 200 && g < 20 && b > 200) hit = true;
+    if (doHotpink && r > 140 && g < 80 && b > 90 && (r - g) > 80) hit = true;
+    if (hit) { d[i+3] = 0; }
+  }
+  ctx.putImageData(id, 0, 0);
+}
+
+// ─── REDRAW ───
+function redraw() {
+  const enabledAnims = R3X_ANIMS.filter(a => {
+    const cb = document.getElementById(`anim-${a.id}`);
+    return cb && cb.checked;
+  });
+
+  const activeLayers = Object.entries(state.layers)
+    .filter(([,l]) => l.enabled && l.sheets.length > 0)
+    .sort((a,b) => a[1].z - b[1].z);
+
+  if (!activeLayers.length || !enabledAnims.length) {
+    $canvas.width = 320; $canvas.height = 64;
+    $ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+    applyZoom();
+    $statSize.textContent = '—';
+    $statRows.textContent = '0';
+    $btnDownload.disabled = true;
+    return;
+  }
+
+  // Determine frame size (max across all active layers)
+  let frameSize = 0;
+  activeLayers.forEach(([id, l]) => { if (l.frameSize > frameSize) frameSize = l.frameSize; });
+  if (!frameSize) frameSize = 64;
+
+  // Canvas dimensions
+  const maxCols = Math.max(...enabledAnims.map(a => a.cols));
+  const totalRows = enabledAnims.length;
+  $canvas.width  = maxCols * frameSize;
+  $canvas.height = totalRows * frameSize;
+
+  $ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+
+  // Draw each animation row per layer
+  enabledAnims.forEach((anim, rowIdx) => {
+    const y = rowIdx * frameSize;
+
+    activeLayers.forEach(([layerId, layer]) => {
+      // Find best matching sheet for this anim
+      const sheet = layer.sheets.find(s => s.animId === anim.id)
+                 || layer.sheets[0]; // fallback: use first sheet
+      if (!sheet) return;
+
+      const srcFS = layer.frameSize || 64;
+      const scale = layer.scale || 1;
+      const yOff  = layer.yOffset || 0;
+      const cols  = anim.cols;
+
+      for (let col = 0; col < cols; col++) {
+        const srcX = col * srcFS;
+        const srcY = 0; // single-row sheets from user uploads
+        const dstX = col * frameSize;
+        const dstY = y + yOff;
+
+        const drawW = srcFS * scale;
+        const drawH = srcFS * scale;
+        const centerX = dstX + (frameSize - drawW) / 2;
+        const centerY = dstY + (frameSize - drawH) / 2;
+
+        // Only draw if source pixel exists
+        if (srcX + srcFS <= sheet.canvas.width) {
+          $ctx.drawImage(
+            sheet.canvas,
+            srcX, srcY, srcFS, srcFS,
+            centerX, centerY, drawW, drawH
+          );
+        }
+      }
+    });
+  });
+
+  applyZoom();
+  $statSize.textContent = `${$canvas.width}×${$canvas.height}`;
+  $statRows.textContent = `${totalRows}`;
+  $statMsg.textContent = 'READY';
+  $btnDownload.disabled = false;
+
+  updatePreview(enabledAnims, activeLayers, frameSize);
+}
+
+// ─── ZOOM ───
+function applyZoom() {
+  const z = state.zoom;
+  $canvas.style.width  = ($canvas.width  * z) + 'px';
+  $canvas.style.height = ($canvas.height * z) + 'px';
+  $zoomBadge.textContent = `${z}x`;
+}
+
+document.getElementById('btn-zoom-in').addEventListener('click', () => {
+  state.zoom = Math.min(state.zoom + 1, 8);
+  applyZoom();
+});
+document.getElementById('btn-zoom-out').addEventListener('click', () => {
+  state.zoom = Math.max(state.zoom - 1, 1);
+  applyZoom();
+});
+
+// ─── PREVIEW ───
+function buildPreviewSelect() {
+  $animSelect.innerHTML = '';
+  R3X_ANIMS.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.label;
+    $animSelect.appendChild(opt);
+  });
+  $animSelect.value = state.previewAnim;
+  $animSelect.addEventListener('change', () => {
+    state.previewAnim = $animSelect.value;
+    state.previewFrame = 0;
+  });
+}
+
+document.getElementById('preview-speed').addEventListener('input', e => {
+  state.previewFPS = parseInt(e.target.value);
+  restartPreviewTimer();
+});
+
+function updatePreview(enabledAnims, activeLayers, frameSize) {
+  const anim = enabledAnims.find(a => a.id === state.previewAnim) || enabledAnims[0];
+  if (!anim) return;
+
+  const rowIdx = enabledAnims.indexOf(anim);
+  const pFS = 64; // preview frame size
+  $preview.width = pFS; $preview.height = pFS;
+
+  stopPreviewTimer();
+  startPreviewTimer(anim, rowIdx, activeLayers, frameSize);
+}
+
+let _previewInterval = null;
+function stopPreviewTimer() { if (_previewInterval) clearInterval(_previewInterval); }
+function startPreviewTimer(anim, rowIdx, activeLayers, frameSize) {
+  let frame = 0;
+  _previewInterval = setInterval(() => {
+    $prevCtx.clearRect(0, 0, 64, 64);
+    $prevCtx.imageSmoothingEnabled = false;
+
+    const srcX = frame * frameSize;
+    const srcY = rowIdx * frameSize;
+
+    $prevCtx.drawImage(
+      $canvas,
+      srcX, srcY, frameSize, frameSize,
+      0, 0, 64, 64
+    );
+
+    frame = (frame + 1) % anim.cols;
+  }, 1000 / state.previewFPS);
+}
+function restartPreviewTimer() { stopPreviewTimer(); }
+
+// ─── CLEAR ───
+document.getElementById('btn-clear').addEventListener('click', () => {
+  LAYER_DEFS.forEach(def => {
+    const layer = state.layers[def.id];
+    layer.enabled = false;
+    layer.sheets = [];
+    const toggle = document.querySelector(`[data-toggle="${def.id}"]`);
+    const header = document.querySelector(`[data-layer="${def.id}"]`);
+    if (toggle) toggle.classList.remove('on');
+    if (header) header.classList.add('off');
+    const thumbRow = document.querySelector(`[data-thumbs="${def.id}"]`);
+    if (thumbRow) thumbRow.innerHTML = '';
+  });
+  updateLayerCount();
+  redraw();
+  toast('CLEARED');
+});
+
+// ─── DOWNLOAD ───
+document.getElementById('btn-download').addEventListener('click', () => {
+  $canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = 'r3x-spritesheet.png';
+    a.href = url;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    toast('PNG EXPORTED');
+  }, 'image/png');
+});
+
+// ─── CHROMA CHECKBOXES (re-apply on change) ───
+['chroma-magenta','chroma-hotpink'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    // Re-process all loaded sheets
+    LAYER_DEFS.forEach(def => {
+      const layer = state.layers[def.id];
+      layer.sheets.forEach(sheet => {
+        const ctx = sheet.canvas.getContext('2d');
+        ctx.drawImage(sheet.img, 0, 0);
+        applyChroma(ctx, sheet.canvas.width, sheet.canvas.height);
+      });
+    });
+    redraw();
+  });
+});
+
+// ─── STAT HELPERS ───
+function updateLayerCount() {
+  const count = Object.values(state.layers).filter(l => l.enabled && l.sheets.length).length;
+  $statLayers.textContent = count;
+}
+
+// ─── INIT ───
+buildSidebar();
+buildPreviewSelect();
+redraw();
+</script>
+</body>
+</html>
