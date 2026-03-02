@@ -1495,7 +1495,8 @@ function builderLoadImages() {
             bState.canvases[cacheKey] = c;
             resolve();
           };
-          img.src = dataUrl;
+          img.onerror = () => { console.warn('Builder img failed:', cacheKey); resolve(); };
+            img.src = (dataUrl.startsWith('data:') ? dataUrl : 'data:image/png;base64,' + dataUrl);
         });
         promises.push(p);
       });
