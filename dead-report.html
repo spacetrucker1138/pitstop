@@ -45,6 +45,17 @@
       background: #0a0a1a;
       box-shadow: 0 0 40px rgba(255, 0, 200, 0.18);
     }
+    /* Black flash-guard: covers the 1-frame bg flicker on src change */
+    .dr-flash-guard {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      z-index: 3;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.05s;
+    }
+    .dr-flash-guard.active { opacity: 1; }
 
     /* ---- Ken Burns background ---- */
     .dr-bg {
@@ -150,10 +161,11 @@
       left: 0;
       right: 0;
       background: rgba(196,0,168,0.85);
-      color: #000;
+      color: #fff;
       font-family: 'VT323', monospace;
-      font-size: clamp(0.45rem, 1vw, 0.7rem);
-      letter-spacing: 0.05em;
+      font-size: clamp(0.55rem, 1.2vw, 0.82rem);
+      font-weight: 700;
+      letter-spacing: 0.07em;
       text-align: center;
       padding: 0.1em 0.3em;
       text-transform: uppercase;
@@ -344,6 +356,7 @@
       <!-- Vox anchor video (full stage) -->
       <video class="dr-vox-video" id="dr-vox-video"
              autoplay muted playsinline preload="auto"></video>
+      <div class="dr-flash-guard" id="dr-flash-guard"></div>
 
       <!-- Location nameplate top-left -->
       <div class="dr-location-badge font-elite" id="dr-loc-badge">&bull; LOCATING &bull;</div>
@@ -352,7 +365,7 @@
       <div class="dr-box-breaking">
         <span class="dr-label font-vt323">BREAKING</span>
         <span class="dr-value" id="dr-temp">&mdash;</span>
-        <span class="dr-unit" id="dr-temp-unit">&deg;F</span>
+        <span class="dr-unit" id="dr-temp-unit">F</span>
       </div>
 
       <!-- PiP location thumbnail ABOVE lower third -->
@@ -497,17 +510,31 @@ var deadReport = (function () {
     return pick(VOX_CLIPS);
   }
 
+  var _staticTimer = null;
   function playStatic(nextClip) {
     _nextClip = nextClip;
+    if (_staticTimer) { clearTimeout(_staticTimer); _staticTimer = null; }
     video.src = STATIC_CLIP;
     video.loop = false;
-    video.play().catch(function(){}); /* autoplay policy safety */
+    video.play().catch(function(){});
+    _staticTimer = setTimeout(function() {
+      _staticTimer = null;
+      onVideoEnded();
+    }, 500);
   }
 
+  var _flashGuard = null;
   function playClip(src) {
+    if (!_flashGuard) _flashGuard = document.getElementById('dr-flash-guard');
+    if (_flashGuard) _flashGuard.classList.add('active');
     video.src = src;
     video.loop = false;
     video.play().catch(function(){});
+    /* Remove guard once first frame is decoded */
+    video.addEventListener('playing', function _onPlaying() {
+      video.removeEventListener('playing', _onPlaying);
+      if (_flashGuard) _flashGuard.classList.remove('active');
+    });
   }
 
   function onVideoEnded() {
@@ -596,7 +623,7 @@ var deadReport = (function () {
       var tempF = unit === 'F' ? temp : (temp * 9/5 + 32);
 
       setEl('dr-temp',      temp + '\u00b0');
-      setEl('dr-temp-unit', '\u00b0' + unit + ' \u2022 ' + loc.name.toUpperCase());
+      setEl('dr-temp-unit', unit + ' • ' + loc.name.toUpperCase());
       setEl('dr-wind',      p.windSpeed + ' ' + p.windDirection);
       setEl('dr-cond',      p.shortForecast);
       setEl('dr-time',      formatTime(p.startTime));
@@ -638,18 +665,46 @@ var deadReport = (function () {
 </script>
 
   <!-- ══ DEAD REPORT SOUNDTRACK + GIBBERISH ══ -->
-  <audio id="dr-audio" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/hauntedweathermusic.mp3" loop preload="none"></audio>
+  <audio id="dr-audio-0" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/hauntedweathermusic.mp3" loop preload="none"></audio>
+  <audio id="dr-audio-1" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/haunt1.mp3" loop preload="none"></audio>
+  <audio id="dr-audio-2" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/haunt2.mp3" loop preload="none"></audio>
+  <audio id="dr-audio-3" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/haunt3.mp3" loop preload="none"></audio>
+  <audio id="dr-audio-4" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/haunt4.mp3" loop preload="none"></audio>
   <audio id="dr-vox-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/voxGibberish.mp3" preload="auto"></audio>
   <audio id="dr-queen-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/thrashQueengibberish.mp3" preload="auto"></audio>
 
+  <div id="audio-controls">
+  <input id="audio-volume" type="range" min="0" max="100" step="1" value="22"
+         title="Volume" aria-label="Volume" orient="vertical">
   <button id="audio-toggle" title="Toggle music" aria-label="Toggle music">🔇</button>
+</div>
 
   <style>
-    #audio-toggle {
+    #audio-controls {
       position: fixed;
       bottom: 14px;
       right: 14px;
       z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    /* Vertical slider */
+    #audio-volume {
+      writing-mode: vertical-lr;
+      direction: rtl;
+      -webkit-appearance: slider-vertical;
+      appearance: slider-vertical;
+      width: 22px;
+      height: 80px;
+      cursor: pointer;
+      accent-color: #c400a8;
+      opacity: 0.75;
+      transition: opacity 0.2s;
+    }
+    #audio-volume:hover { opacity: 1; }
+    #audio-toggle {
       background: rgba(0,0,0,0.7);
       border: 1px solid #8b0000;
       color: #ccc;
@@ -673,52 +728,87 @@ var deadReport = (function () {
 
   <script>
     (function() {
-      var bgMusic     = document.getElementById('dr-audio');
-      var voxGib      = document.getElementById('dr-vox-gib');
-      var queenGib    = document.getElementById('dr-queen-gib');
-      var btn         = document.getElementById('audio-toggle');
-      var bgStarted   = false;
-      var bgMuted     = false;
+      /* ── Music pool: pick one track at random on load ── */
+      var MUSIC_TRACKS = [
+        document.getElementById('dr-audio-0'),
+        document.getElementById('dr-audio-1'),
+        document.getElementById('dr-audio-2'),
+        document.getElementById('dr-audio-3'),
+        document.getElementById('dr-audio-4')
+      ];
+      var bgMusic = MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)];
 
-      /* ── Background music ── */
-      bgMusic.volume = 0.22;
+      var voxGib   = document.getElementById('dr-vox-gib');
+      var queenGib = document.getElementById('dr-queen-gib');
+      var btn      = document.getElementById('audio-toggle');
+      var slider   = document.getElementById('audio-volume');
+      var bgStarted = false;
+      var bgMuted   = false;
 
+      /* ── Volume: restore from localStorage ── */
+      var savedVol = parseFloat(localStorage.getItem('dr-volume'));
+      var initVol  = (!isNaN(savedVol) && savedVol >= 0 && savedVol <= 1) ? savedVol : 0.22;
+      bgMusic.volume = initVol;
+      if (slider) slider.value = Math.round(initVol * 100);
+
+      function setAllVolume(v) {
+        bgMusic.volume   = v;
+        /* gibberish volumes scale relative to music */
+        voxGib.volume   = Math.min(1, v * 2.45);   /* ~0.54 at v=0.22 */
+        queenGib.volume = Math.min(1, v * 2.95);   /* ~0.65 at v=0.22 */
+        localStorage.setItem('dr-volume', v);
+      }
+
+      /* ── Volume slider ── */
+      if (slider) {
+        slider.value = Math.round(initVol * 100);
+        slider.addEventListener('input', function() {
+          var v = parseInt(this.value, 10) / 100;
+          setAllVolume(v);
+        });
+      }
+
+      /* ── Start music on first interaction ── */
       function startBgMusic() {
         if (bgStarted) return;
         bgStarted = true;
         bgMusic.play().then(function() {
-          btn.textContent = '🔊';
+          btn.textContent = '\uD83D\uDD0A'; /* 🔊 */
         }).catch(function(){});
-        document.removeEventListener('click',     startBgMusic);
-        document.removeEventListener('keydown',   startBgMusic);
+        document.removeEventListener('click',      startBgMusic);
+        document.removeEventListener('keydown',    startBgMusic);
         document.removeEventListener('touchstart', startBgMusic);
       }
 
-      document.addEventListener('click',     startBgMusic, { once: true });
-      document.addEventListener('keydown',   startBgMusic, { once: true });
+      document.addEventListener('click',      startBgMusic, { once: true });
+      document.addEventListener('keydown',    startBgMusic, { once: true });
       document.addEventListener('touchstart', startBgMusic, { once: true });
 
+      /* ── Mute toggle ── */
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         if (!bgStarted) {
           bgStarted = true;
           bgMusic.play().then(function() {
             bgMuted = false;
-            btn.textContent = '🔊';
+            btn.textContent = '\uD83D\uDD0A';
           }).catch(function(){});
           return;
         }
         bgMuted = !bgMuted;
-        bgMusic.muted = bgMuted;
+        bgMusic.muted  = bgMuted;
         voxGib.muted   = bgMuted;
         queenGib.muted = bgMuted;
-        btn.textContent = bgMuted ? '🔇' : '🔊';
+        btn.textContent = bgMuted ? '\uD83D\uDD07' : '\uD83D\uDD0A'; /* 🔇 / 🔊 */
       });
 
       /* ── Gibberish engine ── */
-      var VOX_GIB_LOOP_MIN = 5; /* seconds before end to cut and re-randomize */
-      var _queenTimer = null;   /* setTimeout for switching to queen gib at 14s */
+      var VOX_GIB_LOOP_MIN = 5;
+      var _queenTimer = null;
       var _isQueenPlaying = false;
+
+      /* init volumes from saved level */
+      setAllVolume(initVol);
 
       function stopAllGibberish() {
         voxGib.pause();
@@ -727,7 +817,6 @@ var deadReport = (function () {
         queenGib.currentTime = 0;
         if (_queenTimer) { clearTimeout(_queenTimer); _queenTimer = null; }
         _isQueenPlaying = false;
-        // remove re-loop listener
         voxGib.removeEventListener('timeupdate', _voxGibLoopCheck);
       }
 
@@ -740,7 +829,6 @@ var deadReport = (function () {
       function _voxGibLoopCheck() {
         var dur = voxGib.duration;
         if (!dur || isNaN(dur)) return;
-        // When within 5s of end, jump to new random start
         if (voxGib.currentTime >= dur - VOX_GIB_LOOP_MIN) {
           voxGib.currentTime = _randomVoxStart();
         }
@@ -748,7 +836,6 @@ var deadReport = (function () {
 
       function playVoxGibberish() {
         stopAllGibberish();
-        voxGib.volume = 0.54;
         if (voxGib.readyState >= 1) {
           voxGib.currentTime = _randomVoxStart();
         } else {
@@ -756,15 +843,13 @@ var deadReport = (function () {
             voxGib.currentTime = _randomVoxStart();
           }, { once: true });
         }
-        voxGib.loop = false; /* we handle looping manually for randomness */
+        voxGib.loop = false;
         voxGib.addEventListener('timeupdate', _voxGibLoopCheck);
         voxGib.play().catch(function(){});
       }
 
       function playQueenSequence() {
-        /* First 14s: voxGibberish */
         stopAllGibberish();
-        voxGib.volume = 0.54;
         if (voxGib.readyState >= 1) {
           voxGib.currentTime = _randomVoxStart();
         } else {
@@ -777,11 +862,9 @@ var deadReport = (function () {
         voxGib.play().catch(function(){});
         _isQueenPlaying = true;
 
-        /* At 14s → switch to thrashQueengibberish, runs to end of video */
         _queenTimer = setTimeout(function() {
           voxGib.removeEventListener('timeupdate', _voxGibLoopCheck);
           voxGib.pause();
-          queenGib.volume = 0.65;
           queenGib.currentTime = 0;
           queenGib.loop = false;
           queenGib.play().catch(function(){});
@@ -789,10 +872,6 @@ var deadReport = (function () {
         }, 10000);
       }
 
-      /* ── Hook into the video sequencer ──
-         The sequencer calls playClip(src) for each clip.
-         We patch in after DOMContentLoaded so deadReport is already defined.
-      */
       document.addEventListener('DOMContentLoaded', function() {
         var vid = document.getElementById('dr-vox-video');
         if (!vid) return;
@@ -801,22 +880,12 @@ var deadReport = (function () {
           var src = vid.src || vid.currentSrc || '';
           var isStatic = src.indexOf('static.mp4') !== -1;
           var isQueen  = src.indexOf('voxvqueen.mp4') !== -1;
-
-          if (isStatic) {
-            /* Static seam — stop gibberish, silence */
-            stopAllGibberish();
-          } else if (isQueen) {
-            /* Trash Queen special sequence */
-            playQueenSequence();
-          } else {
-            /* Normal Vox clip — random-start voxGibberish */
-            playVoxGibberish();
-          }
+          if (isStatic)      { stopAllGibberish(); }
+          else if (isQueen)  { playQueenSequence(); }
+          else               { playVoxGibberish(); }
         });
 
-        vid.addEventListener('ended', function() {
-          stopAllGibberish();
-        });
+        vid.addEventListener('ended', function() { stopAllGibberish(); });
       });
 
     })();
