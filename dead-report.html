@@ -543,6 +543,7 @@ var deadReport = (function () {
   function playStatic(nextClip) {
     _nextClip = nextClip;
     if (_staticTimer) { clearTimeout(_staticTimer); _staticTimer = null; }
+    video.style.zIndex = '999';   /* static covers entire UI */
     video.src = STATIC_CLIP;
     video.loop = false;
     video.play().catch(function(){});
@@ -556,6 +557,7 @@ var deadReport = (function () {
   function playClip(src) {
     if (!_flashGuard) _flashGuard = document.getElementById('dr-flash-guard');
     if (_flashGuard) _flashGuard.classList.add('active');
+    video.style.zIndex = '2';     /* restore UI layers over video */
     video.src = src;
     video.loop = false;
     video.play().catch(function(){});
