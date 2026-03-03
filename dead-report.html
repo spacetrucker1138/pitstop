@@ -703,10 +703,7 @@ var deadReport = (function () {
   }
 
   function roll() {
-    var available = currentLoc
-      ? LOCATIONS.filter(function(l) { return l.slug !== currentLoc.slug; })
-      : LOCATIONS;
-    loadLocation(pick(available));
+    location.reload();
   }
 
   document.addEventListener('DOMContentLoaded', function() {
