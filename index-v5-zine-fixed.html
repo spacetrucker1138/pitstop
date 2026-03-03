@@ -1,1 +1,317 @@
-PYEOF_V5_PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="The JURN — Horror Punk from the Grave. Music, animation, and transmissions from the Afterverse.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+  <style>
+    /* ---- V5: ZINE FIXED — tighter columns, no dead centre ---- */
+
+    .v5-above-fold {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 55% 45%;
+      padding-top: 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Left identity column */
+    .v5-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem 2.5rem 4rem 2rem;
+      border-right: 1px solid var(--glass-border);
+    }
+
+    .v5-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--neon-green);
+      margin-bottom: 1.25rem;
+      font-family: 'Courier New', monospace;
+    }
+
+    .v5-main-title {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(3.5rem, 7vw, 7rem);
+      color: var(--bone-white);
+      line-height: 0.9;
+      margin-bottom: 1.25rem;
+    }
+    .v5-main-title .accent {
+      color: var(--neon-green);
+      text-shadow: 0 0 30px rgba(57,255,20,0.5), 0 0 80px rgba(57,255,20,0.2);
+      display: block;
+    }
+
+    .v5-sub {
+      font-size: 0.82rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1.5rem;
+      border-left: 2px solid var(--neon-purple);
+      padding-left: 1rem;
+    }
+
+    .v5-body {
+      font-size: 0.92rem;
+      color: var(--text-body);
+      line-height: 1.72;
+      max-width: 380px;
+      margin-bottom: 2rem;
+    }
+
+    .v5-btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .v5-btn-solid {
+      padding: 0.75rem 1.75rem;
+      background: var(--neon-purple);
+      color: #fff;
+      font-family: 'Creepster', cursive;
+      font-size: 1.15rem;
+      text-decoration: none;
+      border-radius: 4px;
+      box-shadow: 0 0 18px rgba(191,0,255,0.3);
+      transition: all 0.3s;
+    }
+    .v5-btn-solid:hover { box-shadow: 0 0 35px rgba(191,0,255,0.6); transform: translateY(-2px); }
+    .v5-btn-outline {
+      padding: 0.75rem 1.75rem;
+      background: transparent;
+      color: var(--bone-white);
+      font-family: 'Creepster', cursive;
+      font-size: 1.15rem;
+      text-decoration: none;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: all 0.3s;
+    }
+    .v5-btn-outline:hover { border-color: var(--bone-white); background: rgba(255,255,255,0.05); }
+
+    /* Right: video + live pill, fills all available space */
+    .v5-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem 2rem 3rem 2.5rem;
+      gap: 1.25rem;
+      position: relative;
+    }
+    .v5-right::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(191,0,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .v5-live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,23,68,0.12);
+      color: var(--accent-red);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border: 1px solid rgba(255,23,68,0.2);
+    }
+    .v5-live-pill .dot { width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; animation: live-flicker 2s infinite; }
+
+    .v5-video-wrap {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(191,0,255,0.25);
+      box-shadow: 0 0 40px rgba(191,0,255,0.15);
+    }
+    .v5-video-wrap iframe { width: 100%; height: 100%; border: none; }
+
+    .v5-radio-desc {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-align: center;
+      max-width: 100%;
+    }
+
+    /* Below-fold: 3-column card grid then full-width sections */
+    .v5-divider {
+      display: flex; align-items: center; gap: 1.5rem;
+      margin: 2.5rem 0 2rem;
+      color: var(--text-dim); font-size: 0.7rem; letter-spacing: 4px; text-transform: uppercase;
+    }
+    .v5-divider::before, .v5-divider::after { content:''; flex:1; height:1px; background: var(--glass-border); }
+
+    .v5-card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--glass-border);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+    .v5-card {
+      background: var(--glass-bg);
+      padding: 1.75rem 1.5rem;
+      text-decoration: none;
+      color: var(--bone-white);
+      transition: all 0.3s;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem;
+    }
+    .v5-card:hover { background: rgba(30,10,45,0.8); }
+    .v5-card .card-icon { font-size: 1.6rem; }
+    .v5-card .card-label { font-family: 'Creepster', cursive; font-size: 1.25rem; color: var(--neon-green); }
+    .v5-card .card-sub { font-size: 0.76rem; color: var(--text-dim); line-height: 1.4; }
+
+    /* Stack at 900px before content gets squeezed */
+    @media (max-width: 900px) {
+      .v5-above-fold { grid-template-columns: 1fr; min-height: unset; }
+      .v5-left { border-right: none; border-bottom: 1px solid var(--glass-border); padding: 3rem 1.5rem; }
+      .v5-right { padding: 2.5rem 1.5rem; }
+      .v5-card-grid { grid-template-columns: 1fr 1fr; }
+      .v5-main-title { font-size: 3.5rem; }
+    }
+    @media (max-width: 500px) {
+      .v5-card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="music.html">Music</a></li>
+      <li><a href="animation.html">Animation &amp; Art</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="games.html">Games</a></li>
+      <li><a href="dead-report.html">The Dead Report</a></li>
+      <li><a href="wall/">The Wall</a></li>
+      <li><a href="links.html">Links</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="v5-above-fold">
+  <div class="v5-left">
+    <div class="v5-eyebrow">// Spacetrucker's Pit Stop</div>
+    <h1 class="v5-main-title">
+      Horror<br>Punk<br><span class="accent">Lives.</span>
+    </h1>
+    <div class="v5-sub">The JURN &mdash; Amityville, New York</div>
+    <p class="v5-body">
+      Ground zero for the undead horror-punk band clawing through time, space, and sound.
+      Cursed riffs. Neon nightmares. Transmissions from the Afterverse.
+    </p>
+    <div class="v5-btn-row">
+      <a href="music.html" class="v5-btn-solid">🎸 Music</a>
+      <a href="about.html" class="v5-btn-outline">Who we are</a>
+    </div>
+  </div>
+
+  <div class="v5-right">
+    <div class="v5-live-pill"><span class="dot"></span> Live Now &mdash; Double Future Radio</div>
+    <div class="v5-video-wrap">
+      <iframe src="https://www.youtube.com/embed/RgBbz1QjXCw?autoplay=0&rel=0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+    </div>
+    <div class="v5-radio-desc">24/7 broadcast &mdash; undead punk, dark beats, and Afterverse transmissions. Always on. Never resting.</div>
+    <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" style="color:var(--neon-purple);font-size:0.85rem;">Open on YouTube &#8594;</a>
+  </div>
+</div>
+
+<main>
+  <div class="v5-divider fade-in">Explore the Pit Stop</div>
+
+  <div class="v5-card-grid fade-in">
+    <a href="music.html" class="v5-card">
+      <span class="card-icon">🎸</span>
+      <span class="card-label">Music</span>
+      <span class="card-sub">Albums, streams, and cursed riffs from the grave</span>
+    </a>
+    <a href="animation.html" class="v5-card">
+      <span class="card-icon">🎨</span>
+      <span class="card-label">Animation &amp; Art</span>
+      <span class="card-sub">Neon nightmares brought to life, frame by frame</span>
+    </a>
+    <a href="games.html" class="v5-card">
+      <span class="card-icon">🎮</span>
+      <span class="card-label">Games</span>
+      <span class="card-sub">Skull Pong and more &mdash; play from the Afterverse</span>
+    </a>
+    <a href="dead-report.html" class="v5-card">
+      <span class="card-icon">💀</span>
+      <span class="card-label">The Dead Report</span>
+      <span class="card-sub">Dispatches from beyond &mdash; random cryptic transmissions</span>
+    </a>
+    <a href="wall/" class="v5-card">
+      <span class="card-icon">🧱</span>
+      <span class="card-label">The Wall</span>
+      <span class="card-sub">Shared graffiti &mdash; leave your mark for all to see</span>
+    </a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank" class="v5-card">
+      <span class="card-icon">📖</span>
+      <span class="card-label">Afterverse Lore</span>
+      <span class="card-sub">The mythology behind the music, expanding forever</span>
+    </a>
+  </div>
+
+  <div class="merch-section fade-in">
+    <div class="section-title">Merch from the Grave</div>
+    <p class="merch-desc">Rep the undead. Shirts, designs, and cursed threads straight from the Afterverse.</p>
+    <a href="https://my-store-10204e2.creator-spring.com/" target="_blank" class="merch-btn">🛒 Shop Merch</a>
+  </div>
+
+  <div class="kofi-section fade-in">
+    <div class="section-title">Fuel the Pit Stop</div>
+    <p class="kofi-desc">Keep the 24/7 radio alive, fund new animations, and help the undead keep rocking. Every coffee counts.</p>
+    <div class="kofi-embed">
+      <iframe id="kofiframe" src="https://ko-fi.com/spacetrucker/?hidefeed=true&widget=true&embed=true&preview=true"
+              style="border:none;width:100%;padding:4px;background:rgba(0,0,0,0.4);border-radius:12px;"
+              height="712" title="spacetrucker"></iframe>
+    </div>
+  </div>
+</main>
+<footer>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
+    <a href="https://thejurn.bandcamp.com/" target="_blank">BandCamp</a>
+    <a href="https://discord.gg/cnZVAEZRbS" target="_blank">Discord</a>
+    <a href="https://ko-fi.com/spacetrucker" target="_blank">Ko-fi</a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
+</body>
+</html>
