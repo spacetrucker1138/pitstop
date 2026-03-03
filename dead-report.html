@@ -122,7 +122,7 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      object-position: center bottom;
+      object-position: center center;
       z-index: 2;
       /* subtle studio light flicker */
       animation: dr-vox-flicker 4s ease-in-out infinite;
@@ -260,18 +260,7 @@
 
     /* ---- Location nameplate (top-left) ---- */
     .dr-location-badge {
-      position: absolute;
-      top: 6%;
-      left: 3%;
-      background: rgba(0,0,0,0.72);
-      border-left: 3px solid #c400a8;
-      color: #fff;
-      font-family: 'Special Elite', serif;
-      font-size: clamp(0.45rem,1.1vw,0.72rem);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0.25em 0.6em;
-      z-index: 5;
+      display: none;  /* hidden — location shown in PiP label and lower-third */
     }
 
     /* ---- Quip bar ---- */
@@ -674,12 +663,25 @@ var deadReport = (function () {
   <audio id="dr-queen-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/thrashQueengibberish.mp3" preload="auto"></audio>
 
   <div id="audio-controls">
-  <input id="audio-volume" type="range" min="0" max="100" step="1" value="22"
-         title="Volume" aria-label="Volume" orient="vertical">
-  <button id="audio-toggle" title="Toggle music" aria-label="Toggle music">🔇</button>
+  <div class="audio-slider-row">
+    <span class="audio-slider-label">🎵</span>
+    <div class="audio-slider-wrap">
+      <input id="audio-volume" type="range" min="0" max="100" step="1" value="22"
+             title="Music volume" aria-label="Music volume">
+    </div>
+  </div>
+  <div class="audio-slider-row">
+    <span class="audio-slider-label">🗣</span>
+    <div class="audio-slider-wrap">
+      <input id="voice-volume" type="range" min="0" max="100" step="1" value="54"
+             title="Voice volume" aria-label="Voice volume">
+    </div>
+  </div>
+  <button id="audio-toggle" title="Toggle all audio" aria-label="Toggle all audio">🔇</button>
 </div>
 
   <style>
+    /* ── Audio controls panel ── */
     #audio-controls {
       position: fixed;
       bottom: 14px;
@@ -688,29 +690,72 @@ var deadReport = (function () {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid #8b0000;
+      border-radius: 10px;
+      padding: 10px 8px 8px;
     }
-    /* Vertical slider */
-    #audio-volume {
-      writing-mode: vertical-lr;
-      direction: rtl;
-      -webkit-appearance: slider-vertical;
-      appearance: slider-vertical;
-      width: 22px;
-      height: 80px;
+    .audio-slider-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .audio-slider-label {
+      font-size: 13px;
+      line-height: 1;
+      opacity: 0.85;
+    }
+    .audio-slider-wrap {
+      width: 28px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+    }
+    /* Vertical slider via rotation — best cross-browser approach */
+    #audio-volume,
+    #voice-volume {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 72px;
+      height: 4px;
+      background: #3a0030;
+      border-radius: 2px;
+      outline: none;
       cursor: pointer;
+      transform: rotate(-90deg);
       accent-color: #c400a8;
-      opacity: 0.75;
-      transition: opacity 0.2s;
     }
-    #audio-volume:hover { opacity: 1; }
+    #audio-volume::-webkit-slider-thumb,
+    #voice-volume::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #c400a8;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(196,0,168,0.7);
+    }
+    #audio-volume::-moz-range-thumb,
+    #voice-volume::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #c400a8;
+      cursor: pointer;
+      border: none;
+    }
     #audio-toggle {
       background: rgba(0,0,0,0.7);
       border: 1px solid #8b0000;
       color: #ccc;
       font-size: 18px;
-      width: 38px;
-      height: 38px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
@@ -719,6 +764,7 @@ var deadReport = (function () {
       padding: 0;
       line-height: 1;
       transition: border-color 0.2s, background 0.2s;
+      margin-top: 2px;
     }
     #audio-toggle:hover {
       background: rgba(139,0,0,0.5);
@@ -741,30 +787,43 @@ var deadReport = (function () {
       var voxGib   = document.getElementById('dr-vox-gib');
       var queenGib = document.getElementById('dr-queen-gib');
       var btn      = document.getElementById('audio-toggle');
-      var slider   = document.getElementById('audio-volume');
+      /* sliders referenced by ID directly */
       var bgStarted = false;
       var bgMuted   = false;
 
       /* ── Volume: restore from localStorage ── */
-      var savedVol = parseFloat(localStorage.getItem('dr-volume'));
-      var initVol  = (!isNaN(savedVol) && savedVol >= 0 && savedVol <= 1) ? savedVol : 0.22;
-      bgMusic.volume = initVol;
-      if (slider) slider.value = Math.round(initVol * 100);
+      var savedMusicVol = parseFloat(localStorage.getItem('dr-music-vol'));
+      var savedVoiceVol = parseFloat(localStorage.getItem('dr-voice-vol'));
+      var initMusicVol  = (!isNaN(savedMusicVol) && savedMusicVol >= 0 && savedMusicVol <= 1) ? savedMusicVol : 0.22;
+      var initVoiceVol  = (!isNaN(savedVoiceVol) && savedVoiceVol >= 0 && savedVoiceVol <= 1) ? savedVoiceVol : 0.54;
+      bgMusic.volume = initMusicVol;
 
-      function setAllVolume(v) {
-        bgMusic.volume   = v;
-        /* gibberish volumes scale relative to music */
-        voxGib.volume   = Math.min(1, v * 2.45);   /* ~0.54 at v=0.22 */
-        queenGib.volume = Math.min(1, v * 2.95);   /* ~0.65 at v=0.22 */
-        localStorage.setItem('dr-volume', v);
+      var musicSlider = document.getElementById('audio-volume');
+      var voiceSlider = document.getElementById('voice-volume');
+      if (musicSlider) musicSlider.value = Math.round(initMusicVol * 100);
+      if (voiceSlider) voiceSlider.value = Math.round(initVoiceVol * 100);
+
+      function setMusicVolume(v) {
+        bgMusic.volume = v;
+        localStorage.setItem('dr-music-vol', v);
       }
+      function setVoiceVolume(v) {
+        voxGib.volume   = Math.min(1, v);
+        queenGib.volume = Math.min(1, v * 1.2);  /* queen slightly louder */
+        localStorage.setItem('dr-voice-vol', v);
+      }
+      /* Apply saved voice volume */
+      setVoiceVolume(initVoiceVol);
 
-      /* ── Volume slider ── */
-      if (slider) {
-        slider.value = Math.round(initVol * 100);
-        slider.addEventListener('input', function() {
-          var v = parseInt(this.value, 10) / 100;
-          setAllVolume(v);
+      /* ── Slider listeners ── */
+      if (musicSlider) {
+        musicSlider.addEventListener('input', function() {
+          setMusicVolume(parseInt(this.value, 10) / 100);
+        });
+      }
+      if (voiceSlider) {
+        voiceSlider.addEventListener('input', function() {
+          setVoiceVolume(parseInt(this.value, 10) / 100);
         });
       }
 
@@ -799,7 +858,9 @@ var deadReport = (function () {
         bgMusic.muted  = bgMuted;
         voxGib.muted   = bgMuted;
         queenGib.muted = bgMuted;
-        btn.textContent = bgMuted ? '\uD83D\uDD07' : '\uD83D\uDD0A'; /* 🔇 / 🔊 */
+        btn.textContent = bgMuted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
+        if (musicSlider) musicSlider.disabled = bgMuted;
+        if (voiceSlider) voiceSlider.disabled = bgMuted;
       });
 
       /* ── Gibberish engine ── */
