@@ -4,18 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Dead Report — Spacetrucker's Pit Stop</title>
-  <meta name="description" content="Live weather from Death Valley, delivered by Vox — skeleton anchor of The Dead Report.">
+  <meta name="description" content="Live weather from haunted locations across America, delivered by Vox — skeleton anchor of The Dead Report.">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128128;</text></svg>">
   <style>
-    /* ---- Dead Report page styles ---- */
     .dead-report-wrap {
-      max-width: 900px;
+      max-width: 960px;
       margin: 2rem auto 3rem;
       padding: 0 1rem;
     }
 
-    /* Station label */
     .dr-station {
       text-align: center;
       font-family: 'Courier New', monospace;
@@ -26,10 +24,11 @@
       margin-bottom: 0.5rem;
     }
 
-    /* Anchor desk image container */
+    /* ---- Main stage: two-layer PiP layout ---- */
     .dr-stage {
       position: relative;
       width: 100%;
+      aspect-ratio: 16 / 9;
       border: 2px solid #333;
       border-radius: 4px;
       overflow: hidden;
@@ -37,18 +36,49 @@
       box-shadow: 0 0 40px rgba(255, 0, 200, 0.15);
     }
 
-    .dr-stage img {
+    /* Background: haunted location image, full bleed */
+    .dr-bg {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      height: auto;
-      display: block;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .dr-bg.loaded { opacity: 1; }
+
+    /* Dark overlay so Vox pops */
+    .dr-bg-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.15) 0%,
+        rgba(0,0,0,0.05) 45%,
+        rgba(0,0,0,0.55) 100%
+      );
     }
 
-    /* ------- BREAKING NEWS box (top right) ------- */
+    /* Foreground: Vox anchor — bottom-left, PiP style */
+    .dr-vox {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 42%;
+      max-width: 340px;
+      object-fit: contain;
+      object-position: bottom left;
+      filter: drop-shadow(0 0 18px rgba(0,0,0,0.9));
+      z-index: 2;
+    }
+
+    /* ---- BREAKING NEWS box top-right ---- */
     .dr-box-breaking {
       position: absolute;
-      top: 7%;
+      top: 6%;
       right: 3%;
-      width: 28%;
+      width: 26%;
       background: #ff00cc;
       color: #000;
       font-family: 'Courier New', monospace;
@@ -56,30 +86,15 @@
       text-align: center;
       padding: 0.35em 0.5em 0.4em;
       border-radius: 2px;
-      box-shadow: 0 0 12px rgba(255, 0, 204, 0.6);
+      box-shadow: 0 0 16px rgba(255,0,204,0.7);
       line-height: 1.25;
+      z-index: 3;
     }
+    .dr-box-breaking .dr-label  { font-size: clamp(0.4rem,1.1vw,0.65rem); letter-spacing:0.1em; display:block; margin-bottom:0.1em; }
+    .dr-box-breaking .dr-value  { font-size: clamp(0.9rem,2.4vw,1.5rem); display:block; }
+    .dr-box-breaking .dr-unit   { font-size: clamp(0.35rem,0.9vw,0.55rem); display:block; margin-top:0.1em; font-weight:400; }
 
-    .dr-box-breaking .dr-label {
-      font-size: clamp(0.45rem, 1.2vw, 0.7rem);
-      letter-spacing: 0.1em;
-      display: block;
-      margin-bottom: 0.15em;
-    }
-
-    .dr-box-breaking .dr-value {
-      font-size: clamp(0.9rem, 2.5vw, 1.6rem);
-      display: block;
-    }
-
-    .dr-box-breaking .dr-unit {
-      font-size: clamp(0.4rem, 1vw, 0.6rem);
-      display: block;
-      margin-top: 0.1em;
-      font-weight: 400;
-    }
-
-    /* ------- LOWER THIRD banner ------- */
+    /* ---- Lower third ---- */
     .dr-lower-third {
       position: absolute;
       bottom: 7%;
@@ -95,46 +110,39 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 0.4em;
-      box-shadow: 0 0 20px rgba(255, 0, 204, 0.5);
+      box-shadow: 0 0 20px rgba(255,0,204,0.5);
+      z-index: 3;
     }
+    .dr-lower-third .dr-badge           { font-size: clamp(0.5rem,1.3vw,0.85rem); letter-spacing:0.12em; text-transform:uppercase; white-space:nowrap; }
+    .dr-lower-third .dr-readings        { display:flex; gap:1.2em; flex-wrap:wrap; }
+    .dr-lower-third .dr-reading         { text-align:center; }
+    .dr-lower-third .dr-reading-label   { font-size: clamp(0.32rem,0.85vw,0.52rem); font-weight:400; display:block; letter-spacing:0.08em; }
+    .dr-lower-third .dr-reading-value   { font-size: clamp(0.6rem,1.5vw,0.95rem); display:block; }
 
-    .dr-lower-third .dr-badge {
-      font-size: clamp(0.55rem, 1.4vw, 0.9rem);
-      letter-spacing: 0.12em;
+    /* ---- Location nameplate (top-left) ---- */
+    .dr-location-badge {
+      position: absolute;
+      top: 6%;
+      left: 3%;
+      background: rgba(0,0,0,0.7);
+      border-left: 3px solid #ff00cc;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: clamp(0.45rem,1.1vw,0.7rem);
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      white-space: nowrap;
+      padding: 0.25em 0.6em;
+      z-index: 3;
     }
 
-    .dr-lower-third .dr-readings {
-      display: flex;
-      gap: 1.2em;
-      flex-wrap: wrap;
-    }
-
-    .dr-lower-third .dr-reading {
-      text-align: center;
-    }
-
-    .dr-lower-third .dr-reading-label {
-      font-size: clamp(0.35rem, 0.9vw, 0.55rem);
-      font-weight: 400;
-      display: block;
-      letter-spacing: 0.08em;
-    }
-
-    .dr-lower-third .dr-reading-value {
-      font-size: clamp(0.65rem, 1.6vw, 1rem);
-      display: block;
-    }
-
-    /* ------- Quip bar below image ------- */
+    /* ---- Quip bar ---- */
     .dr-quip {
       background: #0f0f22;
       border: 1px solid #ff00cc44;
       border-top: none;
       padding: 0.6em 1.2em;
       font-family: 'Courier New', monospace;
-      font-size: clamp(0.7rem, 1.4vw, 0.9rem);
+      font-size: clamp(0.7rem,1.4vw,0.9rem);
       color: #cc88ff;
       font-style: italic;
       text-align: center;
@@ -144,7 +152,6 @@
       justify-content: center;
     }
 
-    /* ------- Status / error bar ------- */
     .dr-status {
       text-align: center;
       font-family: 'Courier New', monospace;
@@ -153,14 +160,25 @@
       margin-top: 0.5rem;
     }
 
-    /* ------- Loading pulse ------- */
-    .dr-loading {
-      animation: dr-pulse 1.2s ease-in-out infinite;
+    /* reload button */
+    .dr-reload {
+      display: block;
+      margin: 0.8rem auto 0;
+      background: transparent;
+      border: 1px solid #ff00cc;
+      color: #ff00cc;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      padding: 0.3em 1em;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.2s, color 0.2s;
     }
-    @keyframes dr-pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.35; }
-    }
+    .dr-reload:hover { background: #ff00cc; color: #000; }
+
+    .dr-loading { animation: dr-pulse 1.2s ease-in-out infinite; }
+    @keyframes dr-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
   </style>
 </head>
 <body>
@@ -185,23 +203,27 @@
 <main>
   <div class="dead-report-wrap">
 
-    <div class="dr-station dr-loading" id="dr-station">FETCHING SIGNAL FROM THE AFTERVERSE&hellip;</div>
+    <div class="dr-station dr-loading" id="dr-station">ACQUIRING SIGNAL FROM THE AFTERVERSE&hellip;</div>
 
     <div class="dr-stage">
-      <img
-        src="assets/images/vox-dead-report.jpg"
-        alt="Vox at the Dead Report anchor desk"
-        id="dr-img"
-      >
+      <!-- Background: haunted location -->
+      <img class="dr-bg" id="dr-bg" src="" alt="">
+      <div class="dr-bg-overlay"></div>
 
-      <!-- BREAKING NEWS / temp box top-right -->
+      <!-- Location nameplate top-left -->
+      <div class="dr-location-badge" id="dr-loc-badge">&bull; LOCATING &bull;</div>
+
+      <!-- Vox anchor PiP bottom-left -->
+      <img class="dr-vox" src="assets/images/vox-dead-report.jpg" alt="Vox at the Dead Report anchor desk">
+
+      <!-- BREAKING NEWS temp box top-right -->
       <div class="dr-box-breaking">
         <span class="dr-label">BREAKING</span>
         <span class="dr-value" id="dr-temp">&mdash;</span>
-        <span class="dr-unit">DEATH VALLEY &bull; &deg;F</span>
+        <span class="dr-unit" id="dr-temp-unit">&deg;F</span>
       </div>
 
-      <!-- Lower third: main readings -->
+      <!-- Lower third -->
       <div class="dr-lower-third">
         <span class="dr-badge">&#128128; THE DEAD REPORT</span>
         <div class="dr-readings">
@@ -221,10 +243,9 @@
       </div>
     </div>
 
-    <!-- Vox quip -->
     <div class="dr-quip" id="dr-quip">&ldquo;Stand by for transmission&hellip;&rdquo;</div>
-
     <div class="dr-status" id="dr-status"></div>
+    <button class="dr-reload" onclick="deadReport.roll()">&#128128; ROLL TO NEW LOCATION</button>
 
   </div>
 </main>
@@ -241,39 +262,110 @@
 </footer>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+var deadReport = (function () {
 
-  // Death Valley NWS gridpoint (hardcoded — Death Valley doesn't move)
-  var FORECAST_URL = 'https://api.weather.gov/gridpoints/VEF/92,72/forecast';
+  var LOCATIONS = [
+    {
+      name: 'Death Valley, CA',
+      slug: 'death-valley',
+      lore: 'literally named after death',
+      lat: 36.4622, lon: -116.8638
+    },
+    {
+      name: 'Sleepy Hollow, NY',
+      slug: 'sleepy-hollow',
+      lore: 'the headless horseman rides tonight',
+      lat: 41.0857, lon: -73.8584
+    },
+    {
+      name: 'Salem, MA',
+      slug: 'salem',
+      lore: 'the witches were here first',
+      lat: 42.5195, lon: -70.8967
+    },
+    {
+      name: 'Gettysburg, PA',
+      slug: 'gettysburg',
+      lore: 'the most haunted battlefield in America',
+      lat: 39.8312, lon: -77.2311
+    },
+    {
+      name: 'New Orleans, LA',
+      slug: 'new-orleans',
+      lore: 'the voodoo capital of the world',
+      lat: 29.9511, lon: -90.0715
+    },
+    {
+      name: 'Savannah, GA',
+      slug: 'savannah',
+      lore: 'built on top of its own dead',
+      lat: 32.0835, lon: -81.0998
+    },
+    {
+      name: 'Tombstone, AZ',
+      slug: 'tombstone',
+      lore: 'the town too tough to die',
+      lat: 31.7129, lon: -110.0676
+    },
+    {
+      name: 'Amityville, NY',
+      slug: 'amityville',
+      lore: 'where it all started',
+      lat: 40.6790, lon: -73.4171
+    },
+    {
+      name: 'Point Pleasant, WV',
+      slug: 'point-pleasant',
+      lore: 'the Mothman watches from the bridge',
+      lat: 38.8445, lon: -82.1371
+    },
+    {
+      name: 'Centralia, PA',
+      slug: 'centralia',
+      lore: 'the town that has been on fire since 1962',
+      lat: 40.8043, lon: -76.3405
+    }
+  ];
 
-  // Vox quips keyed to temp ranges (F)
+  var IMG_BASE = 'assets/images/dead-report/';
+  var NWS_HEADERS = { 'Accept': 'application/geo+json', 'User-Agent': 'TheDeadReport/1.0 (thejurn.com)' };
+
   var QUIPS = [
-    // scorching (115+)
-    { min: 115, max: 999, lines: [
-      "\u201cSurprisingly comfortable for a skeleton.\u201d",
-      "\u201cThe thermostat has left the building.\u201d",
-      "\u201cAt these temperatures, I have no complaints. The flesh is overrated.\u201d"
+    // scorching (100+)
+    { min: 100, max: 999, lines: [
+      '\u201cThis is fine. This is completely fine.\u201d',
+      '\u201cThe thermostat has left the building.\u201d',
+      '\u201cComfortably warm, for a skeleton.\u201d',
+      '\u201cAt these temperatures, I have no complaints. The flesh is overrated.\u201d'
     ]},
-    // hot (90-114)
-    { min: 90, max: 114, lines: [
-      "\u201cFor those of you still living\u2014 drink water.\u201d",
-      "\u201cDeath Valley checks in. Death Valley does not check out.\u201d",
-      "\u201cThe valley is doing what the valley does. We endorse it.\u201d"
+    // hot (80-99)
+    { min: 80, max: 99, lines: [
+      '\u201cFor those of you still living\u2014 drink water.\u201d',
+      '\u201cThe dead recommend shade. Not that we need it.\u201d',
+      '\u201cWarm enough to wake the buried.\u201d'
     ]},
-    // warm (70-89)
-    { min: 70, max: 89, lines: [
-      "\u201cMild by mortal standards. Balmy by ours.\u201d",
-      "\u201cThe dead are cautiously optimistic.\u201d"
+    // warm (60-79)
+    { min: 60, max: 79, lines: [
+      '\u201cMild by mortal standards. Balmy by ours.\u201d',
+      '\u201cThe dead are cautiously optimistic.\u201d',
+      '\u201cA pleasant evening to haunt someone.\u201d'
     ]},
-    // cool (40-69)
-    { min: 40, max: 69, lines: [
-      "\u201cCool enough to keep the undead sharp.\u201d",
-      "\u201cThe valley grows philosophical. So do we.\u201d"
+    // cool (40-59)
+    { min: 40, max: 59, lines: [
+      '\u201cCool enough to keep the undead sharp.\u201d',
+      '\u201cThe valley grows philosophical. So do we.\u201d',
+      '\u201cBring a jacket. Or don\u2019t. We won\u2019t.\u201d'
     ]},
-    // cold (<40)
-    { min: -999, max: 39, lines: [
-      "\u201cEven Death Valley gets cold sometimes. We find this suspicious.\u201d",
-      "\u201cThe bones are rattling for meteorological reasons.\u201d"
+    // cold (20-39)
+    { min: 20, max: 39, lines: [
+      '\u201cThe bones are rattling for meteorological reasons.\u201d',
+      '\u201cCold enough to feel it, even like this.\u201d',
+      '\u201cWinter is when the dead feel most at home.\u201d'
+    ]},
+    // frigid (<20)
+    { min: -999, max: 19, lines: [
+      '\u201cEven death has limits. This is not one of them.\u201d',
+      '\u201cVox has no comment. Vox has frozen mid-broadcast.\u201d'
     ]}
   ];
 
@@ -285,14 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return pool[Math.floor(Math.random() * pool.length)];
       }
     }
-    return "\u201cThe signal is unclear. Stand by.\u201d";
-  }
-
-  function formatTime(iso) {
-    try {
-      var d = new Date(iso);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch(e) { return '?'; }
+    return '\u201cThe signal is unclear. Stand by.\u201d';
   }
 
   function setEl(id, val) {
@@ -300,56 +385,115 @@ document.addEventListener('DOMContentLoaded', function () {
     if (el) el.textContent = val;
   }
 
-  function showError(msg) {
-    var station = document.getElementById('dr-station');
-    if (station) {
-      station.textContent = msg;
-      station.classList.remove('dr-loading');
-    }
-    setEl('dr-quip', '\u201cThe signal has been lost. Vox is displeased.\u201d');
+  function formatTime(iso) {
+    try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    catch(e) { return '?'; }
   }
 
-  fetch(FORECAST_URL, {
-    headers: { 'Accept': 'application/geo+json', 'User-Agent': 'TheDeadReport/1.0 (thejurn.com)' }
-  })
-  .then(function(r) {
-    if (!r.ok) throw new Error('NWS returned ' + r.status);
-    return r.json();
-  })
-  .then(function(data) {
-    var periods = data && data.properties && data.properties.periods;
-    if (!periods || !periods.length) throw new Error('No forecast periods');
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
 
-    // Use the current (first) period
-    var p = periods[0];
-    var temp    = p.temperature;           // number
-    var tempU   = p.temperatureUnit;       // F or C
-    var wind    = p.windSpeed + ' ' + p.windDirection;
-    var cond    = p.shortForecast;
-    var updated = p.startTime;
+  var currentLoc = null;
 
-    setEl('dr-temp', temp + '\u00b0');
-    setEl('dr-wind', wind);
-    setEl('dr-cond', cond);
-    setEl('dr-time', formatTime(updated));
+  function loadLocation(loc) {
+    currentLoc = loc;
 
-    var quip = pickQuip(tempU === 'F' ? temp : (temp * 9/5 + 32));
-    setEl('dr-quip', quip);
-
+    // Station label
     var station = document.getElementById('dr-station');
     if (station) {
-      station.textContent = 'LIVE \u2022 DEATH VALLEY, CA \u2022 NATIONAL WEATHER SERVICE';
-      station.classList.remove('dr-loading');
+      station.textContent = 'ACQUIRING SIGNAL \u2022 ' + loc.name.toUpperCase() + '\u2026';
+      station.className = 'dr-station dr-loading';
     }
-    setEl('dr-status', 'Data: NWS api.weather.gov \u2022 Updates each page load');
-  })
-  .catch(function(err) {
-    console.error('Dead Report fetch error:', err);
-    showError('SIGNAL LOST \u2022 TRANSMISSION FROM THE AFTERVERSE INTERRUPTED');
-    setEl('dr-status', 'Error: ' + err.message);
+
+    // Background image
+    var bg = document.getElementById('dr-bg');
+    if (bg) {
+      bg.classList.remove('loaded');
+      var imgSrc = IMG_BASE + loc.slug + '.jpg';
+      bg.onload = function() { bg.classList.add('loaded'); };
+      bg.src = imgSrc;
+    }
+
+    // Location badge
+    setEl('dr-loc-badge', '\u25cf ' + loc.name.toUpperCase() + ' \u2022 ' + loc.lore.toUpperCase());
+
+    // Reset readouts
+    setEl('dr-temp', '\u2014');
+    setEl('dr-cond', '\u2014');
+    setEl('dr-wind', '\u2014');
+    setEl('dr-time', '\u2014');
+    setEl('dr-quip', '\u201cTransmitting from ' + loc.name + '\u2026\u201d');
+    setEl('dr-status', '');
+
+    // Step 1: resolve gridpoint from lat/lon
+    var pointsUrl = 'https://api.weather.gov/points/' + loc.lat + ',' + loc.lon;
+    fetch(pointsUrl, { headers: NWS_HEADERS })
+      .then(function(r) {
+        if (!r.ok) throw new Error('Points lookup failed (' + r.status + ')');
+        return r.json();
+      })
+      .then(function(data) {
+        var forecastUrl = data && data.properties && data.properties.forecast;
+        if (!forecastUrl) throw new Error('No forecast URL in points response');
+        // Step 2: fetch forecast
+        return fetch(forecastUrl, { headers: NWS_HEADERS });
+      })
+      .then(function(r) {
+        if (!r.ok) throw new Error('Forecast fetch failed (' + r.status + ')');
+        return r.json();
+      })
+      .then(function(data) {
+        var periods = data && data.properties && data.properties.periods;
+        if (!periods || !periods.length) throw new Error('No periods in forecast');
+
+        var p = periods[0];
+        var temp  = p.temperature;
+        var tempU = p.temperatureUnit;
+        var tempF = tempU === 'F' ? temp : (temp * 9/5 + 32);
+
+        setEl('dr-temp', temp + '\u00b0');
+        setEl('dr-temp-unit', '\u00b0' + tempU + ' \u2022 ' + loc.name.toUpperCase());
+        setEl('dr-wind', p.windSpeed + ' ' + p.windDirection);
+        setEl('dr-cond', p.shortForecast);
+        setEl('dr-time', formatTime(p.startTime));
+        setEl('dr-quip', pickQuip(tempF));
+
+        var station2 = document.getElementById('dr-station');
+        if (station2) {
+          station2.textContent = 'LIVE \u2022 ' + loc.name.toUpperCase() + ' \u2022 NATIONAL WEATHER SERVICE';
+          station2.className = 'dr-station';
+        }
+        setEl('dr-status', 'Data: NWS api.weather.gov \u2022 Updates on each load');
+      })
+      .catch(function(err) {
+        console.error('[Dead Report]', err);
+        var station3 = document.getElementById('dr-station');
+        if (station3) {
+          station3.textContent = 'SIGNAL LOST \u2022 ' + loc.name.toUpperCase() + ' \u2022 TRANSMISSION INTERRUPTED';
+          station3.className = 'dr-station';
+        }
+        setEl('dr-quip', '\u201cThe signal has been lost. Vox is displeased.\u201d');
+        setEl('dr-status', 'Error: ' + err.message);
+      });
+  }
+
+  function roll() {
+    // Pick a different location than current
+    var available = currentLoc
+      ? LOCATIONS.filter(function(l){ return l.slug !== currentLoc.slug; })
+      : LOCATIONS;
+    loadLocation(pick(available));
+  }
+
+  // Init on DOM ready
+  document.addEventListener('DOMContentLoaded', function() {
+    loadLocation(pick(LOCATIONS));
   });
 
-});
+  return { roll: roll, LOCATIONS: LOCATIONS };
+
+})();
 </script>
 </body>
 </html>
