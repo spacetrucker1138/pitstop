@@ -630,8 +630,10 @@ var deadReport = (function () {
 })();
 </script>
 
-  <!-- ══ DEAD REPORT SOUNDTRACK ══ -->
+  <!-- ══ DEAD REPORT SOUNDTRACK + GIBBERISH ══ -->
   <audio id="dr-audio" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/hauntedweathermusic.mp3" loop preload="none"></audio>
+  <audio id="dr-vox-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/voxGibberish.mp3" preload="auto"></audio>
+  <audio id="dr-queen-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/thrashQueengibberish.mp3" preload="auto"></audio>
 
   <button id="audio-toggle" title="Toggle music" aria-label="Toggle music">🔇</button>
 
@@ -664,44 +666,150 @@ var deadReport = (function () {
 
   <script>
     (function() {
-      const audio = document.getElementById('dr-audio');
-      const btn   = document.getElementById('audio-toggle');
-      let started = false;
-      let muted   = false;
+      var bgMusic     = document.getElementById('dr-audio');
+      var voxGib      = document.getElementById('dr-vox-gib');
+      var queenGib    = document.getElementById('dr-queen-gib');
+      var btn         = document.getElementById('audio-toggle');
+      var bgStarted   = false;
+      var bgMuted     = false;
 
-      audio.volume = 0.22;
+      /* ── Background music ── */
+      bgMusic.volume = 0.22;
 
-      function startAudio() {
-        if (started) return;
-        started = true;
-        audio.play().then(() => {
+      function startBgMusic() {
+        if (bgStarted) return;
+        bgStarted = true;
+        bgMusic.play().then(function() {
           btn.textContent = '🔊';
-        }).catch(() => {
-          // autoplay blocked — stay silent, button still works
-        });
-        document.removeEventListener('click',    startAudio);
-        document.removeEventListener('keydown',  startAudio);
-        document.removeEventListener('touchstart', startAudio);
+        }).catch(function(){});
+        document.removeEventListener('click',     startBgMusic);
+        document.removeEventListener('keydown',   startBgMusic);
+        document.removeEventListener('touchstart', startBgMusic);
       }
 
-      document.addEventListener('click',     startAudio, { once: true });
-      document.addEventListener('keydown',   startAudio, { once: true });
-      document.addEventListener('touchstart', startAudio, { once: true });
+      document.addEventListener('click',     startBgMusic, { once: true });
+      document.addEventListener('keydown',   startBgMusic, { once: true });
+      document.addEventListener('touchstart', startBgMusic, { once: true });
 
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        if (!started) {
-          started = true;
-          audio.play().then(() => {
-            muted = false;
+        if (!bgStarted) {
+          bgStarted = true;
+          bgMusic.play().then(function() {
+            bgMuted = false;
             btn.textContent = '🔊';
-          }).catch(() => {});
+          }).catch(function(){});
           return;
         }
-        muted = !muted;
-        audio.muted = muted;
-        btn.textContent = muted ? '🔇' : '🔊';
+        bgMuted = !bgMuted;
+        bgMusic.muted = bgMuted;
+        btn.textContent = bgMuted ? '🔇' : '🔊';
       });
+
+      /* ── Gibberish engine ── */
+      var VOX_GIB_LOOP_MIN = 5; /* seconds before end to cut and re-randomize */
+      var _queenTimer = null;   /* setTimeout for switching to queen gib at 14s */
+      var _isQueenPlaying = false;
+
+      function stopAllGibberish() {
+        voxGib.pause();
+        voxGib.currentTime = 0;
+        queenGib.pause();
+        queenGib.currentTime = 0;
+        if (_queenTimer) { clearTimeout(_queenTimer); _queenTimer = null; }
+        _isQueenPlaying = false;
+        // remove re-loop listener
+        voxGib.removeEventListener('timeupdate', _voxGibLoopCheck);
+      }
+
+      function _randomVoxStart() {
+        var dur = voxGib.duration;
+        if (!dur || isNaN(dur) || dur <= VOX_GIB_LOOP_MIN) return 0;
+        return Math.random() * (dur - VOX_GIB_LOOP_MIN);
+      }
+
+      function _voxGibLoopCheck() {
+        var dur = voxGib.duration;
+        if (!dur || isNaN(dur)) return;
+        // When within 5s of end, jump to new random start
+        if (voxGib.currentTime >= dur - VOX_GIB_LOOP_MIN) {
+          voxGib.currentTime = _randomVoxStart();
+        }
+      }
+
+      function playVoxGibberish() {
+        stopAllGibberish();
+        voxGib.volume = 0.6;
+        if (voxGib.readyState >= 1) {
+          voxGib.currentTime = _randomVoxStart();
+        } else {
+          voxGib.addEventListener('loadedmetadata', function() {
+            voxGib.currentTime = _randomVoxStart();
+          }, { once: true });
+        }
+        voxGib.loop = false; /* we handle looping manually for randomness */
+        voxGib.addEventListener('timeupdate', _voxGibLoopCheck);
+        voxGib.play().catch(function(){});
+      }
+
+      function playQueenSequence() {
+        /* First 14s: voxGibberish */
+        stopAllGibberish();
+        voxGib.volume = 0.6;
+        if (voxGib.readyState >= 1) {
+          voxGib.currentTime = _randomVoxStart();
+        } else {
+          voxGib.addEventListener('loadedmetadata', function() {
+            voxGib.currentTime = _randomVoxStart();
+          }, { once: true });
+        }
+        voxGib.loop = false;
+        voxGib.addEventListener('timeupdate', _voxGibLoopCheck);
+        voxGib.play().catch(function(){});
+        _isQueenPlaying = true;
+
+        /* At 14s → switch to thrashQueengibberish, runs to end of video */
+        _queenTimer = setTimeout(function() {
+          voxGib.removeEventListener('timeupdate', _voxGibLoopCheck);
+          voxGib.pause();
+          queenGib.volume = 0.65;
+          queenGib.currentTime = 0;
+          queenGib.loop = false;
+          queenGib.play().catch(function(){});
+          _queenTimer = null;
+        }, 14000);
+      }
+
+      /* ── Hook into the video sequencer ──
+         The sequencer calls playClip(src) for each clip.
+         We patch in after DOMContentLoaded so deadReport is already defined.
+      */
+      document.addEventListener('DOMContentLoaded', function() {
+        var vid = document.getElementById('dr-vox-video');
+        if (!vid) return;
+
+        vid.addEventListener('play', function() {
+          var src = vid.src || vid.currentSrc || '';
+          var isStatic = src.indexOf('static.mp4') !== -1;
+          var isQueen  = src.indexOf('voxvqueen.mp4') !== -1;
+
+          if (isStatic) {
+            /* Static seam — stop gibberish, silence */
+            stopAllGibberish();
+          } else if (isQueen) {
+            /* Trash Queen special sequence */
+            playQueenSequence();
+          } else {
+            /* Normal Vox clip — random-start voxGibberish */
+            playVoxGibberish();
+          }
+        });
+
+        vid.addEventListener('ended', function() {
+          stopAllGibberish();
+        });
+      });
+
     })();
   </script>
   <!-- ══ END SOUNDTRACK ══ -->
