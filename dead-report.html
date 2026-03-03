@@ -659,101 +659,20 @@ var deadReport = (function () {
   <audio id="dr-vox-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/voxGibberish.mp3" preload="auto"></audio>
   <audio id="dr-queen-gib" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/thrashQueengibberish.mp3" preload="auto"></audio>
 
-  <div id="audio-controls">
-  <div class="audio-slider-row">
-    <span class="audio-slider-label">🎵</span>
-    <div class="audio-slider-wrap">
-      <input id="audio-volume" type="range" min="0" max="100" step="1" value="22"
-             title="Music volume" aria-label="Music volume">
-    </div>
-  </div>
-  <div class="audio-slider-row">
-    <span class="audio-slider-label">🗣</span>
-    <div class="audio-slider-wrap">
-      <input id="voice-volume" type="range" min="0" max="100" step="1" value="54"
-             title="Voice volume" aria-label="Voice volume">
-    </div>
-  </div>
-  <button id="audio-toggle" title="Toggle all audio" aria-label="Toggle all audio">🔇</button>
-</div>
+  <button id="audio-toggle" title="Toggle all audio" aria-label="Toggle all audio">🔊</button>
 
   <style>
-    /* ── Audio controls panel ── */
-    #audio-controls {
+    #audio-toggle {
       position: fixed;
       bottom: 14px;
       right: 14px;
       z-index: 9999;
-      display: flex;
-      flex-direction: row;
-      align-items: flex-end;
-      gap: 6px;
-      background: rgba(0,0,0,0.7);
-      border: 1px solid #8b0000;
-      border-radius: 10px;
-      padding: 10px 10px 8px;
-      overflow: visible;
-    }
-    .audio-slider-row {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-    }
-    .audio-slider-label {
-      font-size: 13px;
-      line-height: 1;
-      opacity: 0.85;
-    }
-    .audio-slider-wrap {
-      width: 38px;
-      height: 76px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: visible;
-    }
-    /* Vertical slider via rotation — best cross-browser approach */
-    #audio-volume,
-    #voice-volume {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 72px;
-      height: 4px;
-      background: #3a0030;
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
-      transform: rotate(-90deg);
-      accent-color: #c400a8;
-    }
-    #audio-volume::-webkit-slider-thumb,
-    #voice-volume::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #c400a8;
-      cursor: pointer;
-      box-shadow: 0 0 6px rgba(196,0,168,0.7);
-    }
-    #audio-volume::-moz-range-thumb,
-    #voice-volume::-moz-range-thumb {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #c400a8;
-      cursor: pointer;
-      border: none;
-    }
-    #audio-toggle {
       background: rgba(0,0,0,0.7);
       border: 1px solid #8b0000;
       color: #ccc;
-      font-size: 18px;
-      width: 34px;
-      height: 34px;
+      font-size: 20px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
@@ -762,7 +681,6 @@ var deadReport = (function () {
       padding: 0;
       line-height: 1;
       transition: border-color 0.2s, background 0.2s;
-      margin-top: 2px;
     }
     #audio-toggle:hover {
       background: rgba(139,0,0,0.5);
@@ -785,101 +703,28 @@ var deadReport = (function () {
       var voxGib   = document.getElementById('dr-vox-gib');
       var queenGib = document.getElementById('dr-queen-gib');
       var btn      = document.getElementById('audio-toggle');
-      /* sliders referenced by ID directly */
-      var bgStarted = false;
-      var bgMuted   = false;
 
-      /* ── Volume: restore from localStorage ── */
-      var savedMusicVol = parseFloat(localStorage.getItem('dr-music-vol'));
-      var savedVoiceVol = parseFloat(localStorage.getItem('dr-voice-vol'));
-      var initMusicVol  = (!isNaN(savedMusicVol) && savedMusicVol >= 0 && savedMusicVol <= 1) ? savedMusicVol : 0.22;
-      var initVoiceVol  = (!isNaN(savedVoiceVol) && savedVoiceVol >= 0 && savedVoiceVol <= 1) ? savedVoiceVol : 0.54;
-      bgMusic.volume = initMusicVol;
+      /* ── Fixed volumes: 50% music, 50% voice ── */
+      bgMusic.volume  = 0.50;
+      voxGib.volume   = 0.50;
+      queenGib.volume = 0.60;  /* queen slightly louder */
 
-      var musicSlider = document.getElementById('audio-volume');
-      var voiceSlider = document.getElementById('voice-volume');
-      if (musicSlider) musicSlider.value = Math.round(initMusicVol * 100);
-      if (voiceSlider) voiceSlider.value = Math.round(initVoiceVol * 100);
-
-      function setMusicVolume(v) {
-        bgMusic.volume = v;
-        localStorage.setItem('dr-music-vol', v);
-      }
-      function setVoiceVolume(v) {
-        voxGib.volume   = Math.min(1, v);
-        queenGib.volume = Math.min(1, v * 1.2);  /* queen slightly louder */
-        localStorage.setItem('dr-voice-vol', v);
-      }
-      /* Apply saved voice volume */
-      setVoiceVolume(initVoiceVol);
-
-      /* ── Slider listeners ── */
-      if (musicSlider) {
-        musicSlider.addEventListener('input', function() {
-          setMusicVolume(parseInt(this.value, 10) / 100);
-        });
-      }
-      if (voiceSlider) {
-        voiceSlider.addEventListener('input', function() {
-          setVoiceVolume(parseInt(this.value, 10) / 100);
-        });
-      }
-
-      /* ── Start music on first interaction ── */
-      function startBgMusic() {
-        if (bgStarted) return;
-        bgStarted = true;
-        bgMusic.play().then(function() {
-          btn.textContent = '\uD83D\uDD0A'; /* 🔊 */
-        }).catch(function(){});
-        document.removeEventListener('click',      startBgMusic);
-        document.removeEventListener('keydown',    startBgMusic);
-        document.removeEventListener('touchstart', startBgMusic);
-        /* Fire any gibberish that was queued before user interaction */
-        if (_pendingGib) {
-          var t = _pendingGib;
-          _pendingGib = null;
-          if (t === 'queen') { playQueenSequence(); }
-          else               { playVoxGibberish(); }
-        }
-      }
-
-      document.addEventListener('click',      startBgMusic, { once: true });
-      document.addEventListener('keydown',    startBgMusic, { once: true });
-      document.addEventListener('touchstart', startBgMusic, { once: true });
+      var bgMuted = false;
 
       /* ── Mute toggle ── */
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        if (!bgStarted) {
-          bgStarted = true;
-          bgMusic.play().then(function() {
-            bgMuted = false;
-            btn.textContent = '\uD83D\uDD0A';
-          }).catch(function(){});
-          /* Also flush any pending gibberish */
-          if (_pendingGib) {
-            var t = _pendingGib; _pendingGib = null;
-            if (t === 'queen') { playQueenSequence(); } else { playVoxGibberish(); }
-          }
-          return;
-        }
         bgMuted = !bgMuted;
         bgMusic.muted  = bgMuted;
         voxGib.muted   = bgMuted;
         queenGib.muted = bgMuted;
-        btn.textContent = bgMuted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
-        if (musicSlider) musicSlider.disabled = bgMuted;
-        if (voiceSlider) voiceSlider.disabled = bgMuted;
+        btn.textContent = bgMuted ? '🔇' : '🔊';
       });
 
       /* ── Gibberish engine ── */
       var VOX_GIB_LOOP_MIN = 5;
       var _queenTimer = null;
       var _isQueenPlaying = false;
-
-      /* init volumes from saved level */
-      setAllVolume(initVol);
 
       function stopAllGibberish() {
         voxGib.pause();
@@ -907,8 +752,6 @@ var deadReport = (function () {
 
       function playVoxGibberish() {
         stopAllGibberish();
-        /* Re-apply saved voice volume each time in case element reset */
-        setVoiceVolume(parseFloat(localStorage.getItem('dr-voice-vol') || '0.54'));
         if (voxGib.readyState >= 1) {
           voxGib.currentTime = _randomVoxStart();
         } else {
@@ -923,8 +766,6 @@ var deadReport = (function () {
 
       function playQueenSequence() {
         stopAllGibberish();
-        var vVol = parseFloat(localStorage.getItem('dr-voice-vol') || '0.54');
-        setVoiceVolume(vVol);
         if (voxGib.readyState >= 1) {
           voxGib.currentTime = _randomVoxStart();
         } else {
@@ -947,31 +788,23 @@ var deadReport = (function () {
         }, 10000);
       }
 
-      /* Gibberish type to play once user interacts: null | 'vox' | 'queen' */
-      var _pendingGib = null;
-
-      function _fireGibberish(type) {
-        if (!bgStarted) {
-          /* User hasn't interacted yet — queue it */
-          _pendingGib = type;
-          return;
-        }
-        _pendingGib = null;
-        if (type === 'queen') { playQueenSequence(); }
-        else if (type === 'vox') { playVoxGibberish(); }
-      }
-
+      /* ── Auto-start: music + gibberish fire on first video play event ──
+         The muted video autoplays freely; its play event unlocks the audio
+         context so unmuted bgMusic and gibberish can start without user gesture. */
       document.addEventListener('DOMContentLoaded', function() {
         var vid = document.getElementById('dr-vox-video');
         if (!vid) return;
 
         vid.addEventListener('play', function() {
+          /* Kick music on first play (subsequent plays are no-ops since not paused) */
+          if (bgMusic.paused) bgMusic.play().catch(function(){});
+
           var src = vid.src || vid.currentSrc || '';
           var isStatic = src.indexOf('static.mp4') !== -1;
           var isQueen  = src.indexOf('voxvqueen.mp4') !== -1;
-          if (isStatic)         { stopAllGibberish(); _pendingGib = null; }
-          else if (isQueen)     { _fireGibberish('queen'); }
-          else                  { _fireGibberish('vox'); }
+          if (isStatic)     { stopAllGibberish(); }
+          else if (isQueen) { playQueenSequence(); }
+          else              { playVoxGibberish(); }
         });
 
         vid.addEventListener('ended', function() { stopAllGibberish(); });
