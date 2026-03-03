@@ -3,119 +3,117 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home — Spacetrucker's Pit Stop</title>
-  <meta name="description" content="The JURN — Horror Punk from the Grave. Music, animation, and transmissions from the Afterverse.">
-  <link rel="stylesheet" href="style.css">
+  <title>Homepage Redesign Preview — Spacetrucker's Pit Stop</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050508;
+      color: #ccc;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    h1 {
+      font-family: 'Creepster', cursive;
+      font-size: 2.5rem;
+      color: #39ff14;
+      text-shadow: 0 0 20px rgba(57,255,20,0.5);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .sub {
+      font-size: 0.85rem;
+      color: #888;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 800px;
+      width: 100%;
+    }
+    .card {
+      background: rgba(15,15,25,0.65);
+      border: 1px solid rgba(191,0,255,0.2);
+      border-radius: 16px;
+      padding: 2rem;
+      text-decoration: none;
+      color: #e8e0d4;
+      transition: all 0.3s;
+    }
+    .card:hover {
+      border-color: #39ff14;
+      box-shadow: 0 0 30px rgba(57,255,20,0.15);
+      transform: translateY(-4px);
+    }
+    .card-badge {
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #39ff14;
+      margin-bottom: 0.75rem;
+    }
+    .card h2 {
+      font-family: 'Creepster', cursive;
+      font-size: 1.8rem;
+      color: #e8e0d4;
+      margin-bottom: 0.75rem;
+    }
+    .card p {
+      font-size: 0.9rem;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+    .card .cta {
+      font-size: 0.8rem;
+      color: #bf00ff;
+      letter-spacing: 1px;
+    }
+    .note {
+      margin-top: 3rem;
+      font-size: 0.75rem;
+      color: #555;
+      text-align: center;
+      max-width: 500px;
+    }
+    .note a { color: #888; }
+  </style>
 </head>
 <body>
-<nav>
-  <div class="nav-inner">
-    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
-    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-    <ul class="nav-links">
-      <li><a href="index.html" class="active">Home</a></li>
-<li><a href="music.html">Music</a></li>
-<li><a href="animation.html">Animation & Art</a></li>
-<li><a href="about.html">About</a></li>
-<li><a href="games.html">Games</a></li>
-<li><a href="dead-report.html">The Dead Report</a></li>
-<li><a href="wall/">The Wall</a></li>
-<li><a href="links.html">Links</a></li>
+  <h1>Homepage Redesign Preview</h1>
+  <div class="sub">Pick your favorite — only previews, nothing is live yet</div>
 
-    </ul>
-  </div>
-</nav>
-<main>
+  <div class="cards">
+    <a href="index-v2-transmission.html" class="card">
+      <div class="card-badge">// Variant 2</div>
+      <h2>Transmission</h2>
+      <p>Full-screen CRT scanline hero with a glitch effect on the title. Typewriter "TRANSMITTING..." signal bar. Big green CTAs. Video + copy in two-column below the fold.</p>
+      <span class="cta">Preview this variant →</span>
+    </a>
 
-<div class="hero">
-  <div class="tagline">"Where the dead never stop touring."</div>
-  <div class="subtitle">The JURN &mdash; Horror Punk from the Grave</div>
-  <div class="location">Amityville, New York</div>
-  <p class="intro">Welcome to the Pit Stop &mdash; ground zero for The JURN, the undead horror-punk band clawing through time, space, and sound. This is where cursed riffs meet neon nightmares.</p>
-</div>
-
-<div class="radio-section fade-in">
-  <div class="radio-label"><span class="dot"></span> LIVE NOW &mdash; Double Future Radio</div>
-  <div class="video-embed">
-    <iframe src="https://www.youtube.com/embed/RgBbz1QjXCw?autoplay=0&rel=0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowfullscreen
-            loading="lazy"></iframe>
-  </div>
-  <div style="text-align:center; padding: 0.75rem 0 0;">
-    <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" style="color:#bf00ff; font-size:0.9rem;">
-      Open directly on YouTube &rarr;
+    <a href="index-v3-zine.html" class="card">
+      <div class="card-badge">// Variant 3</div>
+      <h2>Zine / Poster</h2>
+      <p>Two-column above-the-fold: giant "Horror Punk Lives." typeset on the left, live radio embed on the right. 3×2 card grid maps out the full site below.</p>
+      <span class="cta">Preview this variant →</span>
     </a>
   </div>
-  <p class="radio-desc">Tune into the 24/7 broadcast &mdash; undead punk, dark beats, and transmissions from the Afterverse. Always on. Never resting.</p>
-</div>
 
-<div class="quick-links fade-in">
-  <a href="music.html" class="quick-link"><span class="icon">🎵</span> Music</a>
-  <a href="animation.html" class="quick-link"><span class="icon">🎨</span> Animation & Art</a>
-  <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank" class="quick-link"><span class="icon">📖</span> The Afterverse Lore</a>
-  <a href="https://ko-fi.com/spacetrucker" target="_blank" class="quick-link"><span class="icon">☕</span> Support on Ko-fi</a>
-</div>
-
-<div class="wall-section fade-in">
-  <div class="section-title wall-title">🧱 The Pit Stop Wall</div>
-  <p class="wall-desc">Leave your mark. A shared graffiti wall &mdash; draw, spray, scribble. Everyone sees it in real time.</p>
-  <a href="wall/" class="wall-btn">
-    🎨 Tag the Wall &rarr;
-  </a>
-</div>
-
-<div class="merch-section fade-in">
-  <div class="section-title">Merch from the Grave</div>
-  <p class="merch-desc">Rep the undead. Shirts, designs, and cursed threads straight from the Afterverse.</p>
-  <a href="https://my-store-10204e2.creator-spring.com/" target="_blank" class="merch-btn">
-    🛒 Shop Merch
-  </a>
-</div>
-
-<div class="kofi-section fade-in">
-  <div class="section-title">Fuel the Pit Stop</div>
-  <p class="kofi-desc">Keep the 24/7 radio alive, fund new animations, and help the undead keep rocking. Every coffee counts.</p>
-  <div class="kofi-embed">
-    <iframe id="kofiframe" src="https://ko-fi.com/spacetrucker/?hidefeed=true&widget=true&embed=true&preview=true" 
-            style="border:none;width:100%;padding:4px;background:rgba(0,0,0,0.4);border-radius:12px;" 
-            height="712" title="spacetrucker"></iframe>
+  <div class="note">
+    These are drafts only — on branch <code>homepage-redesign-drafts</code>.<br>
+    The live site at <a href="https://thejurn.com">thejurn.com</a> is untouched.<br><br>
+    <a href="https://github.com/spacetrucker1138/pitstop/tree/homepage-redesign-drafts">View source on GitHub →</a>
   </div>
-</div>
-
-
-</main>
-<footer>
-  <div class="footer-links">
-    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
-    <a href="https://thejurn.bandcamp.com/" target="_blank">BandCamp</a>
-    <a href="https://discord.gg/cnZVAEZRbS" target="_blank">Discord</a>
-    <a href="https://ko-fi.com/spacetrucker" target="_blank">Ko-fi</a>
-    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
-  </div>
-  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
-</footer>
-
-<script>
-  // Scroll-in animations
-  document.addEventListener('DOMContentLoaded', function() {
-    var targets = document.querySelectorAll('.fade-in');
-    if (!targets.length) return;
-
-    var observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-    targets.forEach(function(el) { observer.observe(el); });
-  });
-</script>
 </body>
 </html>
