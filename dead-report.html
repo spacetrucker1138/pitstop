@@ -60,21 +60,11 @@
     /* ---- Ken Burns background ---- */
     .dr-bg {
       position: absolute;
-      inset: -8%;
-      width: 116%;
-      height: 116%;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      opacity: 0;
-      transition: opacity 0.9s ease;
-      transform-origin: center center;
-      animation: dr-kenburns 22s ease-in-out infinite alternate;
-    }
-    .dr-bg.loaded { opacity: 1; }
-    @keyframes dr-kenburns {
-      0%   { transform: scale(1.0) translate(0%, 0%); }
-      33%  { transform: scale(1.07) translate(-1.5%, 1%); }
-      66%  { transform: scale(1.04) translate(1.2%, -0.8%); }
-      100% { transform: scale(1.09) translate(-0.5%, 1.5%); }
+      object-position: center center;
     }
 
     /* ---- Gradient overlay (dark right side for data boxes) ---- */
@@ -206,13 +196,21 @@
       display: block;
       line-height: 1;
     }
-    .dr-box-breaking .dr-unit {
+    .dr-box-breaking .dr-temp-inline {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0;
+      line-height: 1;
+    }
+    .dr-unit {
       font-family: 'Special Elite', serif;
-      font-size: clamp(0.35rem,0.9vw,0.58rem);
-      display: block;
-      margin-top: 0.15em;
+      font-size: clamp(0.8rem,2vw,1.2rem);  /* bigger to match the value */
+      display: inline;
       font-weight: 400;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.02em;
+      vertical-align: super;
+      font-size: clamp(0.5rem,1.3vw,0.85rem);
     }
 
     /* ---- Lower third ---- */
@@ -353,8 +351,9 @@
       <!-- BREAKING temp box top-right -->
       <div class="dr-box-breaking">
         <span class="dr-label font-vt323">BREAKING</span>
-        <span class="dr-value" id="dr-temp">&mdash;</span>
-        <span class="dr-unit" id="dr-temp-unit">F</span>
+        <div class="dr-temp-inline">
+          <span class="dr-value" id="dr-temp">&mdash;</span><span class="dr-unit" id="dr-temp-unit">°F</span>
+        </div>
       </div>
 
       <!-- PiP location thumbnail ABOVE lower third -->
@@ -606,7 +605,7 @@ var deadReport = (function () {
       var tempF = unit === 'F' ? temp : (temp * 9/5 + 32);
 
       setEl('dr-temp',      temp + '\u00b0');
-      setEl('dr-temp-unit', unit + ' • ' + loc.name.toUpperCase());
+      setEl('dr-temp-unit', '°' + unit);
       setEl('dr-wind',      p.windSpeed + ' ' + p.windDirection);
       setEl('dr-cond',      p.shortForecast);
       setEl('dr-time',      formatTime(p.startTime));
@@ -682,13 +681,13 @@ var deadReport = (function () {
       right: 14px;
       z-index: 9999;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 6px;
       background: rgba(0,0,0,0.7);
       border: 1px solid #8b0000;
       border-radius: 10px;
-      padding: 10px 14px 10px;
+      padding: 10px 10px 8px;
       overflow: visible;
     }
     .audio-slider-row {
@@ -832,6 +831,13 @@ var deadReport = (function () {
         document.removeEventListener('click',      startBgMusic);
         document.removeEventListener('keydown',    startBgMusic);
         document.removeEventListener('touchstart', startBgMusic);
+        /* Fire any gibberish that was queued before user interaction */
+        if (_pendingGib) {
+          var t = _pendingGib;
+          _pendingGib = null;
+          if (t === 'queen') { playQueenSequence(); }
+          else               { playVoxGibberish(); }
+        }
       }
 
       document.addEventListener('click',      startBgMusic, { once: true });
@@ -847,6 +853,11 @@ var deadReport = (function () {
             bgMuted = false;
             btn.textContent = '\uD83D\uDD0A';
           }).catch(function(){});
+          /* Also flush any pending gibberish */
+          if (_pendingGib) {
+            var t = _pendingGib; _pendingGib = null;
+            if (t === 'queen') { playQueenSequence(); } else { playVoxGibberish(); }
+          }
           return;
         }
         bgMuted = !bgMuted;
@@ -932,6 +943,20 @@ var deadReport = (function () {
         }, 10000);
       }
 
+      /* Gibberish type to play once user interacts: null | 'vox' | 'queen' */
+      var _pendingGib = null;
+
+      function _fireGibberish(type) {
+        if (!bgStarted) {
+          /* User hasn't interacted yet — queue it */
+          _pendingGib = type;
+          return;
+        }
+        _pendingGib = null;
+        if (type === 'queen') { playQueenSequence(); }
+        else if (type === 'vox') { playVoxGibberish(); }
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
         var vid = document.getElementById('dr-vox-video');
         if (!vid) return;
@@ -940,9 +965,9 @@ var deadReport = (function () {
           var src = vid.src || vid.currentSrc || '';
           var isStatic = src.indexOf('static.mp4') !== -1;
           var isQueen  = src.indexOf('voxvqueen.mp4') !== -1;
-          if (isStatic)      { stopAllGibberish(); }
-          else if (isQueen)  { playQueenSequence(); }
-          else               { playVoxGibberish(); }
+          if (isStatic)         { stopAllGibberish(); _pendingGib = null; }
+          else if (isQueen)     { _fireGibberish('queen'); }
+          else                  { _fireGibberish('vox'); }
         });
 
         vid.addEventListener('ended', function() { stopAllGibberish(); });
