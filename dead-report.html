@@ -126,7 +126,7 @@
     /* ---- PiP location thumbnail — above the lower third ---- */
     .dr-pip {
       position: absolute;
-      bottom: calc(14% + 3.2em);   /* sit above the lower-third bar */
+      bottom: calc(7% + 3.2em);   /* sit above the lower-third bar */
       right: 2%;
       width: 24%;
       max-width: 200px;
@@ -164,7 +164,7 @@
     /* ---- BREAKING NEWS box top-right ---- */
     .dr-box-breaking {
       position: absolute;
-      bottom: calc(14% + 3.2em);   /* mirror PiP vertical position */
+      bottom: calc(7% + 3.2em);   /* mirror PiP vertical position */
       left: 2%;
       width: 24%;
       max-width: 200px;
@@ -216,7 +216,7 @@
     /* ---- Lower third ---- */
     .dr-lower-third {
       position: absolute;
-      bottom: 14%;
+      bottom: 7%;
       left: 0;
       right: 0;
       background: linear-gradient(90deg, #c400a8 0%, #1a0050 60%, #001080 100%);
@@ -774,7 +774,7 @@ var deadReport = (function () {
       var btn      = document.getElementById('audio-toggle');
 
       /* ── Fixed volumes: 50% music, 50% voice ── */
-      bgMusic.volume  = 0.25;
+      bgMusic.volume  = 0.20;
       voxGib.volume   = 0.40;
       queenGib.volume = 0.50;  /* queen slightly louder */
 
@@ -854,7 +854,7 @@ var deadReport = (function () {
           queenGib.loop = false;
           queenGib.play().catch(function(){});
           _queenTimer = null;
-        }, 10000);
+        }, 15000);
       }
 
       /* ── Auto-start: music + gibberish fire on first video play event ──
