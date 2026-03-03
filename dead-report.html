@@ -587,6 +587,33 @@ var deadReport = (function () {
     playStatic(_nextClip);
   }
 
+  /* ---- Ticker lore blurbs ---- */
+  const LORE = {
+    'death-valley':   '\u2022 Death Valley, CA \u2022  Temperatures here have reached 134\u00b0F \u2014 the hottest ever recorded on Earth. Prospectors vanished without a trace in the 1800s. Locals report the wind carries voices after dark. Borax miners swore the dunes moved on their own. No one who wandered off the trail at night ever came back with a straight story. \u2022',
+    'sleepy-hollow':  '\u2022 Sleepy Hollow, NY \u2022  Washington Irving immortalized the Headless Horseman here in 1820 \u2014 but residents insist he predates the story. The Old Dutch Church cemetery dates to 1685. Witnesses still report a galloping silhouette on Route 9 on foggy October nights. The Horseman is said to hurl his severed head at those foolish enough to linger. \u2022',
+    'salem':          '\u2022 Salem, MA \u2022  In 1692, mass hysteria gripped this Puritan town. Twenty people were executed \u2014 nineteen hanged, one pressed to death with stones. The accused cried out the names of their neighbors under torture. Historians believe ergot poisoning, land disputes, and paranoia lit the fuse. The gallows hill is now a park. The screams, some say, never left. \u2022',
+    'gettysburg':     '\u2022 Gettysburg, PA \u2022  Over three days in July 1863, more than 50,000 soldiers were killed, wounded, or went missing. The ground was so saturated with blood that crops grew unusually tall for years after. Visitors report phantom campfires, disembodied drum rolls, and the smell of gunpowder on windless nights. Devil\u2019s Den is considered the most haunted acre in America. \u2022',
+    'new-orleans':    '\u2022 New Orleans, LA \u2022  The Crescent City was built on swamp and burial ground. Yellow fever epidemics killed tens of thousands in the 1800s. Marie Laveau \u2014 the Voodoo Queen \u2014 still receives offerings at her tomb in St. Louis Cemetery No.\u00a01. The LaLaurie Mansion on Royal Street hides a history of atrocities that shocked even the antebellum South. \u2022',
+    'savannah':       '\u2022 Savannah, GA \u2022  Savannah was founded in 1733 on land that was already a burial site. The city paved over its dead rather than relocate them. Colonial Park Cemetery holds mass graves from the 1820 yellow fever outbreak. The Marshall House hotel used its ballroom as a Civil War surgery \u2014 limbs were buried in the walls. Locals consider the haunting a civic tradition. \u2022',
+    'tombstone':      '\u2022 Tombstone, AZ \u2022  They say the town was so rough they named it for what it promised every visitor. The OK Corral gunfight lasted 30 seconds and left three men dead in October 1881. Big Nose Kate\u2019s Saloon sits atop a silver mine used as a morgue. The Bird Cage Theatre \u2014 still riddled with bullet holes \u2014 saw 26 documented deaths in its eight years of operation. \u2022',
+    'amityville':     '\u2022 Amityville, NY \u2022  On November 13, 1974, Ronald DeFeo Jr. shot six members of his family as they slept. He claimed voices made him do it. A year later, the Lutz family moved in and lasted 28 days before fleeing in the night. They reported green slime, demonic faces, levitation, and a sensation of being watched from below. The house still stands at 108 Ocean Avenue. \u2022',
+    'point-pleasant': '\u2022 Point Pleasant, WV \u2022  Between November 1966 and December 1967, dozens of residents reported a winged creature with glowing red eyes. The Mothman sightings peaked the night the Silver Bridge collapsed, killing 46 people on December 15, 1967. Some believe the creature was a warning. Others believe it caused the disaster. The statue in town plaza stares back at midnight. \u2022',
+    'centralia':      '\u2022 Centralia, PA \u2022  A coal seam beneath this town has been burning since 1962 \u2014 and will likely burn for another 250 years. The fire hollowed out the earth from below, cracking streets and releasing toxic gases. The population of over 1,000 has dwindled to fewer than five. Route 61 was abandoned and swallowed by the earth. Steam still vents from the cracks. The town is not empty. Not entirely. \u2022',
+  };
+
+  function setTicker(slug) {
+    var text = LORE[slug] || '';
+    var a = document.getElementById('dr-ticker-a');
+    var b = document.getElementById('dr-ticker-b');
+    var track = document.getElementById('dr-ticker-track');
+    if (!a || !b || !track) return;
+    a.textContent = text + '\u2003\u2003';
+    b.textContent = text + '\u2003\u2003';
+    track.style.animation = 'none';
+    track.offsetHeight;
+    track.style.animation = '';
+  }
+
   /* ---- Location loader ---- */
   function loadLocation(loc) {
     currentLoc = loc;
@@ -851,36 +878,6 @@ var deadReport = (function () {
 
         vid.addEventListener('ended', function() { stopAllGibberish(); });
       });
-
-
-  // ---- Ticker lore blurbs ----
-  const LORE = {
-    'death-valley':   `\u2022 Death Valley, CA \u2022  Temperatures here have reached 134°F — the hottest ever recorded on Earth. Prospectors vanished without a trace in the 1800s. Locals report the wind carries voices after dark. Borax miners swore the dunes moved on their own. No one who wandered off the trail at night ever came back with a straight story. \u2022`,
-    'sleepy-hollow':  `\u2022 Sleepy Hollow, NY \u2022  Washington Irving immortalized the Headless Horseman here in 1820 — but residents insist he predates the story. The Old Dutch Church cemetery dates to 1685. Witnesses still report a galloping silhouette on Route 9 on foggy October nights. The Horseman is said to hurl his severed head at those foolish enough to linger. \u2022`,
-    'salem':          `\u2022 Salem, MA \u2022  In 1692, mass hysteria gripped this Puritan town. Twenty people were executed — nineteen hanged, one pressed to death with stones. The accused cried out the names of their neighbors under torture. Historians believe ergot poisoning, land disputes, and paranoia lit the fuse. The gallows hill is now a park. The screams, some say, never left. \u2022`,
-    'gettysburg':     `\u2022 Gettysburg, PA \u2022  Over three days in July 1863, more than 50,000 soldiers were killed, wounded, or went missing. The ground was so saturated with blood that crops grew unusually tall for years after. Visitors report phantom campfires, disembodied drum rolls, and the smell of gunpowder on windless nights. Devil's Den is considered the most haunted acre in America. \u2022`,
-    'new-orleans':    `\u2022 New Orleans, LA \u2022  The Crescent City was built on swamp and burial ground. Yellow fever epidemics killed tens of thousands in the 1800s. Marie Laveau — the Voodoo Queen — still receives offerings at her tomb in St. Louis Cemetery No. 1. The LaLaurie Mansion on Royal Street hides a history of atrocities that shocked even the antebellum South. \u2022`,
-    'savannah':       `\u2022 Savannah, GA \u2022  Savannah was founded in 1733 on land that was already a burial site. The city paved over its dead rather than relocate them. Colonial Park Cemetery holds mass graves from the 1820 yellow fever outbreak. The Marshall House hotel used its ballroom as a Civil War surgery — limbs were buried in the walls. Locals consider the haunting a civic tradition. \u2022`,
-    'tombstone':      `\u2022 Tombstone, AZ \u2022  They say the town was so rough they named it for what it promised every visitor. The OK Corral gunfight lasted 30 seconds and left three men dead in October 1881. Big Nose Kate's Saloon sits atop a silver mine used as a morgue. The Bird Cage Theatre — still riddled with bullet holes — saw 26 documented deaths in its eight years of operation. \u2022`,
-    'amityville':     `\u2022 Amityville, NY \u2022  On November 13, 1974, Ronald DeFeo Jr. shot six members of his family as they slept. He claimed voices made him do it. A year later, the Lutz family moved in and lasted 28 days before fleeing in the night. They reported green slime, demonic faces, levitation, and a sensation of being watched from below. The house still stands at 108 Ocean Avenue. \u2022`,
-    'point-pleasant': `\u2022 Point Pleasant, WV \u2022  Between November 1966 and December 1967, dozens of residents reported a winged creature with glowing red eyes. The Mothman sightings peaked the night the Silver Bridge collapsed, killing 46 people on December 15, 1967. Some believe the creature was a warning. Others believe it caused the disaster. The statue in town plaza stares back at midnight. \u2022`,
-    'centralia':      `\u2022 Centralia, PA \u2022  A coal seam beneath this town has been burning since 1962 — and will likely burn for another 250 years. The fire hollowed out the earth from below, cracking streets and releasing toxic gases. The population of over 1,000 has dwindled to fewer than five. Route 61 was abandoned and swallowed by the earth. Steam still vents from the cracks. The town is not empty. Not entirely. \u2022`,
-  };
-
-  function setTicker(slug) {
-    const text = LORE[slug] || '';
-    const a = document.getElementById('dr-ticker-a');
-    const b = document.getElementById('dr-ticker-b');
-    const track = document.getElementById('dr-ticker-track');
-    if (!a || !b || !track) return;
-    // Duplicate text for seamless loop
-    a.textContent = text + '\u2003\u2003';
-    b.textContent = text + '\u2003\u2003';
-    // Restart animation
-    track.style.animation = 'none';
-    track.offsetHeight; // reflow
-    track.style.animation = '';
-  }
 
 
     })();
