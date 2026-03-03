@@ -336,7 +336,7 @@
     <div class="dr-stage">
 
       <!-- Ken Burns background: haunted location -->
-      <img class="dr-bg" id="dr-bg" src="" alt="">
+      <img class="dr-bg loaded" id="dr-bg" src="https://github.com/spacetrucker1138/pitstop/releases/download/dead-report-v1/vox-dead-report-bg.jpg" alt="The Dead Report Newsroom">
       <div class="dr-bg-overlay"></div>
 
       <!-- CRT scanlines -->
@@ -558,13 +558,7 @@ var deadReport = (function () {
       station.className = 'dr-station dr-loading font-vt323';
     }
 
-    /* Ken Burns background */
-    var bg = document.getElementById('dr-bg');
-    if (bg) {
-      bg.classList.remove('loaded');
-      bg.onload = function() { bg.classList.add('loaded'); };
-      bg.src = IMG_BASE + loc.slug + '.jpg';
-    }
+    /* Ken Burns background — always the newsroom; location shown in PiP */
 
     /* PiP location image */
     var pip = document.getElementById('dr-pip-img');
@@ -691,10 +685,11 @@ var deadReport = (function () {
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.7);
       border: 1px solid #8b0000;
       border-radius: 10px;
-      padding: 10px 8px 8px;
+      padding: 10px 14px 10px;
+      overflow: visible;
     }
     .audio-slider-row {
       display: flex;
@@ -708,8 +703,8 @@ var deadReport = (function () {
       opacity: 0.85;
     }
     .audio-slider-wrap {
-      width: 28px;
-      height: 72px;
+      width: 38px;
+      height: 76px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -897,6 +892,8 @@ var deadReport = (function () {
 
       function playVoxGibberish() {
         stopAllGibberish();
+        /* Re-apply saved voice volume each time in case element reset */
+        setVoiceVolume(parseFloat(localStorage.getItem('dr-voice-vol') || '0.54'));
         if (voxGib.readyState >= 1) {
           voxGib.currentTime = _randomVoxStart();
         } else {
@@ -911,6 +908,8 @@ var deadReport = (function () {
 
       function playQueenSequence() {
         stopAllGibberish();
+        var vVol = parseFloat(localStorage.getItem('dr-voice-vol') || '0.54');
+        setVoiceVolume(vVol);
         if (voxGib.readyState >= 1) {
           voxGib.currentTime = _randomVoxStart();
         } else {
