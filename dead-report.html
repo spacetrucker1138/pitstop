@@ -350,9 +350,9 @@
 
       <!-- BREAKING temp box top-right -->
       <div class="dr-box-breaking">
-        <span class="dr-label font-vt323">BREAKING</span>
+        <span class="dr-label font-vt323" id="dr-temp-label">CURRENT TEMP</span>
         <div class="dr-temp-inline">
-          <span class="dr-value" id="dr-temp">&mdash;</span><span class="dr-unit" id="dr-temp-unit">°F</span>
+          <span class="dr-value" id="dr-temp">&mdash;</span><span class="dr-unit" id="dr-temp-unit"></span>
         </div>
       </div>
 
@@ -556,6 +556,10 @@ var deadReport = (function () {
       station.textContent = 'ACQUIRING SIGNAL \u2022 ' + loc.name.toUpperCase() + '\u2026';
       station.className = 'dr-station dr-loading font-vt323';
     }
+
+    /* Temperature box label — shows current location */
+    var tempLabel = document.getElementById('dr-temp-label');
+    if (tempLabel) tempLabel.textContent = 'TEMP \u2022 ' + loc.name.toUpperCase();
 
     /* Ken Burns background — always the newsroom; location shown in PiP */
 
