@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F480;</text></svg>">
   <style>
-    /* ── Playlist Player ── */
+    /* Playlist Player */
     .playlist-player {
       background: #0a0a0a;
       border: 1px solid #1a1a2e;
@@ -24,155 +24,71 @@
       padding-bottom: 1rem;
       border-bottom: 1px solid #1a1a2e;
     }
-    .now-playing-icon {
-      font-size: 2rem;
-      flex-shrink: 0;
-    }
-    .now-playing-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .now-playing-icon { font-size: 2rem; flex-shrink: 0; }
+    .now-playing-info { flex: 1; min-width: 0; }
     .now-playing-track {
-      font-size: 1rem;
-      font-weight: bold;
-      color: #e0e0e0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 1rem; font-weight: bold; color: #e0e0e0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .now-playing-album {
-      font-size: 0.8rem;
-      color: #888;
-      margin-top: 0.2rem;
-    }
+    .now-playing-album { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
     .player-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem;
     }
     .ctrl-btn {
-      background: none;
-      border: 1px solid #333;
-      color: #ccc;
-      cursor: pointer;
-      padding: 0.4rem 0.7rem;
-      border-radius: 3px;
-      font-size: 1rem;
-      transition: border-color 0.2s, color 0.2s;
+      background: none; border: 1px solid #333; color: #ccc;
+      cursor: pointer; padding: 0.4rem 0.7rem; border-radius: 3px;
+      font-size: 1rem; transition: border-color 0.2s, color 0.2s;
     }
     .ctrl-btn:hover { border-color: #ff3c3c; color: #ff3c3c; }
-    .ctrl-btn.active { border-color: #ff3c3c; color: #ff3c3c; }
-    .progress-wrap {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+    .progress-wrap { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
     .progress-bar {
-      flex: 1;
-      height: 4px;
-      background: #222;
-      border-radius: 2px;
-      cursor: pointer;
-      position: relative;
+      flex: 1; height: 4px; background: #222; border-radius: 2px;
+      cursor: pointer; position: relative;
     }
     .progress-fill {
-      height: 100%;
-      background: #ff3c3c;
-      border-radius: 2px;
-      width: 0%;
-      transition: width 0.1s linear;
-      pointer-events: none;
+      height: 100%; background: #ff3c3c; border-radius: 2px;
+      width: 0%; transition: width 0.1s linear; pointer-events: none;
     }
     .time-label {
-      font-size: 0.72rem;
-      color: #666;
-      white-space: nowrap;
-      min-width: 3.5rem;
-      text-align: center;
+      font-size: 0.72rem; color: #666; white-space: nowrap;
+      min-width: 3.5rem; text-align: center;
     }
-    .volume-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
+    .volume-wrap { display: flex; align-items: center; gap: 0.4rem; }
     .volume-icon { font-size: 0.9rem; color: #666; }
     .volume-slider {
-      -webkit-appearance: none;
-      width: 70px;
-      height: 3px;
-      background: #333;
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
+      -webkit-appearance: none; width: 70px; height: 3px;
+      background: #333; border-radius: 2px; outline: none; cursor: pointer;
     }
     .volume-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ff3c3c;
-      cursor: pointer;
+      -webkit-appearance: none; width: 10px; height: 10px;
+      border-radius: 50%; background: #ff3c3c; cursor: pointer;
     }
-
-    /* Track list */
-    .track-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
+    .track-list { list-style: none; padding: 0; margin: 0; }
     .track-item {
-      display: grid;
-      grid-template-columns: 1.6rem 1fr auto;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.55rem 0.5rem;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: background 0.15s;
+      display: grid; grid-template-columns: 1.6rem 1fr auto;
+      align-items: center; gap: 0.6rem; padding: 0.55rem 0.5rem;
+      border-radius: 3px; cursor: pointer; transition: background 0.15s;
       border-bottom: 1px solid #111;
     }
     .track-item:last-child { border-bottom: none; }
     .track-item:hover { background: #111; }
     .track-item.playing { background: #130808; }
     .track-item.playing .track-name { color: #ff3c3c; }
-    .track-num {
-      font-size: 0.75rem;
-      color: #555;
-      text-align: center;
-    }
+    .track-num { font-size: 0.75rem; color: #555; text-align: center; }
     .track-item.playing .track-num::before { content: "\25B6"; font-size: 0.6rem; color: #ff3c3c; }
     .track-item.playing .track-num-val { display: none; }
     .track-info { min-width: 0; }
     .track-name {
-      font-size: 0.88rem;
-      color: #ccc;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 0.88rem; color: #ccc;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .track-album {
-      font-size: 0.72rem;
-      color: #555;
-      margin-top: 0.1rem;
-    }
-    .track-dur {
-      font-size: 0.72rem;
-      color: #555;
-      white-space: nowrap;
-    }
-
-    /* Artist sections */
+    .track-album { font-size: 0.72rem; color: #555; margin-top: 0.1rem; }
+    .track-dur { font-size: 0.72rem; color: #555; white-space: nowrap; }
     .artist-section { margin-bottom: 2rem; }
     .artist-header {
-      font-size: 0.7rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #ff3c3c;
-      padding: 0.3rem 0.5rem;
-      border-left: 2px solid #ff3c3c;
-      margin-bottom: 0.3rem;
+      font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #ff3c3c; padding: 0.3rem 0.5rem;
+      border-left: 2px solid #ff3c3c; margin-bottom: 0.3rem;
     }
   </style>
 </head>
@@ -215,10 +131,9 @@
 
 <section class="fade-in">
   <h2>Sampler Playlist</h2>
-  <p style="color:#888; font-size:0.88rem; margin-bottom:1rem;">One track from every album across The JURN, Vox, and Trash Queen.</p>
+  <p style="color:#888; font-size:0.88rem; margin-bottom:1rem;">One track from every album &mdash; The JURN and Trash Queen.</p>
 
   <div class="playlist-player" id="player">
-    <!-- Now Playing -->
     <div class="now-playing">
       <div class="now-playing-icon" id="npIcon">&#x1F480;</div>
       <div class="now-playing-info">
@@ -227,7 +142,6 @@
       </div>
     </div>
 
-    <!-- Controls -->
     <div class="player-controls">
       <button class="ctrl-btn" id="btnPrev" title="Previous" onclick="prevTrack()">&#x23EE;</button>
       <button class="ctrl-btn" id="btnPlay" title="Play/Pause" onclick="togglePlay()">&#x25B6;</button>
@@ -245,10 +159,9 @@
       </div>
     </div>
 
-    <!-- Track List -->
     <div class="artist-section">
       <div class="artist-header">The JURN</div>
-      <ul class="track-list" id="trackList">
+      <ul class="track-list">
         <li class="track-item" onclick="playTrack(0)" id="track-0">
           <div class="track-num"><span class="track-num-val">1</span></div>
           <div class="track-info">
@@ -276,7 +189,7 @@
         <li class="track-item" onclick="playTrack(3)" id="track-3">
           <div class="track-num"><span class="track-num-val">4</span></div>
           <div class="track-info">
-            <div class="track-name">Don&#x27;t Eat the Light</div>
+            <div class="track-name">Don't Eat the Light</div>
             <div class="track-album">Four Score</div>
           </div>
           <div class="track-dur" id="dur-3">-:--</div>
@@ -284,22 +197,16 @@
         <li class="track-item" onclick="playTrack(4)" id="track-4">
           <div class="track-num"><span class="track-num-val">5</span></div>
           <div class="track-info">
-            <div class="track-name">If You&#x27;re Lying You&#x27;re Dying</div>
+            <div class="track-name">If You're Lying You're Dying</div>
             <div class="track-album">Echoes Beyond the Stars</div>
           </div>
           <div class="track-dur" id="dur-4">-:--</div>
         </li>
-      </ul>
-    </div>
-
-    <div class="artist-section">
-      <div class="artist-header">Vox</div>
-      <ul class="track-list">
         <li class="track-item" onclick="playTrack(5)" id="track-5">
           <div class="track-num"><span class="track-num-val">6</span></div>
           <div class="track-info">
             <div class="track-name">Reset the Wreckage</div>
-            <div class="track-album">Vox Sings the Baby Blues</div>
+            <div class="track-album">Echoes Beyond the Stars</div>
           </div>
           <div class="track-dur" id="dur-5">-:--</div>
         </li>
@@ -363,17 +270,16 @@
 </footer>
 
 <script>
-  // ── Track data ──
   var BASE = "https://github.com/spacetrucker1138/pitstop/releases/download/audio-sampler-v1/";
   var tracks = [
-    { file: "we-live-inside-a-dream.mp3",    name: "We Live Inside a Dream",           album: "Jurn by The Jurn" },
-    { file: "downstairs.mp3",                name: "Downstairs",                       album: "Second Dose" },
-    { file: "nilbog-nightmare.mp3",           name: "Nilbog Nightmare",                 album: "Third Strike" },
-    { file: "dont-eat-the-light.mp3",         name: "Don't Eat the Light",              album: "Four Score" },
-    { file: "if-youre-lying-youre-dieing.mp3",name: "If You're Lying You're Dying",    album: "Echoes Beyond the Stars" },
-    { file: "reset-the-wreckage.mp3",         name: "Reset the Wreckage",               album: "Vox Sings the Baby Blues" },
-    { file: "ten-steps-down.mp3",             name: "Ten Steps Down (feat. Trash Queen)",album: "Dug Up and Dangerous" },
-    { file: "death-becomes-two.mp3",          name: "Death Becomes Two",                album: "Singles" }
+    { file: "we-live-inside-a-dream.mp3",     name: "We Live Inside a Dream",            album: "Jurn by The Jurn" },
+    { file: "downstairs.mp3",                 name: "Downstairs",                        album: "Second Dose" },
+    { file: "nilbog-nightmare.mp3",            name: "Nilbog Nightmare",                  album: "Third Strike" },
+    { file: "dont-eat-the-light.mp3",          name: "Don't Eat the Light",               album: "Four Score" },
+    { file: "if-youre-lying-youre-dieing.mp3", name: "If You're Lying You're Dying",      album: "Echoes Beyond the Stars" },
+    { file: "reset-the-wreckage.mp3",          name: "Reset the Wreckage",                album: "Echoes Beyond the Stars" },
+    { file: "ten-steps-down.mp3",              name: "Ten Steps Down (feat. Trash Queen)", album: "Dug Up and Dangerous" },
+    { file: "death-becomes-two.mp3",           name: "Death Becomes Two",                 album: "Singles" }
   ];
 
   var audio = new Audio();
