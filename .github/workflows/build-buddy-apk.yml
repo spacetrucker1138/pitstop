@@ -1,0 +1,56 @@
+name: Build Buddy APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout buddy-flutter from feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: homepage-redesign-drafts
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.4'
+          channel: stable
+          cache: true
+
+      - name: flutter pub get
+        working-directory: buddy-flutter
+        run: flutter pub get
+
+      - name: Build debug APK
+        working-directory: buddy-flutter
+        run: flutter build apk --debug
+
+      - name: Upload APK as release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: buddy-apk-latest
+          name: "Buddy Face APK (debug)"
+          body: |
+            ## Buddy Face Debug APK
+
+            OLED robot face — all 8 expressions, morph tweens, breathing pulse, waveform mouth, CRT scanlines.
+
+            **Install on Samsung A14:**
+            1. Download `app-debug.apk` below
+            2. Settings → Apps → Special app access → Install unknown apps → allow Chrome (or your browser)
+            3. Tap the downloaded APK and install
+            4. Launch "Buddy" — tap the expression buttons to cycle through all 8
+          files: buddy-flutter/build/app/outputs/flutter-apk/app-debug.apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
