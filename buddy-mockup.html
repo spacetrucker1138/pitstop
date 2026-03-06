@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buddy – CRT Face Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: monospace;
+    overflow: hidden;
+  }
+
+  /* ── CRT SCREEN CONTAINER ── */
+  .crt-screen {
+    width: 420px;
+    height: 520px;
+    background: #000;
+    border-radius: 28px / 22px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 6px #1a1a1a,
+      0 0 0 10px #111,
+      0 0 40px 8px #00ff9944,
+      0 0 80px 20px #00ff9922,
+      inset 0 0 60px #00110a;
+    border: 2px solid #1f3f2a;
+  }
+
+  .crt-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 45%, #001a0d 0%, #000 100%);
+  }
+
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.35) 3px,
+      rgba(0,0,0,0.35) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 90% 85% at 50% 50%,
+      transparent 55%,
+      rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  .glare {
+    position: absolute;
+    top: 8px; left: 30px;
+    width: 120px; height: 60px;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 12;
+    transform: rotate(-15deg);
+  }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    z-index: 5;
+  }
+
+  .eyes {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 30px;
+    margin-top: -20px;
+  }
+
+  .eye-container {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .eye-glow {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #00ff8844 0%, transparent 70%);
+    animation: eyeGlowPulse 3s ease-in-out infinite;
+  }
+
+  .eye {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%,
+      #00ffaa 0%,
+      #00cc77 30%,
+      #007744 60%,
+      #001a0d 100%
+    );
+    box-shadow:
+      0 0 12px 4px #00ff8866,
+      0 0 30px 8px #00ff4422,
+      inset 0 0 10px rgba(0,255,100,0.3);
+    position: relative;
+    animation: eyeBlink 4s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  .eye::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: radial-gradient(circle at 35% 35%, #1a1a1a, #000);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 4px rgba(0,255,100,0.4);
+  }
+
+  .eye::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 8px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    top: 18px; left: 18px;
+    z-index: 2;
+    filter: blur(1px);
+  }
+
+  @keyframes eyeBlink {
+    0%,  45%  { transform: scaleY(1); }
+    48%        { transform: scaleY(0.05); }
+    51%        { transform: scaleY(1); }
+    100%       { transform: scaleY(1); }
+  }
+
+  .eye-container:nth-child(2) .eye { animation-delay: 0.07s; }
+
+  @keyframes eyeGlowPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%       { opacity: 1;   transform: scale(1.1); }
+  }
+
+  .mouth-container {
+    width: 220px;
+    height: 48px;
+    position: relative;
+    margin-top: 10px;
+  }
+
+  canvas#waveform {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .status-line {
+    position: absolute;
+    bottom: 22px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #00ff7744;
+    text-transform: uppercase;
+    z-index: 6;
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { opacity: 0.4; }
+    50%       { opacity: 0.9; }
+  }
+
+  .corner {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: #00ff7733;
+    border-style: solid;
+    z-index: 6;
+  }
+  .corner.tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
+  .corner.tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
+  .corner.br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
+
+  .controls {
+    position: absolute;
+    bottom: -68px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 420px;
+  }
+
+  .btn {
+    background: #0d1f14;
+    border: 1px solid #00ff7744;
+    color: #00ff77;
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .btn:hover {
+    background: #00ff7722;
+    box-shadow: 0 0 8px #00ff7744;
+  }
+  .btn.active {
+    background: #00ff7733;
+    box-shadow: 0 0 12px #00ff7766;
+  }
+</style>
+</head>
+<body>
+
+<div style="position:relative; display:flex; flex-direction:column; align-items:center;">
+
+  <div class="crt-screen" id="crtScreen">
+    <div class="crt-bg"></div>
+
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <div class="face">
+      <div class="eyes">
+        <div class="eye-container">
+          <div class="eye-glow"></div>
+          <div class="eye" id="eyeL"></div>
+        </div>
+        <div class="eye-container">
+          <div class="eye-glow"></div>
+          <div class="eye" id="eyeR"></div>
+        </div>
+      </div>
+
+      <div class="mouth-container">
+        <canvas id="waveform" width="220" height="48"></canvas>
+      </div>
+    </div>
+
+    <div class="status-line" id="statusLine">IDLE</div>
+
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <div class="glare"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn active" onclick="setExpression('idle')">Idle</button>
+    <button class="btn" onclick="setExpression('talking')">Talking</button>
+    <button class="btn" onclick="setExpression('happy')">Happy</button>
+    <button class="btn" onclick="setExpression('curious')">Curious</button>
+    <button class="btn" onclick="setExpression('thinking')">Thinking</button>
+    <button class="btn" onclick="setExpression('startled')">Startled</button>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('waveform');
+const ctx = canvas.getContext('2d');
+const W = 220, H = 48;
+
+let expression = 'idle';
+let wavePhase = 0;
+let waveAmplitude = 0;
+let waveAmplitudeTarget = 0;
+
+const expressions = {
+  idle:     { amplitude: 2,  speed: 0.04, status: 'IDLE' },
+  talking:  { amplitude: 14, speed: 0.12, status: 'SPEAKING' },
+  happy:    { amplitude: 8,  speed: 0.08, status: 'HAPPY' },
+  curious:  { amplitude: 5,  speed: 0.06, status: 'CURIOUS' },
+  thinking: { amplitude: 3,  speed: 0.03, status: 'THINKING...' },
+  startled: { amplitude: 18, speed: 0.15, status: 'STARTLED' },
+};
+
+const eyeScales = {
+  idle:     { y: 1,    x: 1    },
+  talking:  { y: 1,    x: 1    },
+  happy:    { y: 1.15, x: 1.1  },
+  curious:  { y: 1.2,  x: 0.9  },
+  thinking: { y: 0.6,  x: 1    },
+  startled: { y: 1.35, x: 1.35 },
+};
+
+const hueMapEye  = { idle: 0,   talking: 10,  happy: 60,  curious: 150, thinking: 220, startled: -80 };
+const hueMapWave = { idle: 140, talking: 160, happy: 90,  curious: 190, thinking: 250, startled: 15  };
+
+function setExpression(name) {
+  expression = name;
+  const exp = expressions[name];
+  const sc  = eyeScales[name];
+  const eyeL = document.getElementById('eyeL');
+  const eyeR = document.getElementById('eyeR');
+  const status = document.getElementById('statusLine');
+
+  const scaleStr = `scaleY(${sc.y}) scaleX(${sc.x})`;
+  eyeL.style.transform = scaleStr;
+  eyeR.style.transform = scaleStr;
+
+  const hue = hueMapEye[name] || 0;
+  eyeL.style.filter = `hue-rotate(${hue}deg)`;
+  eyeR.style.filter = `hue-rotate(${hue}deg)`;
+
+  status.textContent = exp.status;
+
+  document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  waveAmplitudeTarget = exp.amplitude;
+}
+
+function drawWaveform() {
+  ctx.clearRect(0, 0, W, H);
+
+  const exp = expressions[expression];
+  waveAmplitude += (waveAmplitudeTarget - waveAmplitude) * 0.08;
+  wavePhase += exp.speed;
+
+  const hue = hueMapWave[expression] || 140;
+
+  ctx.beginPath();
+  ctx.strokeStyle = `hsla(${hue}, 100%, 60%, 0.9)`;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.7)`;
+  ctx.shadowBlur = 8;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const segments = 60;
+  for (let i = 0; i <= segments; i++) {
+    const x = (i / segments) * W;
+    const y = H / 2
+      + Math.sin(i * 0.28 + wavePhase) * waveAmplitude
+      + Math.sin(i * 0.55 + wavePhase * 1.3) * (waveAmplitude * 0.4)
+      + Math.sin(i * 0.12 + wavePhase * 0.7) * (waveAmplitude * 0.25);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.25)`;
+  ctx.lineWidth = 1;
+  ctx.shadowBlur = 4;
+  for (let i = 0; i <= segments; i++) {
+    const x = (i / segments) * W;
+    const y = H / 2
+      + Math.sin(i * 0.28 + wavePhase + 0.3) * (waveAmplitude * 0.7)
+      + Math.sin(i * 0.55 + wavePhase * 1.1) * (waveAmplitude * 0.3);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  requestAnimationFrame(drawWaveform);
+}
+
+waveAmplitudeTarget = expressions.idle.amplitude;
+drawWaveform();
+</script>
+</body>
+</html>
