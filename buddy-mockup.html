@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buddy – CRT Face Mockup</title>
+<title>Buddy – LOOI Style CRT</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: #0a0a0a;
+    background: #0d0d0d;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -17,163 +17,183 @@
     overflow: hidden;
   }
 
-  /* ── CRT SCREEN CONTAINER ── */
-  .crt-screen {
-    width: 420px;
-    height: 520px;
+  .robot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .robot-head {
+    width: 320px;
+    height: 280px;
+    background: linear-gradient(160deg, #1c1c1c 0%, #111 60%, #0a0a0a 100%);
+    border-radius: 22px;
+    border: 3px solid #2a2a2a;
+    box-shadow:
+      0 0 0 1px #333,
+      0 6px 30px rgba(0,0,0,0.8),
+      inset 0 1px 0 #3a3a3a,
+      inset 0 -2px 8px rgba(0,0,0,0.5);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .antenna {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 18px;
+    background: #2a2a2a;
+    border-radius: 3px 3px 0 0;
+  }
+  .antenna::before {
+    content: '';
+    position: absolute;
+    top: -7px; left: 50%;
+    transform: translateX(-50%);
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #00ffaa, #007744);
+    box-shadow: 0 0 8px #00ff8899, 0 0 20px #00ff4444;
+    animation: antennaPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes antennaPulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 6px #00ff8899, 0 0 14px #00ff4444; }
+    50%       { opacity: 1;   box-shadow: 0 0 12px #00ffaacc, 0 0 28px #00ff6666; }
+  }
+
+  .rivets {
+    position: absolute;
+    top: 10px; left: 10px; right: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .rivet {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #3a3a3a, #1a1a1a);
+    border: 1px solid #404040;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+  }
+
+  .face-screen {
+    width: 270px;
+    height: 180px;
     background: #000;
-    border-radius: 28px / 22px;
+    border-radius: 10px;
+    border: 3px solid #1a1a1a;
+    box-shadow:
+      0 0 0 1px #0a0a0a,
+      0 0 20px 4px #00ff7722,
+      0 0 50px 10px #00ff4411,
+      inset 0 0 40px #001a0d;
     position: relative;
     overflow: hidden;
-    box-shadow:
-      0 0 0 6px #1a1a1a,
-      0 0 0 10px #111,
-      0 0 40px 8px #00ff9944,
-      0 0 80px 20px #00ff9922,
-      inset 0 0 60px #00110a;
-    border: 2px solid #1f3f2a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
   }
 
-  .crt-bg {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 45%, #001a0d 0%, #000 100%);
-  }
-
-  .scanlines {
+  .face-screen::after {
+    content: '';
     position: absolute;
     inset: 0;
     background: repeating-linear-gradient(
       to bottom,
       transparent 0px,
-      transparent 3px,
-      rgba(0,0,0,0.35) 3px,
-      rgba(0,0,0,0.35) 4px
+      transparent 2px,
+      rgba(0,0,0,0.25) 2px,
+      rgba(0,0,0,0.25) 3px
     );
     pointer-events: none;
-    z-index: 10;
+    z-index: 20;
   }
 
-  .vignette {
+  .face-screen::before {
+    content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse 90% 85% at 50% 50%,
-      transparent 55%,
-      rgba(0,0,0,0.7) 100%);
-    pointer-events: none;
-    z-index: 11;
+    background: radial-gradient(ellipse 80% 70% at 50% 40%, #001a0d 0%, #000 100%);
+    z-index: 0;
   }
 
-  .glare {
-    position: absolute;
-    top: 8px; left: 30px;
-    width: 120px; height: 60px;
-    background: radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 12;
-    transform: rotate(-15deg);
-  }
-
-  .face {
-    position: absolute;
-    inset: 0;
+  .eyes-row {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 0;
+    gap: 22px;
+    position: relative;
     z-index: 5;
   }
 
-  .eyes {
-    display: flex;
-    gap: 60px;
-    margin-bottom: 30px;
-    margin-top: -20px;
-  }
-
-  .eye-container {
-    position: relative;
-    width: 90px;
-    height: 90px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .eye-glow {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #00ff8844 0%, transparent 70%);
-    animation: eyeGlowPulse 3s ease-in-out infinite;
-  }
-
-  .eye {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 38% 35%,
-      #00ffaa 0%,
-      #00cc77 30%,
-      #007744 60%,
+  .eye-box {
+    width: 88px;
+    height: 62px;
+    border-radius: 12px;
+    background: radial-gradient(ellipse 70% 60% at 45% 40%,
+      #00ffbb 0%,
+      #00cc77 35%,
+      #006633 65%,
       #001a0d 100%
     );
     box-shadow:
-      0 0 12px 4px #00ff8866,
-      0 0 30px 8px #00ff4422,
-      inset 0 0 10px rgba(0,255,100,0.3);
+      0 0 10px 3px #00ff8855,
+      0 0 25px 6px #00ff4422,
+      inset 0 0 12px rgba(0,255,120,0.2),
+      inset 0 -4px 10px rgba(0,0,0,0.4);
     position: relative;
-    animation: eyeBlink 4s ease-in-out infinite;
-    transform-origin: center;
+    overflow: hidden;
+    transform-origin: center center;
+    animation: eyeBoxBlink 5s ease-in-out infinite;
   }
 
-  .eye::after {
-    content: '';
+  .eyes-row .eye-box:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  @keyframes eyeBoxBlink {
+    0%,  42% { transform: scaleY(1); }
+    45%       { transform: scaleY(0.06); }
+    48%       { transform: scaleY(1); }
+    100%      { transform: scaleY(1); }
+  }
+
+  .pupil {
     position: absolute;
-    width: 22px;
-    height: 22px;
-    background: radial-gradient(circle at 35% 35%, #1a1a1a, #000);
-    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: radial-gradient(circle at 35% 30%, #1a2a1a, #000);
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 4px rgba(0,255,100,0.4);
+    box-shadow: 0 0 6px rgba(0,200,80,0.3);
+    transition: transform 0.15s ease;
   }
 
-  .eye::before {
-    content: '';
+  .eye-glint {
     position: absolute;
-    width: 12px;
-    height: 8px;
-    background: rgba(255,255,255,0.5);
+    top: 9px; left: 12px;
+    width: 14px; height: 9px;
+    background: rgba(255,255,255,0.45);
     border-radius: 50%;
-    top: 18px; left: 18px;
+    filter: blur(1.5px);
     z-index: 2;
-    filter: blur(1px);
   }
 
-  @keyframes eyeBlink {
-    0%,  45%  { transform: scaleY(1); }
-    48%        { transform: scaleY(0.05); }
-    51%        { transform: scaleY(1); }
-    100%       { transform: scaleY(1); }
-  }
-
-  .eye-container:nth-child(2) .eye { animation-delay: 0.07s; }
-
-  @keyframes eyeGlowPulse {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50%       { opacity: 1;   transform: scale(1.1); }
-  }
-
-  .mouth-container {
-    width: 220px;
-    height: 48px;
+  .mouth-area {
     position: relative;
-    margin-top: 10px;
+    z-index: 5;
+    width: 180px;
+    height: 34px;
   }
 
   canvas#waveform {
@@ -182,219 +202,270 @@
     display: block;
   }
 
-  .status-line {
+  .status-text {
     position: absolute;
-    bottom: 22px;
+    bottom: 8px;
     left: 0; right: 0;
     text-align: center;
-    font-size: 11px;
+    font-size: 9px;
     letter-spacing: 3px;
-    color: #00ff7744;
+    color: #00ff6633;
     text-transform: uppercase;
-    z-index: 6;
-    animation: statusPulse 2s ease-in-out infinite;
+    z-index: 10;
+    animation: statusFlicker 3s ease-in-out infinite;
   }
 
-  @keyframes statusPulse {
+  @keyframes statusFlicker {
+    0%, 48%, 52%, 100% { opacity: 0.5; }
+    50%                { opacity: 0.1; }
+    49%, 51%           { opacity: 0.8; }
+  }
+
+  .robot-neck {
+    width: 50px;
+    height: 18px;
+    background: linear-gradient(to bottom, #1a1a1a, #141414);
+    border-left: 2px solid #252525;
+    border-right: 2px solid #252525;
+    border-bottom: 2px solid #222;
+  }
+
+  .robot-body {
+    width: 260px;
+    height: 120px;
+    background: linear-gradient(160deg, #1a1a1a 0%, #111 70%, #0d0d0d 100%);
+    border-radius: 14px 14px 20px 20px;
+    border: 3px solid #252525;
+    box-shadow:
+      0 4px 20px rgba(0,0,0,0.7),
+      inset 0 1px 0 #333,
+      inset 0 -2px 6px rgba(0,0,0,0.5);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .chest-panel {
+    width: 100px;
+    height: 60px;
+    border-radius: 8px;
+    background: #0a0a0a;
+    border: 2px solid #1f1f1f;
+    box-shadow: inset 0 0 14px rgba(0,255,100,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px;
+  }
+
+  .led {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    animation: ledPulse 2s ease-in-out infinite;
+  }
+  .led.green  { background: #00ff77; box-shadow: 0 0 6px #00ff7799; animation-delay: 0s; }
+  .led.teal   { background: #00ddff; box-shadow: 0 0 6px #00ddff99; animation-delay: 0.4s; }
+  .led.yellow { background: #ffdd00; box-shadow: 0 0 6px #ffdd0099; animation-delay: 0.8s; }
+  .led.orange { background: #ff8800; box-shadow: 0 0 6px #ff880099; animation-delay: 1.2s; }
+  .led.red    { background: #ff3344; box-shadow: 0 0 6px #ff334499; animation-delay: 1.6s; }
+  .led.purple { background: #aa44ff; box-shadow: 0 0 6px #aa44ff99; animation-delay: 0.6s; }
+
+  @keyframes ledPulse {
     0%, 100% { opacity: 0.4; }
-    50%       { opacity: 0.9; }
+    50%       { opacity: 1; }
   }
 
-  .corner {
-    position: absolute;
-    width: 20px; height: 20px;
-    border-color: #00ff7733;
-    border-style: solid;
-    z-index: 6;
+  .vent { display: flex; flex-direction: column; gap: 5px; }
+  .vent-line {
+    width: 28px; height: 3px;
+    border-radius: 2px;
+    background: #1f1f1f;
+    border-top: 1px solid #2a2a2a;
   }
-  .corner.tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
-  .corner.tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
-  .corner.bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
-  .corner.br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
 
   .controls {
-    position: absolute;
-    bottom: -68px;
+    margin-top: 28px;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     justify-content: center;
-    width: 420px;
+    max-width: 360px;
   }
 
   .btn {
-    background: #0d1f14;
-    border: 1px solid #00ff7744;
+    background: #111;
+    border: 1px solid #2a2a2a;
     color: #00ff77;
     font-family: monospace;
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 1px;
-    padding: 6px 14px;
-    border-radius: 4px;
+    padding: 7px 14px;
+    border-radius: 6px;
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.15s;
+    box-shadow: inset 0 1px 0 #2a2a2a;
   }
   .btn:hover {
-    background: #00ff7722;
-    box-shadow: 0 0 8px #00ff7744;
+    background: #00ff7711;
+    border-color: #00ff7744;
+    box-shadow: 0 0 8px #00ff7722, inset 0 1px 0 #2a2a2a;
   }
   .btn.active {
-    background: #00ff7733;
-    box-shadow: 0 0 12px #00ff7766;
+    background: #00ff7722;
+    border-color: #00ff7766;
+    box-shadow: 0 0 12px #00ff7744, inset 0 1px 0 #00ff7733;
   }
 </style>
 </head>
 <body>
 
-<div style="position:relative; display:flex; flex-direction:column; align-items:center;">
-
-  <div class="crt-screen" id="crtScreen">
-    <div class="crt-bg"></div>
-
-    <div class="corner tl"></div>
-    <div class="corner tr"></div>
-    <div class="corner bl"></div>
-    <div class="corner br"></div>
-
-    <div class="face">
-      <div class="eyes">
-        <div class="eye-container">
-          <div class="eye-glow"></div>
-          <div class="eye" id="eyeL"></div>
-        </div>
-        <div class="eye-container">
-          <div class="eye-glow"></div>
-          <div class="eye" id="eyeR"></div>
-        </div>
-      </div>
-
-      <div class="mouth-container">
-        <canvas id="waveform" width="220" height="48"></canvas>
-      </div>
+<div class="robot-wrap">
+  <div class="robot-head">
+    <div class="antenna"></div>
+    <div class="rivets">
+      <div class="rivet"></div>
+      <div class="rivet"></div>
+      <div class="rivet"></div>
+      <div class="rivet"></div>
     </div>
+    <div class="face-screen">
+      <div class="eyes-row">
+        <div class="eye-box" id="eyeL">
+          <div class="eye-glint"></div>
+          <div class="pupil" id="pupilL"></div>
+        </div>
+        <div class="eye-box" id="eyeR">
+          <div class="eye-glint"></div>
+          <div class="pupil" id="pupilR"></div>
+        </div>
+      </div>
+      <div class="mouth-area">
+        <canvas id="waveform" width="180" height="34"></canvas>
+      </div>
+      <div class="status-text" id="statusText">IDLE</div>
+    </div>
+  </div>
 
-    <div class="status-line" id="statusLine">IDLE</div>
+  <div class="robot-neck"></div>
 
-    <div class="scanlines"></div>
-    <div class="vignette"></div>
-    <div class="glare"></div>
+  <div class="robot-body">
+    <div class="vent">
+      <div class="vent-line"></div>
+      <div class="vent-line"></div>
+      <div class="vent-line"></div>
+      <div class="vent-line"></div>
+    </div>
+    <div class="chest-panel">
+      <div class="led green"></div>
+      <div class="led teal"></div>
+      <div class="led yellow"></div>
+      <div class="led orange"></div>
+      <div class="led red"></div>
+      <div class="led purple"></div>
+    </div>
+    <div class="vent">
+      <div class="vent-line"></div>
+      <div class="vent-line"></div>
+      <div class="vent-line"></div>
+      <div class="vent-line"></div>
+    </div>
   </div>
 
   <div class="controls">
-    <button class="btn active" onclick="setExpression('idle')">Idle</button>
-    <button class="btn" onclick="setExpression('talking')">Talking</button>
-    <button class="btn" onclick="setExpression('happy')">Happy</button>
-    <button class="btn" onclick="setExpression('curious')">Curious</button>
-    <button class="btn" onclick="setExpression('thinking')">Thinking</button>
-    <button class="btn" onclick="setExpression('startled')">Startled</button>
+    <button class="btn active" onclick="setExpression('idle', event)">Idle</button>
+    <button class="btn" onclick="setExpression('talking', event)">Talking</button>
+    <button class="btn" onclick="setExpression('happy', event)">Happy</button>
+    <button class="btn" onclick="setExpression('curious', event)">Curious</button>
+    <button class="btn" onclick="setExpression('thinking', event)">Thinking</button>
+    <button class="btn" onclick="setExpression('startled', event)">Startled</button>
+    <button class="btn" onclick="setExpression('sleepy', event)">Sleepy</button>
   </div>
-
 </div>
 
 <script>
 const canvas = document.getElementById('waveform');
 const ctx = canvas.getContext('2d');
-const W = 220, H = 48;
-
+const W = 180, H = 34;
 let expression = 'idle';
-let wavePhase = 0;
-let waveAmplitude = 0;
-let waveAmplitudeTarget = 0;
+let wavePhase = 0, waveAmp = 0, waveAmpTarget = 0;
 
-const expressions = {
-  idle:     { amplitude: 2,  speed: 0.04, status: 'IDLE' },
-  talking:  { amplitude: 14, speed: 0.12, status: 'SPEAKING' },
-  happy:    { amplitude: 8,  speed: 0.08, status: 'HAPPY' },
-  curious:  { amplitude: 5,  speed: 0.06, status: 'CURIOUS' },
-  thinking: { amplitude: 3,  speed: 0.03, status: 'THINKING...' },
-  startled: { amplitude: 18, speed: 0.15, status: 'STARTLED' },
+const exprData = {
+  idle:     { amp: 1.5, speed: 0.035, status: 'IDLE',        eyeScaleY: 1,    eyeScaleX: 1,    hueEye: 0,   hueWave: 145, pupilOffX: 0,  pupilOffY: 0  },
+  talking:  { amp: 13,  speed: 0.13,  status: 'SPEAKING',    eyeScaleY: 1,    eyeScaleX: 1,    hueEye: 15,  hueWave: 155, pupilOffX: 0,  pupilOffY: 0  },
+  happy:    { amp: 7,   speed: 0.09,  status: 'HAPPY',       eyeScaleY: 1.1,  eyeScaleX: 1.1,  hueEye: 65,  hueWave: 85,  pupilOffX: 0,  pupilOffY: -4 },
+  curious:  { amp: 4,   speed: 0.06,  status: 'CURIOUS',     eyeScaleY: 1.25, eyeScaleX: 0.9,  hueEye: 155, hueWave: 190, pupilOffX: 8,  pupilOffY: -6 },
+  thinking: { amp: 2,   speed: 0.025, status: 'THINKING...', eyeScaleY: 0.5,  eyeScaleX: 1,    hueEye: 220, hueWave: 245, pupilOffX: -6, pupilOffY: 4  },
+  startled: { amp: 17,  speed: 0.16,  status: 'STARTLED',    eyeScaleY: 1.4,  eyeScaleX: 1.3,  hueEye: -85, hueWave: 12,  pupilOffX: 0,  pupilOffY: -8 },
+  sleepy:   { amp: 1,   speed: 0.015, status: 'ZZZ...',      eyeScaleY: 0.3,  eyeScaleX: 1,    hueEye: 200, hueWave: 210, pupilOffX: 0,  pupilOffY: 8  },
 };
 
-const eyeScales = {
-  idle:     { y: 1,    x: 1    },
-  talking:  { y: 1,    x: 1    },
-  happy:    { y: 1.15, x: 1.1  },
-  curious:  { y: 1.2,  x: 0.9  },
-  thinking: { y: 0.6,  x: 1    },
-  startled: { y: 1.35, x: 1.35 },
-};
-
-const hueMapEye  = { idle: 0,   talking: 10,  happy: 60,  curious: 150, thinking: 220, startled: -80 };
-const hueMapWave = { idle: 140, talking: 160, happy: 90,  curious: 190, thinking: 250, startled: 15  };
-
-function setExpression(name) {
+function setExpression(name, e) {
   expression = name;
-  const exp = expressions[name];
-  const sc  = eyeScales[name];
+  const d = exprData[name];
   const eyeL = document.getElementById('eyeL');
   const eyeR = document.getElementById('eyeR');
-  const status = document.getElementById('statusLine');
-
-  const scaleStr = `scaleY(${sc.y}) scaleX(${sc.x})`;
-  eyeL.style.transform = scaleStr;
-  eyeR.style.transform = scaleStr;
-
-  const hue = hueMapEye[name] || 0;
-  eyeL.style.filter = `hue-rotate(${hue}deg)`;
-  eyeR.style.filter = `hue-rotate(${hue}deg)`;
-
-  status.textContent = exp.status;
-
+  eyeL.style.transform = `scaleY(${d.eyeScaleY}) scaleX(${d.eyeScaleX})`;
+  eyeR.style.transform = `scaleY(${d.eyeScaleY}) scaleX(${d.eyeScaleX})`;
+  eyeL.style.filter = `hue-rotate(${d.hueEye}deg)`;
+  eyeR.style.filter = `hue-rotate(${d.hueEye}deg)`;
+  const pL = document.getElementById('pupilL');
+  const pR = document.getElementById('pupilR');
+  pL.style.transform = `translate(calc(-50% + ${d.pupilOffX}px), calc(-50% + ${d.pupilOffY}px))`;
+  pR.style.transform = `translate(calc(-50% + ${d.pupilOffX}px), calc(-50% + ${d.pupilOffY}px))`;
+  document.getElementById('statusText').textContent = d.status;
   document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-
-  waveAmplitudeTarget = exp.amplitude;
+  e.target.classList.add('active');
+  waveAmpTarget = d.amp;
 }
 
 function drawWaveform() {
   ctx.clearRect(0, 0, W, H);
-
-  const exp = expressions[expression];
-  waveAmplitude += (waveAmplitudeTarget - waveAmplitude) * 0.08;
-  wavePhase += exp.speed;
-
-  const hue = hueMapWave[expression] || 140;
-
+  const d = exprData[expression];
+  waveAmp += (waveAmpTarget - waveAmp) * 0.08;
+  wavePhase += d.speed;
+  const hue = d.hueWave;
   ctx.beginPath();
-  ctx.strokeStyle = `hsla(${hue}, 100%, 60%, 0.9)`;
-  ctx.lineWidth = 2.5;
-  ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.7)`;
-  ctx.shadowBlur = 8;
+  ctx.strokeStyle = `hsla(${hue},100%,62%,0.92)`;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = `hsla(${hue},100%,62%,0.7)`;
+  ctx.shadowBlur = 7;
   ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  const segments = 60;
-  for (let i = 0; i <= segments; i++) {
-    const x = (i / segments) * W;
-    const y = H / 2
-      + Math.sin(i * 0.28 + wavePhase) * waveAmplitude
-      + Math.sin(i * 0.55 + wavePhase * 1.3) * (waveAmplitude * 0.4)
-      + Math.sin(i * 0.12 + wavePhase * 0.7) * (waveAmplitude * 0.25);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  for (let i = 0; i <= 50; i++) {
+    const x = (i/50)*W;
+    const y = H/2 + Math.sin(i*0.30+wavePhase)*waveAmp + Math.sin(i*0.58+wavePhase*1.4)*(waveAmp*0.38) + Math.sin(i*0.14+wavePhase*0.65)*(waveAmp*0.22);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
   }
   ctx.stroke();
-
   ctx.beginPath();
-  ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.25)`;
-  ctx.lineWidth = 1;
-  ctx.shadowBlur = 4;
-  for (let i = 0; i <= segments; i++) {
-    const x = (i / segments) * W;
-    const y = H / 2
-      + Math.sin(i * 0.28 + wavePhase + 0.3) * (waveAmplitude * 0.7)
-      + Math.sin(i * 0.55 + wavePhase * 1.1) * (waveAmplitude * 0.3);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  ctx.strokeStyle = `hsla(${hue},100%,72%,0.2)`;
+  ctx.lineWidth = 1; ctx.shadowBlur = 3;
+  for (let i = 0; i <= 50; i++) {
+    const x = (i/50)*W;
+    const y = H/2 + Math.sin(i*0.30+wavePhase+0.25)*(waveAmp*0.65) + Math.sin(i*0.58+wavePhase*1.1)*(waveAmp*0.28);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
   }
   ctx.stroke();
-
   requestAnimationFrame(drawWaveform);
 }
 
-waveAmplitudeTarget = expressions.idle.amplitude;
+waveAmpTarget = exprData.idle.amp;
 drawWaveform();
+
+document.addEventListener('mousemove', (e) => {
+  if (expression !== 'idle' && expression !== 'talking') return;
+  const eyeL = document.getElementById('eyeL');
+  const rect = eyeL.getBoundingClientRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  const dx = (e.clientX-cx)/window.innerWidth, dy = (e.clientY-cy)/window.innerHeight;
+  const ox = Math.max(-12, Math.min(12, dx*60)), oy = Math.max(-8, Math.min(8, dy*40));
+  document.getElementById('pupilL').style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
+  document.getElementById('pupilR').style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
+});
 </script>
 </body>
 </html>
