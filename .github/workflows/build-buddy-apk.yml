@@ -1,0 +1,67 @@
+name: Build Buddy APK
+
+on:
+  push:
+    paths:
+      - 'buddy-flutter/**'
+    branches:
+      - homepage-redesign-drafts
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.4'
+          channel: stable
+          cache: true
+
+      - name: flutter pub get
+        working-directory: buddy-flutter
+        run: flutter pub get
+
+      - name: Build debug APK
+        working-directory: buddy-flutter
+        run: flutter build apk --debug
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: buddy-debug-apk
+          path: buddy-flutter/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: buddy-apk-latest
+          name: "Buddy Face APK (latest debug)"
+          body: |
+            ## Buddy Face Debug APK
+
+            OLED robot face — all 8 expressions, morph tweens, breathing pulse, waveform mouth.
+
+            **Install on A14:**
+            1. Download `app-debug.apk` below
+            2. Settings → Apps → Special app access → Install unknown apps → allow your browser
+            3. Tap the downloaded APK and install
+
+            Built from `homepage-redesign-drafts` / `buddy-flutter/`
+          files: buddy-flutter/build/app/outputs/flutter-apk/app-debug.apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
