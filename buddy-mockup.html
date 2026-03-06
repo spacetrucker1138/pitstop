@@ -31,7 +31,6 @@
       0 0 24px 6px rgba(0,255,220,0.08);
   }
 
-  /* CRT SCANLINES */
   .oled::before {
     content: '';
     position: absolute;
@@ -48,7 +47,6 @@
     border-radius: 16px;
   }
 
-  /* CRT PHOSPHOR VIGNETTE */
   .oled::after {
     content: '';
     position: absolute;
@@ -140,6 +138,13 @@
     <text id="icon-zzz" x="320" y="55" text-anchor="middle" font-size="18" fill="#00ffdd" filter="url(#glow-soft)" opacity="0" font-family="monospace">Zzz</text>
     <text id="icon-exclaim" x="190" y="52" text-anchor="middle" font-size="32" fill="#ffdd00" filter="url(#glow-soft)" opacity="0" font-family="monospace" font-weight="bold">!</text>
     <text id="icon-question" x="316" y="56" text-anchor="middle" font-size="26" fill="#00ffdd" filter="url(#glow-soft)" opacity="0" font-family="monospace">?</text>
+
+    <!-- Mad: right-angle triangles. Left: right-angle bottom-left, hypotenuse slashes down-right -->
+    <polygon id="mad-eye-l" points="62,70 62,160 170,160" fill="#00ffdd" filter="url(#glow)" opacity="0"/>
+    <!-- Right: right-angle bottom-right, hypotenuse slashes down-left -->
+    <polygon id="mad-eye-r" points="318,70 318,160 210,160" fill="#00ffdd" filter="url(#glow)" opacity="0"/>
+    <!-- Anger vein top-left -->
+    <text id="icon-anger" x="42" y="46" text-anchor="middle" font-size="28" fill="#ffffff" filter="url(#glow-soft)" opacity="0" font-family="serif">✖</text>
   </svg>
 
   <canvas id="wave-canvas" width="200" height="36"></canvas>
@@ -194,13 +199,13 @@ function setLidBot(side,h){
 }
 
 function hideAllIcons(){
-  ['icon-heart','icon-zzz','icon-exclaim','icon-question']
-    .forEach(id=>el(id).setAttribute('opacity','0'));
+  ['icon-heart','icon-zzz','icon-exclaim','icon-question','icon-anger',
+   'mad-eye-l','mad-eye-r'].forEach(id=>el(id).setAttribute('opacity','0'));
 }
 
 function setEyeTilt(angleDeg){
-  const lCx=EYE_L_X+EYE_W/2, lCy=EYE_L_Y+EYE_H/2;
-  const rCx=EYE_R_X+EYE_W/2, rCy=EYE_R_Y+EYE_H/2;
+  const lCx=EYE_L_X+EYE_W/2,lCy=EYE_L_Y+EYE_H/2;
+  const rCx=EYE_R_X+EYE_W/2,rCy=EYE_R_Y+EYE_H/2;
   const tL=`rotate(${angleDeg},${lCx},${lCy})`;
   const tR=`rotate(${-angleDeg},${rCx},${rCy})`;
   ['eye-l','clip-left-rect','lid-l-top','lid-l-bot'].forEach(id=>el(id).setAttribute('transform',tL));
@@ -216,6 +221,8 @@ function showIcon(id){el(id).setAttribute('opacity','1');}
 
 function resetEyePos(){
   setEyeBase(EYE_L_X,EYE_L_Y,EYE_W,EYE_H,18,EYE_R_X,EYE_R_Y,EYE_W,EYE_H,18);
+  el('eye-l').setAttribute('opacity','1');
+  el('eye-r').setAttribute('opacity','1');
 }
 
 function applyExpr(name){
@@ -235,8 +242,11 @@ function applyExpr(name){
       setLidTop('l',EYE_H*0.28);setLidTop('r',EYE_H*0.28);
       startBlink(7000,0.03);waveAmpTgt=0;wave.classList.remove('visible');break;
     case 'mad':
-      setEyeTilt(18);
-      setLidTop('l',EYE_H*0.30);setLidTop('r',EYE_H*0.30);
+      el('eye-l').setAttribute('opacity','0');
+      el('eye-r').setAttribute('opacity','0');
+      el('mad-eye-l').setAttribute('opacity','1');
+      el('mad-eye-r').setAttribute('opacity','1');
+      showIcon('icon-anger');
       startBlink(8000,0.03);waveAmpTgt=0;wave.classList.remove('visible');break;
     case 'curious':
       setEyeBase(EYE_L_X,EYE_L_Y+10,EYE_W*0.85,EYE_H*0.85,18,EYE_R_X-4,EYE_R_Y-6,EYE_W*1.05,EYE_H*1.1,18);
@@ -268,11 +278,9 @@ function doBlink(){
 }
 
 function floatIcon(id){
-  clearTimeout(iconTimer);
-  let t=0;
+  clearTimeout(iconTimer);let t=0;
   function tick(){
-    t+=0.04;
-    el(id).setAttribute('y',50-Math.sin(t)*6);
+    t+=0.04;el(id).setAttribute('y',50-Math.sin(t)*6);
     if(currentExpr==='happy')iconTimer=setTimeout(tick,30);
   }
   tick();
