@@ -320,10 +320,18 @@ canvas.addEventListener('touchstart', e => {
   e.preventDefault(); audio.resume();
   if (state==='title') { startGame(); return; }
   if (state==='gameover') return;
-  if (state!=='playing') return;
   const t=e.touches[0], r=canvas.getBoundingClientRect();
-  hitTest({x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height)});
+  mouseX=(t.clientX-r.left)*(W/r.width);
+  mouseY=(t.clientY-r.top)*(H/r.height);
+  if (state!=='playing') return;
+  hitTest({x:mouseX, y:mouseY});
 });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t=e.touches[0], r=canvas.getBoundingClientRect();
+  mouseX=(t.clientX-r.left)*(W/r.width);
+  mouseY=(t.clientY-r.top)*(H/r.height);
+},{passive:false});
 document.addEventListener('keydown', e => {
   if (e.key==='m'||e.key==='M') { audio.muted=!audio.muted; return; }
   if (state==='title'&&(e.key==='e'||e.key==='E'||e.key===' ')) startGame();

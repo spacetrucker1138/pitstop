@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Flappy Skull â Afterverse Arcade</title>
+<title>Flappy Skull — Afterverse Arcade</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -252,7 +252,7 @@ function drawPipe(pipe) {
 
   // Bone pillar style
   const drawPillar = (x, y, w, h) => {
-    // Main pillar â stone gray with purple tint
+    // Main pillar — stone gray with purple tint
     const grad = ctx.createLinearGradient(x, y, x + w, y);
     grad.addColorStop(0, '#3b2060');
     grad.addColorStop(0.3, '#5b3080');
@@ -283,14 +283,14 @@ function drawPipe(pipe) {
   // Top pipe (from top down)
   drawPillar(pipe.x, 0, PIPE_WIDTH, topH);
   // Skull cap on top pipe bottom
-  ctx.font = '30px serif';
+  ctx.font = '28px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('â ï¸', pipe.x + PIPE_WIDTH/2, topH - 5);
+  ctx.fillText('☠️', pipe.x + PIPE_WIDTH/2, topH - 5);
 
   // Bottom pipe
   drawPillar(pipe.x, botY, PIPE_WIDTH, botH);
   // Skull cap on bottom pipe top
-  ctx.fillText('â ï¸', pipe.x + PIPE_WIDTH/2, botY + 28);
+  ctx.fillText('☠️', pipe.x + PIPE_WIDTH/2, botY + 28);
 }
 
 function drawGround() {
@@ -323,10 +323,10 @@ function drawSkull() {
   ctx.shadowColor = '#a855f7';
   ctx.shadowBlur = 20;
 
-  ctx.font = `${skull.size}px serif`;
+  ctx.font = `${skull.size}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('ð', 0, 0);
+  ctx.fillText('💀', 0, 0);
 
   ctx.shadowBlur = 0;
   ctx.restore();
@@ -364,21 +364,21 @@ function drawBackground() {
 
   // Background bats
   bats.forEach(b => {
-    ctx.font = '18px serif';
+    ctx.font = '18px sans-serif';
     ctx.textAlign = 'center';
     ctx.globalAlpha = 0.15;
-    const wingSpread = Math.sin(b.wing) > 0 ? 'ð¦' : 'ð¦';
+    const wingSpread = Math.sin(b.wing) > 0 ? '🦇' : '🦇';
     ctx.fillText(wingSpread, b.x, b.y + Math.sin(t + b.x)*10);
   });
   ctx.globalAlpha = 1;
 }
 
 function drawMuteIndicator() {
-  ctx.font = '12px monospace';
+  ctx.font = '12px sans-serif';
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   const y = H - GROUND_H - 10;
-  ctx.fillText(audio.muted ? 'ð M â Muted' : 'ð M â Sound', W - 8, y);
+  ctx.fillText(audio.muted ? '🔇 M — Muted' : '🔊 M — Sound', W - 8, y);
 }
 
 function drawTitle() {
@@ -387,11 +387,11 @@ function drawTitle() {
 
   // Floating skull animation
   const t = Date.now()/1000;
-  ctx.font = '48px serif';
+  ctx.font = '48px sans-serif';
   ctx.textAlign = 'center';
   ctx.shadowColor = '#a855f7';
   ctx.shadowBlur = 25;
-  ctx.fillText('ð', W/2, 140 + Math.sin(t*2)*15);
+  ctx.fillText('💀', W/2, 140 + Math.sin(t*2)*15);
   ctx.shadowBlur = 0;
 
   ctx.font = '56px Creepster';
@@ -409,12 +409,12 @@ function drawTitle() {
   if (bestScore > 0) {
     ctx.font = '22px Creepster';
     ctx.fillStyle = '#eab308';
-    ctx.fillText('ð Best: ' + bestScore, W/2, 330);
+    ctx.fillText('🏆 Best: ' + bestScore, W/2, 330);
   }
 
   ctx.font = '16px Creepster';
   ctx.fillStyle = '#e9d5ff';
-  ctx.fillText('M â Mute', W/2, 400);
+  ctx.fillText('M — Mute', W/2, 400);
 
   const pulse = Math.sin(t*3)*0.3+0.7;
   ctx.globalAlpha = pulse;
@@ -425,7 +425,7 @@ function drawTitle() {
 
   ctx.font = '14px Creepster';
   ctx.fillStyle = 'rgba(168,85,247,0.6)';
-  ctx.fillText('â  A JURN Production â ', W/2, H - GROUND_H - 30);
+  ctx.fillText('☠ A JURN Production ☠', W/2, H - GROUND_H - 30);
 
   drawMuteIndicator();
 }
@@ -449,7 +449,7 @@ function drawGameOver() {
   if (score >= bestScore && score > 0) {
     ctx.fillStyle = '#eab308';
     ctx.font = '24px Creepster';
-    ctx.fillText('ð NEW BEST!', W/2, 340);
+    ctx.fillText('🏆 NEW BEST!', W/2, 340);
   }
 
   const t = Date.now()/1000;
