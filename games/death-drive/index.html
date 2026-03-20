@@ -1740,49 +1740,104 @@ Game.run({
   <audio id="truckHorn" src="audio/truckhorn.mp3" preload="auto"></audio>
 
 <style id="mob-ctrl-css">
-/* ─── MOBILE CONTROLS ─────────────────────────────────── */
-#mob-overlay{display:none;position:fixed;bottom:0;left:0;right:0;height:44vw;max-height:200px;z-index:9999;pointer-events:none;user-select:none;}
+/* ─── MOBILE CONTROLS: STEERING WHEEL ──────────────────── */
+#mob-overlay{display:none;position:fixed;bottom:0;left:0;right:0;height:50vw;max-height:220px;z-index:9999;pointer-events:none;user-select:none;-webkit-user-select:none;}
 @media(pointer:coarse){#mob-overlay{display:block;}}
-#mob-dpad{position:absolute;right:10px;bottom:10px;width:140px;height:140px;pointer-events:all;}
-.mob-dpad-btn{position:absolute;width:44px;height:44px;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.35);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(255,255,255,0.8);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
-.mob-dpad-btn:active{background:rgba(255,255,255,0.3);}
-#mob-up{left:48px;top:0;}
-#mob-dn{left:48px;bottom:0;}
-#mob-lt{left:0;top:48px;}
-#mob-rt{right:0;top:48px;}
-#mob-ctr{left:48px;top:48px;background:rgba(255,255,255,0.06);font-size:14px;}
-#mob-btns{position:absolute;left:10px;bottom:10px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:all;}
-.mob-btn{min-width:70px;height:44px;padding:0 14px;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.35);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:rgba(255,255,255,0.85);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-family:inherit;letter-spacing:1px;}
-.mob-btn:active{background:rgba(255,255,255,0.3);}
-#mob-lanes{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;display:flex;gap:10px;pointer-events:all;}
-.mob-lane{width:64px;height:64px;border-radius:12px;border:3px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
-.mob-lane:active{filter:brightness(1.5);}
+#mob-wheel-wrap{position:absolute;left:20px;bottom:10px;width:140px;height:140px;pointer-events:all;-webkit-tap-highlight-color:transparent;}
+#mob-wheel-canvas{display:block;width:140px;height:140px;touch-action:none;}
+#mob-pedals{position:absolute;right:20px;bottom:10px;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:all;}
+.mob-pedal{width:72px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;letter-spacing:0.05em;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+#mob-gas{background:rgba(0,200,80,0.2);border:2px solid rgba(0,220,80,0.6);color:rgba(150,255,180,0.95);}
+#mob-gas.pressed{background:rgba(0,200,80,0.5);}
+#mob-brake{background:rgba(220,30,30,0.2);border:2px solid rgba(255,60,60,0.5);color:rgba(255,160,160,0.95);}
+#mob-brake.pressed{background:rgba(220,30,30,0.5);}
 </style>
 <div id="mob-overlay">
-<div id="mob-dpad">
-  <div class="mob-dpad-btn" id="mob-up">▲</div>
-  <div class="mob-dpad-btn" id="mob-lt">◀</div>
-  <div class="mob-dpad-btn" id="mob-ctr">·</div>
-  <div class="mob-dpad-btn" id="mob-rt">▶</div>
-  <div class="mob-dpad-btn" id="mob-dn">▼</div>
+  <div id="mob-wheel-wrap">
+    <canvas id="mob-wheel-canvas" width="140" height="140"></canvas>
+  </div>
+  <div id="mob-pedals">
+    <div class="mob-pedal" id="mob-gas">GAS</div>
+    <div class="mob-pedal" id="mob-brake">BRAKE</div>
+  </div>
 </div>
-</div><script id="mob-ctrl-js">
+<script id="mob-ctrl-js">
 (function(){
-  function mkEvt(t,code,key){return new KeyboardEvent(t,{key:key,code:code,bubbles:true,cancelable:true});}
-  var held={};
-  function press(code,key){if(held[code])return;held[code]=1;document.dispatchEvent(mkEvt('keydown',code,key));}
-  function release(code,key){if(!held[code])return;held[code]=0;document.dispatchEvent(mkEvt('keyup',code,key));}
-  function bind(id,code,key){
-    var el=document.getElementById(id);if(!el)return;
-    el.addEventListener('touchstart',function(e){e.preventDefault();press(code,key);},{passive:false});
-    el.addEventListener('touchend',function(e){e.preventDefault();release(code,key);},{passive:false});
-    el.addEventListener('touchcancel',function(e){release(code,key);},{passive:false});
+/* legacy keyCode for death-drive engine */
+var KC={ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39};
+function mkEvt(t,code,key){var kc=KC[key]||0;return new KeyboardEvent(t,{key:key,code:code,keyCode:kc,which:kc,bubbles:true,cancelable:true});}
+var held={};
+function press(code,key){if(held[code])return;held[code]=1;document.dispatchEvent(mkEvt('keydown',code,key));}
+function release(code,key){if(!held[code])return;held[code]=0;document.dispatchEvent(mkEvt('keyup',code,key));}
+function bindPedal(id,code,key){
+  var el=document.getElementById(id);if(!el)return;
+  el.addEventListener('touchstart',function(e){e.preventDefault();el.classList.add('pressed');press(code,key);},{passive:false});
+  el.addEventListener('touchend',function(e){e.preventDefault();el.classList.remove('pressed');release(code,key);},{passive:false});
+  el.addEventListener('touchcancel',function(e){el.classList.remove('pressed');release(code,key);},{passive:false});
+}
+bindPedal('mob-gas','ArrowUp','ArrowUp');
+bindPedal('mob-brake','ArrowDown','ArrowDown');
+var wc=document.getElementById('mob-wheel-canvas');
+var wctx=wc?wc.getContext('2d'):null;
+var CX=70,CY=70,R=58,BALL_R=9;
+var angle=0,dragging=false,startAngle=0,startTA=0;
+var leftActive=false,rightActive=false;
+var DEAD=0.12,MAX_A=Math.PI*0.65;
+function tAngle(e){var r=wc.getBoundingClientRect(),t=e.touches[0];return Math.atan2((t.clientX-r.left)-CX,(t.clientY-r.top)-CY);}
+function drawWheel(a){
+  if(!wctx)return;
+  wctx.clearRect(0,0,140,140);
+  wctx.save();wctx.translate(CX,CY);
+  wctx.beginPath();wctx.arc(0,0,R,0,Math.PI*2);
+  wctx.strokeStyle='rgba(220,50,50,0.9)';wctx.lineWidth=8;wctx.stroke();
+  wctx.strokeStyle='rgba(200,40,40,0.75)';wctx.lineWidth=5;
+  for(var i=0;i<3;i++){var s=a+i*(Math.PI*2/3);wctx.beginPath();wctx.moveTo(0,0);wctx.lineTo(Math.sin(s)*R*0.85,-Math.cos(s)*R*0.85);wctx.stroke();}
+  wctx.beginPath();wctx.arc(0,0,13,0,Math.PI*2);wctx.fillStyle='rgba(200,40,40,0.95)';wctx.fill();
+  var bx=Math.sin(a)*R,by=-Math.cos(a)*R;
+  if(Math.abs(a)>DEAD){
+    wctx.beginPath();
+    var s0=-Math.PI/2,s1=s0+a;
+    wctx.arc(0,0,R+7,Math.min(s0,s1),Math.max(s0,s1));
+    wctx.strokeStyle=a>0?'rgba(255,220,0,0.75)':'rgba(0,220,255,0.75)';
+    wctx.lineWidth=3;wctx.stroke();
   }
-  bind('mob-up','ArrowUp','ArrowUp');
-  bind('mob-dn','ArrowDown','ArrowDown');
-  bind('mob-lt','ArrowLeft','ArrowLeft');
-  bind('mob-rt','ArrowRight','ArrowRight');
+  wctx.beginPath();wctx.arc(bx,by,BALL_R,0,Math.PI*2);
+  wctx.fillStyle='rgba(255,255,220,0.95)';wctx.fill();
+  wctx.restore();
+}
+function applyAngle(a){
+  var wL=a<-DEAD,wR=a>DEAD;
+  if(wL&&!leftActive){press('ArrowLeft','ArrowLeft');}
+  if(!wL&&leftActive){release('ArrowLeft','ArrowLeft');}
+  if(wR&&!rightActive){press('ArrowRight','ArrowRight');}
+  if(!wR&&rightActive){release('ArrowRight','ArrowRight');}
+  leftActive=wL;rightActive=wR;
+}
+wc.addEventListener('touchstart',function(e){
+  e.preventDefault();
+  var r=wc.getBoundingClientRect(),t=e.touches[0];
+  var dx=(t.clientX-r.left)-CX,dy=(t.clientY-r.top)-CY;
+  if(Math.sqrt(dx*dx+dy*dy)<18){
+    document.dispatchEvent(mkEvt('keydown','Space',' '));
+    setTimeout(function(){document.dispatchEvent(mkEvt('keyup','Space',' '));},80);
+    return;
+  }
+  dragging=true;startAngle=angle;startTA=tAngle(e);
+},{passive:false});
+wc.addEventListener('touchmove',function(e){
+  e.preventDefault();
+  if(!dragging)return;
+  var d=tAngle(e)-startTA;
+  if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;
+  angle=Math.max(-MAX_A,Math.min(MAX_A,startAngle+d));
+  drawWheel(angle);applyAngle(angle);
+},{passive:false});
+wc.addEventListener('touchend',function(e){
+  e.preventDefault();dragging=false;
+  var snap=setInterval(function(){angle*=0.7;if(Math.abs(angle)<0.01){angle=0;clearInterval(snap);}drawWheel(angle);applyAngle(angle);},16);
+},{passive:false});
+wc.addEventListener('touchcancel',function(e){dragging=false;angle=0;drawWheel(0);applyAngle(0);},{passive:false});
+drawWheel(0);
 })();
 </script>
-</body> 
 </html>
