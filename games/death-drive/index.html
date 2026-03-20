@@ -1769,21 +1769,30 @@ function mkEvt(t,code,key){var kc=KC[key]||0;return new KeyboardEvent(t,{key:key
 var held={};
 function press(code,key){if(held[code])return;held[code]=1;document.dispatchEvent(mkEvt('keydown',code,key));}
 function release(code,key){if(!held[code])return;held[code]=0;document.dispatchEvent(mkEvt('keyup',code,key));}
+/* ── Pedals: use changedTouches to support multi-touch ── */
 function bindPedal(id,code,key){
   var el=document.getElementById(id);if(!el)return;
   el.addEventListener('touchstart',function(e){e.preventDefault();el.classList.add('pressed');press(code,key);},{passive:false});
-  el.addEventListener('touchend',function(e){e.preventDefault();el.classList.remove('pressed');release(code,key);},{passive:false});
+  el.addEventListener('touchend',function(e){
+    e.preventDefault();
+    /* only release if no touches remain on this element */
+    if(e.targetTouches.length===0){el.classList.remove('pressed');release(code,key);}
+  },{passive:false});
   el.addEventListener('touchcancel',function(e){el.classList.remove('pressed');release(code,key);},{passive:false});
 }
 bindPedal('mob-gas','ArrowUp','ArrowUp');
 bindPedal('mob-brake','ArrowDown','ArrowDown');
+/* ── Steering wheel ── */
 var wc=document.getElementById('mob-wheel-canvas');
 var wctx=wc?wc.getContext('2d'):null;
 var CX=70,CY=70,R=58,BALL_R=9;
-var angle=0,dragging=false,startAngle=0,startTA=0;
+var angle=0,dragging=false,startAngle=0,startTA=0,wheelTouchId=null;
 var leftActive=false,rightActive=false;
 var DEAD=0.12,MAX_A=Math.PI*0.65;
-function tAngle(e){var r=wc.getBoundingClientRect(),t=e.touches[0];return Math.atan2((t.clientX-r.left)-CX,(t.clientY-r.top)-CY);}
+/* clockwise-from-top angle for a screen-coord point relative to wheel centre */
+function ptAngle(cx,cy){return Math.atan2(cx-CX,-(cy-CY));}
+/* find the tracked touch in a TouchList */
+function findTouch(list,id){for(var i=0;i<list.length;i++){if(list[i].identifier===id)return list[i];}return null;}
 function drawWheel(a){
   if(!wctx)return;
   wctx.clearRect(0,0,140,140);
@@ -1815,28 +1824,36 @@ function applyAngle(a){
 }
 wc.addEventListener('touchstart',function(e){
   e.preventDefault();
-  var r=wc.getBoundingClientRect(),t=e.touches[0];
-  var dx=(t.clientX-r.left)-CX,dy=(t.clientY-r.top)-CY;
+  /* only track one wheel touch at a time; ignore extra fingers */
+  if(dragging)return;
+  var r=wc.getBoundingClientRect(),t=e.changedTouches[0];
+  var lx=t.clientX-r.left,ly=t.clientY-r.top;
+  var dx=lx-CX,dy=ly-CY;
   if(Math.sqrt(dx*dx+dy*dy)<18){
     document.dispatchEvent(mkEvt('keydown','Space',' '));
     setTimeout(function(){document.dispatchEvent(mkEvt('keyup','Space',' '));},80);
     return;
   }
-  dragging=true;startAngle=angle;startTA=tAngle(e);
+  dragging=true;wheelTouchId=t.identifier;startAngle=angle;startTA=ptAngle(lx,ly);
 },{passive:false});
 wc.addEventListener('touchmove',function(e){
   e.preventDefault();
   if(!dragging)return;
-  var d=tAngle(e)-startTA;
+  var r=wc.getBoundingClientRect(),t=findTouch(e.touches,wheelTouchId);
+  if(!t)return;
+  var lx=t.clientX-r.left,ly=t.clientY-r.top;
+  var d=ptAngle(lx,ly)-startTA;
   if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;
   angle=Math.max(-MAX_A,Math.min(MAX_A,startAngle+d));
   drawWheel(angle);applyAngle(angle);
 },{passive:false});
 wc.addEventListener('touchend',function(e){
-  e.preventDefault();dragging=false;
+  e.preventDefault();
+  if(findTouch(e.touches,wheelTouchId))return; /* touch still active */
+  dragging=false;wheelTouchId=null;
   var snap=setInterval(function(){angle*=0.7;if(Math.abs(angle)<0.01){angle=0;clearInterval(snap);}drawWheel(angle);applyAngle(angle);},16);
 },{passive:false});
-wc.addEventListener('touchcancel',function(e){dragging=false;angle=0;drawWheel(0);applyAngle(0);},{passive:false});
+wc.addEventListener('touchcancel',function(e){dragging=false;wheelTouchId=null;angle=0;drawWheel(0);applyAngle(0);},{passive:false});
 drawWheel(0);
 })();
 </script>
