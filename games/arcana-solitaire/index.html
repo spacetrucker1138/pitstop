@@ -1107,7 +1107,9 @@ document.getElementById("titleLb").addEventListener("click", async () => {
 
   /* Main pointer handler — attached via document delegation */
   document.addEventListener('pointerdown', function(e){
-    /* Only act on left-button or touch pointers on a draggable card */
+    /* Mouse gets native HTML5 drag-and-drop — touch/pen use this engine */
+    if(e.pointerType === 'mouse') return;
+    /* Only act on touch/pen pointers on a draggable card */
     var target = e.target;
     var cardEl = target.closest ? target.closest('.card[draggable="true"]') : null;
     if(!cardEl) return;
@@ -1140,7 +1142,7 @@ document.getElementById("titleLb").addEventListener("click", async () => {
   }, {passive: false});
 
   document.addEventListener('pointermove', function(e){
-    if(!td) return;
+    if(e.pointerType === 'mouse' || !td) return;
     var dx = e.clientX - td.startX, dy = e.clientY - td.startY;
     if(Math.sqrt(dx*dx + dy*dy) > MOVE_THRESH){
       td.moved = true;
@@ -1156,7 +1158,7 @@ document.getElementById("titleLb").addEventListener("click", async () => {
   }, {passive: false});
 
   document.addEventListener('pointerup', function(e){
-    if(!td) return;
+    if(e.pointerType === 'mouse' || !td) return;
     clearTimeout(td.timer);
     var wasLifted = td.lifted;
     var src = td.source, idx = td.index, el = td.el;
@@ -1173,7 +1175,7 @@ document.getElementById("titleLb").addEventListener("click", async () => {
   }, {passive: false});
 
   document.addEventListener('pointercancel', function(e){
-    if(!td) return;
+    if(e.pointerType === 'mouse' || !td) return;
     clearTimeout(td.timer);
     endDrag(td.el);
     td = null;
