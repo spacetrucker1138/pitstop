@@ -155,7 +155,33 @@ body {
   padding-bottom: 166.7%; /* 2:3 ratio */
   transform-style: preserve-3d;
   transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.card-inner.dragging {
+  opacity: 0.3;
+  cursor: grabbing;
+}
+/* Ghost card that follows the pointer while dragging */
+#drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.8), 0 0 30px rgba(240,192,64,0.35);
+  border: 2px solid rgba(240,192,64,0.6);
+  display: none;
+  transform: rotate(-4deg) scale(1.08);
+  transition: transform 0.1s ease;
+}
+#drag-ghost img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+/* Drop target highlight */
+.card-slot.drop-target > .card-inner {
+  box-shadow: 0 0 0 3px rgba(240,192,64,0.9), 0 0 20px rgba(240,192,64,0.4);
 }
 
 .card-inner.flipped {
@@ -384,21 +410,21 @@ body {
   <div class="cards-row">
     <div class="card-slot" id="slot-0">
       <div class="card-label">Past</div>
-      <div class="card-inner" onclick="flipCard(0)">
+      <div class="card-inner" id="card-inner-0" data-slot="0">
         <div class="card-face card-back"><img src="/assets/tarot-game/card_back.jpg" alt="Card Back"></div>
         <div class="card-face card-front"><img id="card-img-0" src="" alt="Tarot Card"></div>
       </div>
     </div>
     <div class="card-slot" id="slot-1">
       <div class="card-label">Present</div>
-      <div class="card-inner" onclick="flipCard(1)">
+      <div class="card-inner" id="card-inner-1" data-slot="1">
         <div class="card-face card-back"><img src="/assets/tarot-game/card_back.jpg" alt="Card Back"></div>
         <div class="card-face card-front"><img id="card-img-1" src="" alt="Tarot Card"></div>
       </div>
     </div>
     <div class="card-slot" id="slot-2">
       <div class="card-label">Future</div>
-      <div class="card-inner" onclick="flipCard(2)">
+      <div class="card-inner" id="card-inner-2" data-slot="2">
         <div class="card-face card-back"><img src="/assets/tarot-game/card_back.jpg" alt="Card Back"></div>
         <div class="card-face card-front"><img id="card-img-2" src="" alt="Tarot Card"></div>
       </div>
@@ -1042,5 +1068,6 @@ function generateComboReading() {
 }
 
 </script>
+<div id="drag-ghost"><img id="drag-ghost-img" src="" alt=""></div>
 </body>
 </html>
