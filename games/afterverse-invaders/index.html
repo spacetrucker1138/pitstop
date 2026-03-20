@@ -29,7 +29,9 @@ canvas { border: 2px solid rgba(57,255,20,0.2); border-radius: 8px; box-shadow: 
 }
 #back-link:hover { color: #39ff14; }
 #mobile-controls {
-  display: none; position: fixed; bottom: 50px; left: 0; right: 0; z-index: 100; padding: 0 20px;
+  display: none; position: fixed; bottom: 50px; left: 0; right: 0; z-index: 100;
+  padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+  -webkit-touch-callout: none;
 }
 .m-row { display: flex; justify-content: space-between; align-items: center; }
 .m-btn {
