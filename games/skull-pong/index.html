@@ -340,7 +340,7 @@ let particles = [];
 
 // Input
 let keys = {};
-// touch controls handled by mob d-pad overlay
+let touchX = null; // disabled - D-pad used instead
 document.addEventListener('keydown', e => { if (e.key === ' ') e.preventDefault(); keys[e.key] = true; handleKey(e.key); });
 document.addEventListener('keyup', e => keys[e.key] = false);
 // D-pad handles touch input
@@ -364,7 +364,6 @@ function handleKey(key) {
 }
 function handleTouch(e) {
   audio.resume();
-  touchX = e.touches[0].clientX / canvas.offsetWidth * W;
   if (state === 'title') startGame();
   if (state === 'gameover') backToTitle();
 }
