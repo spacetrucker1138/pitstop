@@ -109,7 +109,8 @@
       transition: box-shadow 0.15s ease;
       user-select: none;
       overflow: hidden;
-      cursor: pointer;
+      cursor: grab;
+      touch-action: none;
     }
     .card img {
       width: 100%;
@@ -127,7 +128,29 @@
       height: 100%;
       object-fit: cover;
     }
-    .card.dragging { opacity: 0.5; }
+    .card.dragging { opacity: 0.35; cursor: grabbing; }
+    #touch-drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.85), 0 0 20px rgba(201,162,39,0.4);
+      border: 2px solid #c9a227;
+      display: none;
+      transform: rotate(-3deg) scale(1.06);
+      opacity: 0.92;
+    }
+    #touch-drag-ghost img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    /* stack of cards ghost count badge */
+    #touch-drag-ghost .ghost-count {
+      position: absolute; top: 4px; right: 6px;
+      background: rgba(201,162,39,0.9); color: #1a0a2e;
+      font-size: 0.75rem; font-weight: bold; border-radius: 999px;
+      padding: 1px 6px; display: none;
+    }
     .card.highlight { box-shadow: 0 0 12px 4px #c9a227; }
     .card.drag-over { box-shadow: 0 0 10px 3px #44ff88; }
     .pile-container.drop-valid, .tableau-pile.drop-valid, .card.drop-valid { box-shadow: 0 0 14px 5px #44ff88 !important; border-color: #44ff88 !important; }
@@ -997,11 +1020,183 @@ document.getElementById("titleLb").addEventListener("click", async () => {
 
 // Also hook existing in-game New Game to return to title on ESC? No — just keep playing.
 
+
+/* ═══════════════════════════════════════════════════════════════
+   TOUCH DRAG ENGINE — bridges pointer events to existing
+   handleDrop(data, destType, destId) logic
+   Hold 250ms → lift card as ghost; release over target → drop
+   Short tap → existing click/flip behavior fires normally
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  var HOLD_MS = 250;
+  var MOVE_THRESH = 6;
+  var ghost = document.getElementById('touch-drag-ghost');
+  var ghostImg = document.getElementById('touch-drag-ghost-img');
+  var ghostCount = document.getElementById('ghost-count');
+  var td = null; // active drag state
+
+  function moveGhost(cx, cy){
+    ghost.style.left = (cx - parseInt(ghost.style.width)/2)  + 'px';
+    ghost.style.top  = (cy - parseInt(ghost.style.height)/2) + 'px';
+  }
+
+  function liftCard(sourceEl, source, index, cx, cy){
+    // clone card size from source element
+    var r = sourceEl.getBoundingClientRect();
+    ghost.style.width  = r.width  + 'px';
+    ghost.style.height = r.height + 'px';
+    ghostImg.src = sourceEl.querySelector('img').src;
+
+    // Show card count badge for tableau stacks
+    var stackSize = 1;
+    if(source.startsWith('tableau-')){
+      var si = parseInt(source.split('-')[1]);
+      stackSize = tableau[si].length - index;
+    }
+    if(stackSize > 1){
+      ghostCount.textContent = '×' + stackSize;
+      ghostCount.style.display = 'block';
+    } else {
+      ghostCount.style.display = 'none';
+    }
+
+    ghost.style.display = 'block';
+    moveGhost(cx, cy);
+    sourceEl.classList.add('dragging');
+
+    // Set draggedInfo for hint system
+    if(source === 'waste'){
+      draggedInfo = { cards: waste.length ? [waste[waste.length-1]] : [], sourceType: source, index: index };
+    } else if(source.startsWith('tableau-')){
+      var si2 = parseInt(source.split('-')[1]);
+      draggedInfo = { cards: tableau[si2].slice(index), sourceType: source, index: index };
+    }
+    highlightDropTargets();
+  }
+
+  function endDrag(sourceEl){
+    ghost.style.display = 'none';
+    if(sourceEl) sourceEl.classList.remove('dragging');
+    clearDropHighlights();
+    draggedInfo = null;
+  }
+
+  /* Find the deepest drop-capable element under (cx,cy), skipping the ghost */
+  function dropTargetAt(cx, cy){
+    ghost.style.display = 'none';
+    var el = document.elementFromPoint(cx, cy);
+    ghost.style.display = 'block';
+    if(!el) return null;
+
+    /* Walk up to find an element with data-dest-type (set by enableDrop wrapper) */
+    var cur = el;
+    while(cur && cur !== document.body){
+      if(cur.dataset && cur.dataset.destType) return cur;
+      cur = cur.parentElement;
+    }
+    return null;
+  }
+
+  /* Patch enableDrop to stamp dest info onto elements */
+  var _origEnableDrop = enableDrop;
+  enableDrop = function(el, destType, destId){
+    _origEnableDrop(el, destType, destId);
+    el.dataset.destType = destType;
+    el.dataset.destId   = String(destId);
+  };
+
+  /* Main pointer handler — attached via document delegation */
+  document.addEventListener('pointerdown', function(e){
+    /* Only act on left-button or touch pointers on a draggable card */
+    var target = e.target;
+    var cardEl = target.closest ? target.closest('.card[draggable="true"]') : null;
+    if(!cardEl) return;
+
+    /* Don't interfere with modal or input interactions */
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+
+    /* Read source info from the closest ancestor with a data-source attribute,
+       or fall back to the draggable div's dragstart data */
+    /* We reconstruct from DOM position instead */
+    var source = cardEl.dataset.source;
+    var idx    = parseInt(cardEl.dataset.index);
+    if(!source) return; // not a tagged card
+
+    e.preventDefault();
+    try{ cardEl.setPointerCapture(e.pointerId); }catch(ex){}
+
+    td = {
+      el: cardEl, source: source, index: idx,
+      startX: e.clientX, startY: e.clientY,
+      moved: false, lifted: false, pointerId: e.pointerId
+    };
+
+    td.timer = setTimeout(function(){
+      if(!td) return;
+      td.lifted = true;
+      startTimer();
+      liftCard(td.el, td.source, td.index, td.startX, td.startY);
+    }, HOLD_MS);
+  }, {passive: false});
+
+  document.addEventListener('pointermove', function(e){
+    if(!td) return;
+    var dx = e.clientX - td.startX, dy = e.clientY - td.startY;
+    if(Math.sqrt(dx*dx + dy*dy) > MOVE_THRESH){
+      td.moved = true;
+      /* if we've moved and timer hasn't fired yet, lift immediately */
+      if(!td.lifted && td.source){
+        clearTimeout(td.timer);
+        td.lifted = true;
+        startTimer();
+        liftCard(td.el, td.source, td.index, e.clientX, e.clientY);
+      }
+    }
+    if(td.lifted) moveGhost(e.clientX, e.clientY);
+  }, {passive: false});
+
+  document.addEventListener('pointerup', function(e){
+    if(!td) return;
+    clearTimeout(td.timer);
+    var wasLifted = td.lifted;
+    var src = td.source, idx = td.index, el = td.el;
+    td = null;
+
+    if(wasLifted){
+      var destEl = dropTargetAt(e.clientX, e.clientY);
+      endDrag(el);
+      if(destEl){
+        handleDrop({ source: src, index: idx }, destEl.dataset.destType, destEl.dataset.destId);
+      }
+    }
+    /* if not lifted and not moved → let existing click handler fire naturally */
+  }, {passive: false});
+
+  document.addEventListener('pointercancel', function(e){
+    if(!td) return;
+    clearTimeout(td.timer);
+    endDrag(td.el);
+    td = null;
+  });
+
+  /* Stamp data-source/data-index onto card elements during creation */
+  var _origCreateCardElement = createCardElement;
+  createCardElement = function(card, sourceType, cardIndex){
+    var el = _origCreateCardElement(card, sourceType, cardIndex);
+    if(card.faceUp && (sourceType.startsWith('waste') || sourceType.startsWith('tableau'))){
+      el.dataset.source = sourceType;
+      el.dataset.index  = String(cardIndex);
+    }
+    return el;
+  };
+})();
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 // Show title screen on load; game initializes when player hits New Game
 showTitleScreen();
 dealGame(); // pre-deal silently so first click is instant
 render();
 </script>
+<div id="touch-drag-ghost"><img id="touch-drag-ghost-img" src="" alt=""><span class="ghost-count" id="ghost-count"></span></div>
 </body>
 </html>
