@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Library — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="Published works by Bobby Griffith — DEADANOMICON, horror comics, and art collections from Spacetruckers Pit Stop.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+  <style>
+    .library-hero {
+      padding: 80px 1.5rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .library-hero h1 {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      color: var(--bone-white);
+      margin-bottom: 0.5rem;
+      letter-spacing: 2px;
+    }
+    .library-hero .sub {
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--neon-green);
+      margin-bottom: 1.25rem;
+    }
+    .library-hero p {
+      color: var(--text-body);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    .featured-section {
+      max-width: 900px;
+      margin: 3rem auto 0;
+      padding: 0 1.5rem;
+    }
+    .featured-section h2 {
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--neon-purple);
+      margin-bottom: 1.25rem;
+    }
+    .featured-section h2::before { content: '> '; }
+    .featured-card {
+      border: 1px solid rgba(191,0,255,0.35);
+      border-radius: 10px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      background: var(--bg-card);
+      box-shadow: 0 0 50px rgba(191,0,255,0.08);
+      transition: box-shadow 0.3s ease;
+    }
+    .featured-card:hover { box-shadow: 0 0 70px rgba(191,0,255,0.16); }
+    .featured-cover {
+      position: relative;
+      background: #0d0d0d;
+      min-height: 300px;
+    }
+    .featured-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .featured-badge {
+      position: absolute;
+      top: 12px; left: 12px;
+      background: var(--accent-red);
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 0.3rem 0.6rem;
+      border-radius: 3px;
+    }
+    .featured-body {
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .featured-body h3 {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      color: var(--bone-white);
+      margin-bottom: 0.75rem;
+      line-height: 1.1;
+    }
+    .featured-body p {
+      color: var(--text-body);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    .grid-section {
+      max-width: 900px;
+      margin: 3.5rem auto 4rem;
+      padding: 0 1.5rem;
+    }
+    .grid-section h2 {
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--neon-green);
+      margin-bottom: 1.25rem;
+    }
+    .grid-section h2::before { content: '> '; }
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 1.5rem;
+    }
+    .book-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    .book-card:hover {
+      border-color: rgba(57,255,20,0.25);
+      box-shadow: 0 0 30px rgba(57,255,20,0.06);
+      transform: translateY(-3px);
+    }
+    .book-cover {
+      background: #0d0d0d;
+      aspect-ratio: 6/9;
+      overflow: hidden;
+    }
+    .book-cover img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform 0.4s ease;
+    }
+    .book-card:hover .book-cover img { transform: scale(1.04); }
+    .book-info {
+      padding: 1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .book-info h3 {
+      font-family: 'Creepster', cursive;
+      font-size: 1.15rem;
+      color: var(--bone-white);
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+    .book-info p {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      line-height: 1.55;
+      flex: 1;
+      margin-bottom: 0.9rem;
+    }
+    .book-tag {
+      display: inline-block;
+      font-family: 'Courier New', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      margin-bottom: 0.75rem;
+      border: 1px solid;
+    }
+    .tag-horror  { color: var(--accent-red);  border-color: rgba(255,23,68,0.35); }
+    .tag-art     { color: var(--neon-purple); border-color: rgba(191,0,255,0.35); }
+    .tag-restore { color: #ff9800;            border-color: rgba(255,152,0,0.35); }
+    .btn-amazon {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid var(--accent-red);
+      color: var(--accent-red);
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 0.55rem 1rem;
+      border-radius: 4px;
+      text-decoration: none;
+      transition: background 0.2s ease, color 0.2s ease;
+      text-align: center;
+    }
+    .btn-amazon:hover { background: var(--accent-red); color: #fff; }
+    .btn-amazon-lg { align-self: flex-start; font-size: 0.75rem; padding: 0.7rem 1.75rem; }
+    @media (max-width: 640px) {
+      .featured-card { grid-template-columns: 1fr; }
+      .featured-cover { min-height: 260px; max-height: 320px; }
+      .featured-body { padding: 1.5rem; }
+      .book-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="music.html">Music</a></li>
+      <li><a href="library.html" class="active">The Library</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="games.html">Games</a></li>
+      <li><a href="dead-report.html">The Dead Report</a></li>
+      <li><a href="wall/">The Wall</a></li>
+      <li><a href="links.html">Links</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main>
+
+  <div class="library-hero fade-in">
+    <div class="sub">Spacetruckers Pit Stop Publications</div>
+    <h1>The Library</h1>
+    <p>Comics, horror, and art from the Afterverse. Every book written, drawn, and published by Bobby Griffith. Available now on Amazon.</p>
+  </div>
+
+  <section class="featured-section fade-in">
+    <h2>Latest Release</h2>
+    <a href="https://a.co/d/031pYTet" target="_blank" rel="noopener" style="text-decoration:none;">
+      <div class="featured-card">
+        <div class="featured-cover">
+          <img src="https://images-na.ssl-images-amazon.com/images/P/9798874461980.jpg"
+               alt="DEADANOMICON Deluxe cover" loading="lazy">
+          <span class="featured-badge">New</span>
+        </div>
+        <div class="featured-body">
+          <span class="book-tag tag-horror">Horror Comics</span>
+          <h3>DEADANOMICON<br>Deluxe Edition</h3>
+          <p>A group of kids stumbles onto a decaying book called the DEADANOMICON &mdash; and the pages don't just tell stories, they shift things. EC Comics&ndash;style horror steeped in dread, mystery, and cosmic inevitability. Full color.</p>
+          <span class="btn-amazon btn-amazon-lg">Get it on Amazon &rarr;</span>
+        </div>
+      </div>
+    </a>
+  </section>
+
+  <section class="grid-section fade-in">
+    <h2>Full Catalog</h2>
+    <div class="book-grid">
+
+      <div class="book-card">
+        <div class="book-cover">
+          <img src="https://images-na.ssl-images-amazon.com/images/P/9798986044613.jpg"
+               alt="DEADANOMICON Original cover" loading="lazy">
+        </div>
+        <div class="book-info">
+          <span class="book-tag tag-horror">Horror Comics</span>
+          <h3>DEADANOMICON</h3>
+          <p>The original underground edition. Teenagers, a cabin, and the dreaded Necronomicon. Raw B&amp;W horror inspired by the '80s underground &mdash; The Crow, Faust, TMNT. Buckets of blood.</p>
+          <a href="https://a.co/d/0f3nKbDW" target="_blank" rel="noopener" class="btn-amazon">Amazon &rarr;</a>
+        </div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover">
+          <img src="https://images-na.ssl-images-amazon.com/images/P/9798453728046.jpg"
+               alt="Spacetruckers Pitstop art book cover" loading="lazy">
+        </div>
+        <div class="book-info">
+          <span class="book-tag tag-art">Art Collection</span>
+          <h3>Spacetruckers Pitstop</h3>
+          <p>Watercolor, ink, pencil. Cartoons, goth, and whimsey. A peek inside the sketchbook &mdash; warmup art and experiments from behind the comic series. Grayscale.</p>
+          <a href="https://a.co/d/05G4Sp8R" target="_blank" rel="noopener" class="btn-amazon">Amazon &rarr;</a>
+        </div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover">
+          <img src="https://images-na.ssl-images-amazon.com/images/P/9798415698806.jpg"
+               alt="Beware! cover" loading="lazy">
+        </div>
+        <div class="book-info">
+          <span class="book-tag tag-restore">Restoration</span>
+          <h3>Beware!</h3>
+          <p>Pre-Code 1950s horror comics &mdash; restored and reissued in a portable 6&times;9 format. Chilling tales from before the Comics Code Authority killed the fun. Bonus: DEADANOMICON #2 preview.</p>
+          <a href="https://a.co/d/0gLXLz8Q" target="_blank" rel="noopener" class="btn-amazon">Amazon &rarr;</a>
+        </div>
+      </div>
+
+      <div class="book-card">
+        <div class="book-cover">
+          <img src="https://images-na.ssl-images-amazon.com/images/P/9798430524890.jpg"
+               alt="Nightmare cover" loading="lazy">
+        </div>
+        <div class="book-info">
+          <span class="book-tag tag-restore">Restoration</span>
+          <h3>Nightmare</h3>
+          <p>More restored pre-Code 1950s horror &mdash; monsters, werewolves, and pulp terror in a portable 6&times;9 format. Inspired by the original trailblazers. Bonus: DEADANOMICON #2 preview.</p>
+          <a href="https://a.co/d/0jitKNgf" target="_blank" rel="noopener" class="btn-amazon">Amazon &rarr;</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
+    <a href="https://thejurn.bandcamp.com/" target="_blank">BandCamp</a>
+    <a href="https://discord.gg/cnZVAEZRbS" target="_blank">Discord</a>
+    <a href="https://ko-fi.com/spacetrucker" target="_blank">Ko-fi</a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
+</body>
+</html>
