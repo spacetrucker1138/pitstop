@@ -269,13 +269,14 @@
     </div>
 
     <div class="v6-feed">
-      <div class="v6-feed-header"><span class="dot"></span> Live Now &mdash; Double Future Radio</div>
+      <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Live Now &mdash; Double Future Radio</span></div>
       <div class="v6-video-wrap">
-        <iframe src="https://www.youtube.com/embed/63_NKP0500Y?autoplay=0&rel=0"
+        <iframe id="yt-live-frame"
+                src="https://www.youtube.com/embed/live_stream?channel=UCI32pO4OO1m5lAEvWEAEBOA&enablejsapi=1&autoplay=0&rel=0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen loading="lazy"></iframe>
       </div>
-      <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" class="v6-feed-link">
+      <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" class="v6-feed-link" id="yt-feed-link">
         &#8594; Open on YouTube
       </a>
     </div>
@@ -366,5 +367,37 @@
     targets.forEach(function(el) { observer.observe(el); });
   });
 </script>
+
+  <script>
+    var _ytLive = (function() {
+      var PLAYLIST_ID = 'PLXyoDBFD4smNZm4vJlYG1YsKWVoSHk1fO';
+      var switched = false;
+      function switchToPlaylist() {
+        if (switched) return;
+        switched = true;
+        var frame = document.getElementById('yt-live-frame');
+        var statusText = document.getElementById('yt-status-text');
+        var dot = document.getElementById('yt-dot');
+        var link = document.getElementById('yt-feed-link');
+        frame.src = 'https://www.youtube.com/embed?listType=playlist&list=' + PLAYLIST_ID + '&autoplay=0&loop=1&rel=0&modestbranding=1';
+        statusText.innerHTML = 'Music Videos &mdash; Double Future Radio';
+        if (dot) { dot.style.background = '#555'; dot.style.animation = 'none'; }
+        if (link) { link.href = 'https://www.youtube.com/playlist?list=' + PLAYLIST_ID; link.textContent = '\u2192 View Playlist on YouTube'; }
+      }
+      return { switchToPlaylist: switchToPlaylist };
+    })();
+
+    function onYouTubeIframeAPIReady() {
+      new YT.Player('yt-live-frame', {
+        events: { onError: function() { _ytLive.switchToPlaylist(); } }
+      });
+    }
+
+    (function() {
+      var tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    })();
+  </script>
 </body>
 </html>
