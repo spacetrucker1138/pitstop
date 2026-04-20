@@ -399,5 +399,34 @@
       document.head.appendChild(tag);
     })();
   </script>
+
+  <script>
+    /* thejurn.com site tracker — writes to Firebase site/stats */
+    (function() {
+      var FIREBASE_CONFIG = {
+        apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+        authDomain: "pitstop-wall.firebaseapp.com",
+        databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+        storageBucket: "pitstop-wall.firebasestorage.app"
+      };
+      var isNew = !localStorage.getItem("site_visit_id");
+      if (isNew) localStorage.setItem("site_visit_id", "1");
+
+      import("https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js").then(function(m) {
+        var app = m.initializeApp(FIREBASE_CONFIG, "site-tracker");
+        return import("https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js").then(function(db) {
+          var database = db.getDatabase(app);
+          var statsRef = db.ref(database, "site/stats");
+          db.get(statsRef).then(function(snap) {
+            var cur = snap.exists() ? snap.val() : { visits: 0, unique: 0 };
+            db.set(statsRef, {
+              visits: (cur.visits || 0) + 1,
+              unique: (cur.unique || 0) + (isNew ? 1 : 0)
+            });
+          }).catch(function(){});
+        });
+      }).catch(function(){});
+    })();
+  </script>
 </body>
 </html>

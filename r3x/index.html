@@ -101,7 +101,7 @@
       try {
         const app = initializeApp(FIREBASE_CONFIG, "r3x-counter");
         const db  = getDatabase(app);
-        const statsRef = ref(db, "r3x/stats");
+        const statsRef = ref(db, "site/stats");
         const isNew = !localStorage.getItem("r3x_visit_id");
         if (isNew) localStorage.setItem("r3x_visit_id", "1");
         const snap = await get(statsRef);
