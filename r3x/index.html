@@ -124,6 +124,7 @@
   month:  { visits:0, unique:0 },
   total:  { visits:0, unique:0 },
   rooms:  { lobby:0, code:0, art:0, comms:0, tasks:0, vault:0 },
+  pages:  { home:0, music:0, library:0, about:0, games:0, dead:0, wall:0, links:0 },
   hourly: new Array(24).fill(0),
   ready:  false,
   fbConnected: false,
@@ -187,6 +188,7 @@
   st.month  = s.monthly?.[monthKey]|| { visits:0, unique:0 };
   st.total  = s.total  || { visits:0, unique:0 };
   st.rooms  = s.rooms  || { lobby:0, code:0, art:0, comms:0, tasks:0, vault:0 };
+  st.pages  = s.pages  || { home:0, music:0, library:0, about:0, games:0, dead:0, wall:0, links:0 };
   st.hourly = Array.from({length:24}, (_, i) => s.hourly?.[i] || 0);
   }
 
@@ -314,7 +316,7 @@ const ROOMS = {
   { type: "painting", x: 360, y: 185, w: 60,  h: 60,  color: "#150a15", label: null, artKey: "art_skullbadge",frameColor: "#0a0a0a" },
   { type: "easel",  x: 490, y: 145, w: 90,  h: 145, color: "#1a0f18", label: null, artKey: "art_plastic" },
   { type: "table",  x: 445, y: 250, w: 180, h: 50,  color: "#1a0f18", label: null, artKey: "art_spacerv" },
-  { type: "statsmonitor", x: 635, y: 58,  w: 90,  h: 120, period: "rooms",  label: "ROOM ACTIVITY" },
+  { type: "statsmonitor", x: 635, y: 58,  w: 90,  h: 120, period: "pages",  label: "PAGE TRAFFIC" },
   { type: "light",  x: 730, y: 60,  w: 40,  h: 80,  color: "#2a1a00", label: null },
   { type: "box",  x: 620, y: 262, w: 40,  h: 38,  color: "#1a0f18", label: "ART", _climbTarget: true },
   { type: "box",  x: 662, y: 224, w: 40,  h: 38,  color: "#1a0f18", label: null, _climbTarget: true },
@@ -1040,7 +1042,8 @@ function drawElement(el) {
   period === "week"   ? "#ff8800" :
   period === "month"  ? "#ffcc00" :
   period === "total"  ? "#00aaff" :
-  period === "rooms"  ? "#aa00ff" : "#00ff88";
+  period === "rooms"  ? "#aa00ff" :
+                        period === "pages"  ? "#aa44ff" : "#00ff88";
   ctx.strokeStyle = borderCol + "55";
   ctx.lineWidth = 1;
   ctx.strokeRect(el.x, el.y, el.w, el.h);
@@ -1085,16 +1088,22 @@ function drawElement(el) {
   }
   }
 
-  else if (period === "rooms") {
-  const rooms = ["lobby","code","art","comms","tasks","vault"];
-  const labels = ["LOB","COD","ART","COM","TSK","VLT"];
-  const counts = rooms.map(r => (_st && _st.rooms ? (_st.rooms[r] || 0) : 0));
-  const maxVal = Math.max(1, ...counts);
+  else if (period === "rooms" || period === "pages") {
+  const isPages = period === "pages";
+  const keys    = isPages ? ["home","music","library","about","games","dead","wall","links"]
+                           : ["lobby","code","art","comms","tasks","vault"];
+  const labels  = isPages ? ["HOME","MUS","LIB","ABT","GME","DED","WALL","LNK"]
+                           : ["LOB","COD","ART","COM","TSK","VLT"];
+  const src     = _st && (isPages ? _st.pages : _st.rooms);
+  const counts  = keys.map(k => (src ? (src[k] || 0) : 0));
+  const maxVal  = Math.max(1, ...counts);
   const barAreaH = el.h - 28;
-  const barW = Math.floor((el.w - 12) / rooms.length);
-  const colors = ["#ff3300","#ff8800","#aa00ff","#00cc44","#ffcc00","#00aaff"];
+  const barW    = Math.floor((el.w - 12) / keys.length);
+  const colors  = isPages
+    ? ["#ff6600","#00aaff","#aa44ff","#00dd88","#ff4488","#ffcc00","#00ffcc","#ff8844"]
+    : ["#ff3300","#ff8800","#aa00ff","#00cc44","#ffcc00","#00aaff"];
 
-  for (let i = 0; i < rooms.length; i++) {
+  for (let i = 0; i < keys.length; i++) {
   const bx = el.x + 6 + i * barW;
   const fillH = ready ? Math.max(2, Math.round((counts[i] / maxVal) * (barAreaH - 10))) : 0;
   const by = el.y + el.h - 20 - fillH;
