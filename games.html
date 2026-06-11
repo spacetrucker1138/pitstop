@@ -681,5 +681,11 @@
   });
 </script>
 
+
+<script type="module">
+import{initializeApp,getApps}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import{getDatabase,ref,update,increment}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+try{const C={apiKey:"AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",authDomain:"pitstop-wall.firebaseapp.com",databaseURL:"https://pitstop-wall-default-rtdb.firebaseio.com",projectId:"pitstop-wall",storageBucket:"pitstop-wall.appspot.com",messagingSenderId:"767668528451",appId:"1:767668528451:web:107ef2d7230f7560fdfbf6"};const app=getApps().find(a=>a.name==="pt")||initializeApp(C,"pt");const db=getDatabase(app);const u={};u["site/stats/pages/games"]=increment(1);await update(ref(db,"/"),u);}catch(_){}
+</script>
 </body>
 </html>
