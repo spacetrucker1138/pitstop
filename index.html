@@ -272,7 +272,7 @@
       <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Live Now &mdash; Double Future Radio</span></div>
       <div class="v6-video-wrap">
         <iframe id="yt-live-frame"
-                src="https://www.youtube.com/embed/FEoQI1XNSKg?enablejsapi=1&autoplay=0&rel=0"
+                src="https://www.youtube.com/embed/live_stream?channel=UCI32pO4OO1m5lAEvWEAEBOA&enablejsapi=1&autoplay=0&rel=0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen loading="lazy"></iframe>
       </div>
@@ -389,6 +389,8 @@
     var _ytLive = (function() {
       var PLAYLIST_ID = 'PLXyoDBFD4smNZm4vJlYG1YsKWVoSHk1fO';
       var switched = false;
+      var isLive = false;
+      var errorTimer = null;
       function switchToPlaylist() {
         if (switched) return;
         switched = true;
@@ -401,16 +403,27 @@
         if (dot) { dot.style.background = '#555'; dot.style.animation = 'none'; }
         if (link) { link.href = 'https://www.youtube.com/playlist?list=' + PLAYLIST_ID; link.textContent = '\u2192 View Playlist on YouTube'; }
       }
-      return { switchToPlaylist: switchToPlaylist };
+      return {
+        switchToPlaylist: switchToPlaylist,
+        setLive: function() { isLive = true; if (errorTimer) { clearTimeout(errorTimer); errorTimer = null; } },
+        scheduleError: function() {
+          if (errorTimer) clearTimeout(errorTimer);
+          errorTimer = setTimeout(function() { if (!isLive) switchToPlaylist(); }, 4000);
+        }
+      };
     })();
 
     function onYouTubeIframeAPIReady() {
       new YT.Player('yt-live-frame', {
         events: {
-          onError: function() { _ytLive.switchToPlaylist(); },
+          onError: function() {
+            // Wait 4s before falling back — avoids snap if stream is momentarily loading
+            _ytLive.scheduleError();
+          },
           onStateChange: function(e) {
-            // 0 = ended — fall back to playlist after stream ends
-            if (e.data === 0) { _ytLive.switchToPlaylist(); }
+            if (e.data === 1) { _ytLive.setLive(); }   // playing = stream confirmed live
+            if (e.data === 0) { _ytLive.switchToPlaylist(); } // ended = fall back
+            // -1/2/3/5 (unstarted/paused/buffering/cued) — do nothing
           }
         }
       });
