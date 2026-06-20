@@ -409,8 +409,8 @@
         events: {
           onError: function() { _ytLive.switchToPlaylist(); },
           onStateChange: function(e) {
-            // -1 = unstarted/not live, 0 = ended — fall back to playlist
-            if (e.data === -1 || e.data === 0) { _ytLive.switchToPlaylist(); }
+            // 0 = ended — fall back to playlist after stream ends
+            if (e.data === 0) { _ytLive.switchToPlaylist(); }
           }
         }
       });
