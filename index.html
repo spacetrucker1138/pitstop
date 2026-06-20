@@ -272,7 +272,7 @@
       <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Live Now &mdash; Double Future Radio</span></div>
       <div class="v6-video-wrap">
         <iframe id="yt-live-frame"
-                src="https://www.youtube.com/embed/live_stream?channel=UCI32pO4OO1m5lAEvWEAEBOA&enablejsapi=1&autoplay=0&rel=0"
+                src="https://www.youtube.com/embed/FEoQI1XNSKg?enablejsapi=1&autoplay=0&rel=0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen loading="lazy"></iframe>
       </div>
@@ -406,7 +406,13 @@
 
     function onYouTubeIframeAPIReady() {
       new YT.Player('yt-live-frame', {
-        events: { onError: function() { _ytLive.switchToPlaylist(); } }
+        events: {
+          onError: function() { _ytLive.switchToPlaylist(); },
+          onStateChange: function(e) {
+            // -1 = unstarted/not live, 0 = ended — fall back to playlist
+            if (e.data === -1 || e.data === 0) { _ytLive.switchToPlaylist(); }
+          }
+        }
       });
     }
 
