@@ -314,6 +314,22 @@
       z-index: 1;
     }
 
+    .badge-beta {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1a0a00;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(245,158,11,0.5);
+      z-index: 1;
+    }
+
     /* ── ALL GAMES GRID ── */
     .grid-section {
       margin-bottom: 2.5rem;
@@ -451,16 +467,17 @@
 
 <main class="arcade-wrap">
 
-  <!-- ══ HERO: PIT FURY ══ -->
-  <a href="games/jurn-rhythm/" class="hero fade-in" style="animation-delay:0.05s">
-    <img class="hero-img" src="games/jurn-rhythm/images/pit_fury_title_art.jpg" alt="PIT FURY">
+  <!-- ══ HERO: NECROPOLIS RISING ══ -->
+  <a href="https://graveyard.thejurn.com" target="_blank" rel="noopener" class="hero fade-in" style="animation-delay:0.05s">
+    <img class="hero-img" src="images/necropolis_rising_title.jpg" alt="JURN: NECROPOLIS RISING">
+    <span class="badge-beta">BETA</span>
     <div class="hero-grad"></div>
     <div class="hero-content">
-      <div class="hero-eyebrow">Featured Game &nbsp;·&nbsp; Rhythm Game</div>
-      <h1 class="hero-title">PIT FURY</h1>
-      <p class="hero-desc">Hit notes in time with original JURN tracks. 4 lanes, 3 difficulties — A/S/D/F keys map to Taz, Sir Bonecrush, Riff-Rot, and Vox. Miss a note and that instrument drops out of the mix. Nail it back and it returns. More songs coming soon.</p>
-      <div class="hero-tags"><span class="ft">Original Music</span><span class="ft">Stem Audio</span><span class="ft">4-Key</span><span class="ft">3 Difficulties</span></div>
-      <span class="hero-btn">▶ &nbsp;Play Now</span>
+      <div class="hero-eyebrow">Featured Game &nbsp;·&nbsp; Idle / Incremental</div>
+      <h1 class="hero-title">JURN: NECROPOLIS RISING</h1>
+      <p class="hero-desc">Build the Graveyard Dimension from the ground up. Raise the dead, harvest bones and souls, and expand your undead empire across the Afterverse. Now in Beta — the realm is growing and more is coming.</p>
+      <div class="hero-tags"><span class="ft">Idle Clicker</span><span class="ft">Band Lore</span><span class="ft">Prestige System</span><span class="ft">Channel Zero</span></div>
+      <span class="hero-btn">▶ &nbsp;Enter the Dimension</span>
     </div>
   </a>
 
@@ -473,6 +490,17 @@
         <div class="shelf-scroller">
       <button class="scroll-arrow scroll-left" onclick="scrollShelf(this,-1)">&#8249;</button>
       <div class="shelf-row">
+      <a href="games/jurn-rhythm/" class="shelf-card">
+        <div class="shelf-thumb">
+          <img src="games/jurn-rhythm/images/pit_fury_title_art.jpg" alt="PIT FURY" loading="lazy">
+          <div class="shelf-overlay">
+            <div class="shelf-genre">Rhythm Game</div>
+            <div class="shelf-title">PIT FURY</div>
+            <div class="shelf-features"><span class="ft">Original Music</span><span class="ft">Stem Audio</span><span class="ft">4-Key</span><span class="ft">3 Difficulties</span></div>
+            <span class="shelf-play">&#9654; Play Now</span>
+          </div>
+        </div>
+      </a>
       <a href="games/boom-bang-bar/" class="shelf-card">
         <div class="shelf-thumb">
           <img src="games/boom-bang-bar/assets/cover-art.png" alt="THE BANG BOOM BAR" loading="lazy">
