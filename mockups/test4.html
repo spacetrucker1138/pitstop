@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP 4 — Fog Parallax Graveyard | The JURN</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Metal+Mania&family=Space+Grotesk:wght@400;500;700&display=swap">
+<style>
+  :root{--ink:#0a0710;--fog:#4a2a6a;--moon:#f4e9d8;--blood:#c81e3a;--sick:#7ee87e;--violet:#9a4dff;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:linear-gradient(180deg,#1a0f2e 0%,#0a0710 55%,#050308 100%);
+    color:var(--moon);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;cursor:none;
+  }
+  .badge{background:var(--blood);color:#fff;text-align:center;font-size:0.7rem;padding:0.4rem;letter-spacing:2px;font-weight:600;position:relative;z-index:100;}
+
+  /* custom cursor */
+  #cursor{position:fixed;width:22px;height:22px;pointer-events:none;z-index:9999;font-size:20px;transform:translate(-50%,-50%);transition:transform 0.08s ease;}
+
+  /* moon */
+  .moon{
+    position:fixed;top:6%;left:50%;transform:translateX(-50%);width:140px;height:140px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fffbe8, var(--moon) 60%, #cbbf9a 100%);
+    box-shadow:0 0 80px rgba(244,233,216,0.5),0 0 160px rgba(244,233,216,0.2);z-index:1;
+  }
+
+  /* parallax layers */
+  .parallax{position:fixed;inset:0;z-index:2;pointer-events:none;}
+  .layer{position:absolute;bottom:0;left:0;width:120%;transition:transform 0.15s ease-out;}
+  .layer-hills{height:35vh;background:linear-gradient(180deg,transparent,#1c0f30 80%);bottom:0;}
+  .fog-strip{position:absolute;bottom:0;width:140%;height:180px;left:-10%;
+    background:linear-gradient(180deg, transparent, rgba(74,42,106,0.55));filter:blur(6px);
+    animation:drift 22s linear infinite;}
+  .fog-strip.f2{animation-duration:34s;opacity:0.6;bottom:20px;}
+  @keyframes drift{0%{transform:translateX(0);}100%{transform:translateX(-8%);}}
+
+  /* tombstone silhouettes */
+  .tomb{position:absolute;bottom:0;background:#0d0716;border-radius:40px 40px 4px 4px;}
+  .tomb.t1{width:60px;height:90px;left:8%;}
+  .tomb.t2{width:80px;height:120px;left:20%;}
+  .tomb.t3{width:50px;height:70px;right:12%;}
+  .tomb.t4{width:70px;height:100px;right:25%;}
+
+  header{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:1.25rem 3rem;}
+  .logo{font-family:'Metal Mania',cursive;font-size:1.5rem;color:var(--sick);text-decoration:none;text-shadow:0 0 12px rgba(126,232,126,0.4);}
+  nav ul{display:flex;gap:1.75rem;list-style:none;}
+  nav a{color:var(--moon);text-decoration:none;font-size:0.85rem;letter-spacing:1px;opacity:0.85;}
+  nav a:hover{opacity:1;color:var(--sick);}
+
+  .hero{position:relative;z-index:10;text-align:center;padding:8vh 1.5rem 4vh;}
+  .hero h1{
+    font-family:'Metal Mania',cursive;font-size:clamp(3rem,10vw,7rem);letter-spacing:2px;
+    color:var(--moon);text-shadow:0 0 20px rgba(154,77,255,0.6),0 0 60px rgba(154,77,255,0.3);
+  }
+  .hero .sub{font-size:1rem;letter-spacing:5px;text-transform:uppercase;color:var(--violet);margin-top:0.5rem;}
+  .hero p{max-width:520px;margin:1.5rem auto 0;color:#c8bcd8;line-height:1.7;font-size:0.95rem;}
+  .cta-row{margin-top:2.25rem;display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;}
+  .btn{padding:0.85rem 1.75rem;border-radius:30px;text-decoration:none;font-size:0.85rem;letter-spacing:1px;font-weight:600;transition:all 0.25s;}
+  .btn-a{background:var(--blood);color:#fff;box-shadow:0 8px 24px rgba(200,30,58,0.4);}
+  .btn-a:hover{transform:translateY(-3px);box-shadow:0 12px 34px rgba(200,30,58,0.6);}
+  .btn-b{border:1px solid var(--sick);color:var(--sick);background:transparent;}
+  .btn-b:hover{background:rgba(126,232,126,0.1);}
+
+  .scroll-cue{position:relative;z-index:10;text-align:center;margin-top:3rem;font-size:0.7rem;letter-spacing:3px;color:#8a7aa8;animation:bob 2s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(8px);}}
+
+  /* reveal sections */
+  .section{position:relative;z-index:10;max-width:1100px;margin:0 auto;padding:6rem 1.5rem;}
+  .section-title{text-align:center;font-family:'Metal Mania',cursive;font-size:2rem;color:var(--moon);margin-bottom:2.5rem;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+  .card{
+    background:rgba(30,15,45,0.5);backdrop-filter:blur(6px);border:1px solid rgba(154,77,255,0.25);
+    border-radius:14px;padding:1.75rem;text-align:center;text-decoration:none;color:var(--moon);
+    opacity:0;transform:translateY(30px);transition:opacity 0.7s ease, transform 0.7s ease, border-color 0.3s;
+  }
+  .card.show{opacity:1;transform:translateY(0);}
+  .card:hover{border-color:var(--sick);box-shadow:0 0 30px rgba(126,232,126,0.15);}
+  .card .icon{font-size:2.5rem;margin-bottom:0.75rem;}
+  .card h3{font-family:'Metal Mania',cursive;font-size:1.4rem;color:var(--sick);margin-bottom:0.4rem;}
+  .card p{font-size:0.8rem;color:#b8a8ce;}
+
+  footer{position:relative;z-index:10;text-align:center;padding:3rem 1.5rem;font-size:0.75rem;color:#7a6a92;border-top:1px solid rgba(154,77,255,0.15);}
+
+  @media(max-width:800px){.grid{grid-template-columns:1fr 1fr;}nav{display:none;}}
+  @media(max-width:480px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="badge">MOCKUP CONCEPT — NOT LIVE — INTERNAL PREVIEW ONLY</div>
+<div id="cursor">💀</div>
+<div class="moon"></div>
+<div class="parallax" id="parallax">
+  <div class="tomb t1"></div><div class="tomb t2"></div><div class="tomb t3"></div><div class="tomb t4"></div>
+  <div class="fog-strip"></div>
+  <div class="fog-strip f2"></div>
+</div>
+
+<header>
+  <a href="#" class="logo">The JURN</a>
+  <nav><ul>
+    <li><a href="#">Music</a></li><li><a href="#">Library</a></li><li><a href="#">Games</a></li>
+    <li><a href="#">Dead Report</a></li><li><a href="#">Wall</a></li>
+  </ul></nav>
+</header>
+
+<div class="hero">
+  <div class="sub">Horror Punk From The Grave</div>
+  <h1>THE JURN</h1>
+  <p>Step through the fog. Live transmissions, restored comics, and a graveyard of games — all broadcasting from the Afterverse, 24 hours a day.</p>
+  <div class="cta-row">
+    <a href="#" class="btn btn-a">▶ Watch Live</a>
+    <a href="#" class="btn btn-b">Hear the Music</a>
+  </div>
+  <div class="scroll-cue">↓ scroll into the graveyard ↓</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Wander the Grounds</div>
+  <div class="grid" id="cardGrid">
+    <a href="#" class="card"><div class="icon">🎸</div><h3>Music</h3><p>Live radio + full discography</p></a>
+    <a href="#" class="card"><div class="icon">📖</div><h3>The Library</h3><p>Restored horror comics</p></a>
+    <a href="#" class="card"><div class="icon">💀</div><h3>Necropolis Rising</h3><p>Idle clicker — beta live now</p></a>
+    <a href="#" class="card"><div class="icon">🕹️</div><h3>Games Arcade</h3><p>The full undead lineup</p></a>
+    <a href="#" class="card"><div class="icon">☠️</div><h3>Dead Report</h3><p>News from beyond</p></a>
+    <a href="#" class="card"><div class="icon">🕸️</div><h3>The Wall</h3><p>Leave your mark</p></a>
+  </div>
+</div>
+
+<footer>© 2026 THE JURN — THE DEAD NEVER STOP TOURING</footer>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  const parallax = document.getElementById('parallax');
+  document.addEventListener('mousemove', e=>{
+    cursor.style.left = e.clientX+'px';
+    cursor.style.top = e.clientY+'px';
+    const x = (e.clientX/window.innerWidth - 0.5)*20;
+    const y = (e.clientY/window.innerHeight - 0.5)*10;
+    parallax.style.transform = `translate(${x}px, ${y}px)`;
+  });
+  const cards = document.querySelectorAll('.card');
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('show'); } });
+  },{threshold:0.2});
+  cards.forEach(c=>obs.observe(c));
+</script>
+</body>
+</html>
