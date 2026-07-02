@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP 1 — Arcade Cabinet | The JURN</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&family=Inter:wght@400;600&display=swap">
+<style>
+  :root{
+    --bg:#050505; --purple:#bf00ff; --green:#39ff14; --bone:#e8e0d4; --red:#ff1744; --dim:#8a8a8a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:radial-gradient(circle at 50% -10%, #1a0a2a 0%, #050505 60%);color:var(--bone);font-family:'Inter',sans-serif;overflow-x:hidden;}
+  .badge{position:fixed;top:0;left:0;right:0;background:var(--red);color:#fff;text-align:center;font-family:'Press Start 2P',monospace;font-size:0.6rem;padding:0.4rem;z-index:999;letter-spacing:2px;}
+
+  /* CRT scanline overlay */
+  .crt::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:50;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:multiply;
+  }
+  .crt::after{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:51;
+    background:radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%);
+  }
+
+  nav{position:relative;z-index:60;display:flex;justify-content:space-between;align-items:center;padding:1.5rem 3rem;border-bottom:2px solid var(--purple);background:rgba(10,0,20,0.6);margin-top:2rem;}
+  .logo{font-family:'Creepster',cursive;font-size:1.5rem;color:var(--green);text-shadow:0 0 10px var(--green);text-decoration:none;}
+  .navlinks{display:flex;gap:1.75rem;list-style:none;margin:0;padding:0;}
+  .navlinks a{color:var(--bone);text-decoration:none;font-family:'Press Start 2P',monospace;font-size:0.55rem;letter-spacing:1px;}
+  .navlinks a:hover{color:var(--purple);}
+
+  /* MARQUEE HERO — arcade cabinet frame */
+  .cabinet{max-width:1000px;margin:3rem auto;padding:0 1.5rem;}
+  .cab-frame{
+    border:6px solid #1a1a1a;
+    border-radius:24px 24px 8px 8px;
+    background:linear-gradient(180deg,#111 0%, #060606 100%);
+    box-shadow:0 0 0 3px var(--purple), 0 0 60px rgba(191,0,255,0.35), inset 0 0 40px rgba(0,0,0,0.8);
+    padding:2.5rem 2rem;
+    position:relative;
+    overflow:hidden;
+  }
+  .cab-frame::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:8px;
+    background:repeating-linear-gradient(90deg,var(--purple) 0 20px, var(--green) 20px 40px);
+    opacity:0.6;
+  }
+  .marquee-title{
+    font-family:'Creepster',cursive;
+    text-align:center;
+    font-size:clamp(2.5rem,7vw,5rem);
+    color:var(--bone);
+    line-height:1;
+    text-shadow:0 0 10px var(--purple),0 0 30px var(--purple), 0 0 60px rgba(191,0,255,0.4);
+    animation:flicker 4s infinite;
+  }
+  @keyframes flicker{0%,19%,21%,23%,50%,54%,100%{opacity:1;} 20%,22%,24%,52%{opacity:0.7;}}
+  .marquee-sub{
+    text-align:center;font-family:'Press Start 2P',monospace;font-size:0.7rem;color:var(--green);
+    letter-spacing:3px;margin-top:0.75rem;
+  }
+  .insert-coin{
+    text-align:center;margin-top:2rem;font-family:'Press Start 2P',monospace;font-size:0.85rem;
+    color:var(--bone);animation:blink 1s step-end infinite;
+  }
+  @keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+  .screen-status{
+    display:flex;justify-content:center;gap:2.5rem;margin-top:2rem;
+    font-family:'Press Start 2P',monospace;font-size:0.55rem;color:var(--dim);flex-wrap:wrap;
+  }
+  .screen-status b{display:block;color:var(--bone);font-size:0.6rem;margin-bottom:0.3rem;}
+
+  .cta-row{display:flex;justify-content:center;gap:1rem;margin-top:2.25rem;flex-wrap:wrap;}
+  .btn{
+    font-family:'Press Start 2P',monospace;font-size:0.7rem;padding:0.9rem 1.75rem;text-decoration:none;
+    border-radius:6px;letter-spacing:1px;transition:all 0.2s;
+  }
+  .btn-a{background:var(--purple);color:#fff;box-shadow:0 0 20px rgba(191,0,255,0.5);}
+  .btn-a:hover{transform:translateY(-3px);box-shadow:0 0 35px rgba(191,0,255,0.8);}
+  .btn-b{background:transparent;border:2px solid var(--green);color:var(--green);}
+  .btn-b:hover{background:rgba(57,255,20,0.1);}
+
+  /* CARTRIDGE SELECT GRID */
+  .select-title{
+    text-align:center;font-family:'Press Start 2P',monospace;font-size:0.9rem;color:var(--bone);
+    margin:4rem 0 2rem;letter-spacing:2px;
+  }
+  .select-title::before,.select-title::after{content:'◆';color:var(--purple);margin:0 1rem;}
+  .cart-grid{
+    max-width:1100px;margin:0 auto;padding:0 1.5rem;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
+  }
+  .cart{
+    background:linear-gradient(180deg,#151515,#0a0a0a);
+    border:3px solid var(--purple);border-radius:10px;
+    padding:1.75rem 1.25rem;text-align:center;text-decoration:none;color:var(--bone);
+    transition:all 0.25s;position:relative;
+  }
+  .cart:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 12px 30px rgba(191,0,255,0.35);border-color:var(--green);}
+  .cart .icon{font-size:2.5rem;margin-bottom:0.75rem;filter:drop-shadow(0 0 8px var(--purple));}
+  .cart h3{font-family:'Creepster',cursive;font-size:1.4rem;margin:0 0 0.4rem;color:var(--green);}
+  .cart p{font-family:'Press Start 2P',monospace;font-size:0.5rem;color:var(--dim);letter-spacing:1px;margin:0;}
+  .cart .tag{
+    position:absolute;top:-10px;right:10px;background:var(--red);color:#fff;
+    font-family:'Press Start 2P',monospace;font-size:0.45rem;padding:0.3rem 0.5rem;border-radius:4px;
+  }
+
+  footer{text-align:center;padding:3rem 1.5rem;font-family:'Press Start 2P',monospace;font-size:0.55rem;color:var(--dim);margin-top:3rem;border-top:1px solid rgba(191,0,255,0.2);}
+
+  @media(max-width:760px){.cart-grid{grid-template-columns:1fr 1fr;}.navlinks{display:none;}}
+  @media(max-width:480px){.cart-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body class="crt">
+<div class="badge">MOCKUP CONCEPT — NOT LIVE — INTERNAL PREVIEW ONLY</div>
+
+<nav>
+  <a href="#" class="logo">The JURN</a>
+  <ul class="navlinks">
+    <li><a href="#">MUSIC</a></li>
+    <li><a href="#">LIBRARY</a></li>
+    <li><a href="#">GAMES</a></li>
+    <li><a href="#">DEAD REPORT</a></li>
+    <li><a href="#">WALL</a></li>
+  </ul>
+</nav>
+
+<div class="cabinet">
+  <div class="cab-frame">
+    <div class="marquee-title">THE JURN</div>
+    <div class="marquee-sub">▸ HORROR PUNK FROM THE GRAVE ◂</div>
+    <div class="insert-coin">PRESS START TO ENTER THE AFTERVERSE</div>
+    <div class="screen-status">
+      <div><b>ORIGIN</b>AMITYVILLE, NY</div>
+      <div><b>STATUS</b>● LIVE NOW</div>
+      <div><b>SIGNAL</b>24/7 RADIO</div>
+      <div><b>MODE</b>UNDEAD</div>
+    </div>
+    <div class="cta-row">
+      <a href="#" class="btn btn-a">▶ WATCH LIVE</a>
+      <a href="#" class="btn btn-b">HEAR THE MUSIC</a>
+    </div>
+  </div>
+</div>
+
+<div class="select-title">SELECT YOUR GAME</div>
+<div class="cart-grid">
+  <a href="#" class="cart"><span class="tag">BETA</span><div class="icon">💀</div><h3>Necropolis Rising</h3><p>IDLE / INCREMENTAL</p></a>
+  <a href="#" class="cart"><div class="icon">🎸</div><h3>Music</h3><p>LIVE RADIO + TRACKS</p></a>
+  <a href="#" class="cart"><span class="tag">NEW</span><div class="icon">📖</div><h3>The Library</h3><p>HORROR COMICS</p></a>
+  <a href="#" class="cart"><div class="icon">🕹️</div><h3>Games Arcade</h3><p>FULL LINEUP</p></a>
+  <a href="#" class="cart"><div class="icon">☠️</div><h3>Dead Report</h3><p>NEWS FROM BEYOND</p></a>
+  <a href="#" class="cart"><div class="icon">🕸️</div><h3>The Wall</h3><p>LEAVE YOUR MARK</p></a>
+</div>
+
+<footer>© 2026 THE JURN — THE DEAD NEVER STOP TOURING</footer>
+</body>
+</html>
