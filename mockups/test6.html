@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP 6 — Neon Cemetery Gate | The JURN</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Outfit:wght@300;400;600&display=swap">
+<style>
+  :root{--ink:#0a0612;--gold:#ffcf6e;--teal:#2be3c8;--violet:#a94dff;--dim:#9a90ac;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 0%, rgba(169,77,255,0.25), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(43,227,200,0.2), transparent 60%),
+      linear-gradient(180deg,#150b26 0%, #0a0612 60%);
+    color:#eee5f5;font-family:'Outfit',sans-serif;overflow-x:hidden;
+  }
+  .badge{background:var(--violet);color:#fff;text-align:center;font-size:0.7rem;padding:0.4rem;letter-spacing:2px;font-weight:600;position:relative;z-index:200;}
+  canvas#fireflies{position:fixed;inset:0;z-index:1;pointer-events:none;}
+
+  /* GATE INTRO */
+  #gate{position:fixed;inset:0;z-index:300;display:flex;pointer-events:none;}
+  .gate-half{width:50%;height:100%;background:linear-gradient(180deg,#1a0f2e,#050308);position:relative;
+    transition:transform 1.4s cubic-bezier(.7,0,.3,1);}
+  .gate-half.left{transform-origin:left center;border-right:2px solid var(--gold);}
+  .gate-half.right{transform-origin:right center;border-left:2px solid var(--gold);}
+  #gate.open .left{transform:rotateY(-92deg);}
+  #gate.open .right{transform:rotateY(92deg);}
+  .gate-half::after{content:'⚱';position:absolute;top:50%;font-size:2.5rem;color:var(--gold);opacity:0.4;}
+  .gate-half.left::after{right:14px;transform:translateY(-50%);}
+  .gate-half.right::after{left:14px;transform:translateY(-50%);}
+  #gate{perspective:1200px;}
+
+  header{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:1.5rem 3rem;
+    background:rgba(20,10,35,0.35);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,207,110,0.15);}
+  .logo{font-family:'Cinzel Decorative',cursive;font-size:1.3rem;color:var(--gold);text-decoration:none;}
+  nav ul{display:flex;gap:2rem;list-style:none;}
+  nav a{color:#d8cce8;text-decoration:none;font-size:0.85rem;letter-spacing:1px;font-weight:300;}
+  nav a:hover{color:var(--teal);}
+
+  .hero{position:relative;z-index:10;text-align:center;padding:9vh 1.5rem 5vh;}
+  .hero h1{
+    font-family:'Cinzel Decorative',cursive;font-size:clamp(2.6rem,8vw,5.5rem);font-weight:900;
+    background:linear-gradient(120deg,var(--gold),#fff6de 40%,var(--teal));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 40px rgba(255,207,110,0.25);
+  }
+  .hero .sub{font-size:0.95rem;letter-spacing:6px;text-transform:uppercase;color:var(--teal);margin-top:0.75rem;font-weight:300;}
+  .hero p{max-width:540px;margin:1.5rem auto 0;color:var(--dim);line-height:1.75;font-size:0.95rem;font-weight:300;}
+  .cta-row{margin-top:2.5rem;display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;}
+  .btn{padding:0.9rem 2rem;border-radius:50px;text-decoration:none;font-size:0.85rem;letter-spacing:1px;font-weight:600;transition:all 0.25s;}
+  .btn-a{background:linear-gradient(120deg,var(--violet),#7c00c8);color:#fff;box-shadow:0 10px 30px rgba(169,77,255,0.4);}
+  .btn-a:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(169,77,255,0.6);}
+  .btn-b{border:1px solid var(--gold);color:var(--gold);background:rgba(255,207,110,0.05);}
+  .btn-b:hover{background:rgba(255,207,110,0.15);}
+
+  .status-glass{
+    max-width:640px;margin:3rem auto 0;display:flex;justify-content:space-around;flex-wrap:wrap;gap:1rem;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(8px);
+    border-radius:16px;padding:1.25rem 1.5rem;position:relative;z-index:10;
+  }
+  .status-glass div{text-align:center;font-size:0.75rem;color:var(--dim);}
+  .status-glass b{display:block;color:#fff;font-size:0.9rem;margin-top:0.2rem;}
+  .status-glass .dot{width:7px;height:7px;background:var(--teal);border-radius:50%;display:inline-block;margin-right:0.3rem;box-shadow:0 0 8px var(--teal);}
+
+  .section{position:relative;z-index:10;max-width:1150px;margin:0 auto;padding:6rem 1.5rem;}
+  .section-title{text-align:center;font-family:'Cinzel Decorative',cursive;font-size:1.7rem;color:var(--gold);margin-bottom:2.5rem;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;perspective:1000px;}
+  .card{
+    background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);
+    border-radius:18px;padding:2rem 1.5rem;text-align:center;text-decoration:none;color:#eee;
+    transition:transform 0.15s ease, box-shadow 0.3s ease, border-color 0.3s; position:relative;
+  }
+  .card:hover{border-color:var(--teal);box-shadow:0 20px 50px rgba(43,227,200,0.15);}
+  .card .icon{font-size:2.5rem;margin-bottom:0.75rem;}
+  .card h3{font-family:'Cinzel Decorative',cursive;font-size:1.3rem;color:var(--gold);margin-bottom:0.4rem;}
+  .card p{font-size:0.8rem;color:var(--dim);font-weight:300;}
+  .card .tag{position:absolute;top:14px;right:14px;font-size:0.6rem;padding:0.25rem 0.6rem;border-radius:10px;background:var(--violet);color:#fff;letter-spacing:1px;}
+
+  footer{position:relative;z-index:10;text-align:center;padding:3rem 1.5rem;font-size:0.75rem;color:var(--dim);border-top:1px solid rgba(255,207,110,0.1);}
+
+  @media(max-width:800px){.grid{grid-template-columns:1fr 1fr;}nav{display:none;}}
+  @media(max-width:480px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="badge">MOCKUP CONCEPT — NOT LIVE — INTERNAL PREVIEW ONLY</div>
+<canvas id="fireflies"></canvas>
+<div id="gate"><div class="gate-half left"></div><div class="gate-half right"></div></div>
+
+<header>
+  <a href="#" class="logo">The JURN</a>
+  <nav><ul>
+    <li><a href="#">Music</a></li><li><a href="#">Library</a></li><li><a href="#">Games</a></li>
+    <li><a href="#">Dead Report</a></li><li><a href="#">Wall</a></li>
+  </ul></nav>
+</header>
+
+<div class="hero">
+  <div class="sub">Horror Punk From The Grave</div>
+  <h1>THE JURN</h1>
+  <p>The gates are open. Step into the Afterverse for live transmissions, restored horror comics, and a graveyard of games that keeps growing.</p>
+  <div class="cta-row">
+    <a href="#" class="btn btn-a">▶ Watch Live</a>
+    <a href="#" class="btn btn-b">Hear the Music</a>
+  </div>
+  <div class="status-glass">
+    <div><span class="dot"></span><b>LIVE</b></div>
+    <div>ORIGIN<b>Amityville, NY</b></div>
+    <div>MODE<b>Undead</b></div>
+    <div>SIGNAL<b>24/7</b></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Enter the Grounds</div>
+  <div class="grid" id="tiltGrid">
+    <a href="#" class="card"><div class="icon">🎸</div><h3>Music</h3><p>Live radio + full discography</p></a>
+    <a href="#" class="card"><div class="icon">📖</div><h3>The Library</h3><p>Restored horror comics</p><span class="tag">NEW</span></a>
+    <a href="#" class="card"><div class="icon">💀</div><h3>Necropolis Rising</h3><p>Idle clicker — beta live now</p><span class="tag">BETA</span></a>
+    <a href="#" class="card"><div class="icon">🕹️</div><h3>Games Arcade</h3><p>The full undead lineup</p></a>
+    <a href="#" class="card"><div class="icon">☠️</div><h3>Dead Report</h3><p>News from beyond</p></a>
+    <a href="#" class="card"><div class="icon">🕸️</div><h3>The Wall</h3><p>Leave your mark</p></a>
+  </div>
+</div>
+
+<footer>© 2026 THE JURN — THE DEAD NEVER STOP TOURING</footer>
+
+<script>
+  setTimeout(()=>document.getElementById('gate').classList.add('open'), 400);
+
+  // tilt effect
+  document.querySelectorAll('#tiltGrid .card').forEach(card=>{
+    card.addEventListener('mousemove', e=>{
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left)/r.width - 0.5;
+      const y = (e.clientY - r.top)/r.height - 0.5;
+      card.style.transform = `rotateY(${x*12}deg) rotateX(${-y*12}deg) translateY(-4px)`;
+    });
+    card.addEventListener('mouseleave', ()=>{ card.style.transform = 'rotateY(0) rotateX(0)'; });
+  });
+
+  // fireflies
+  const canvas = document.getElementById('fireflies');
+  const ctx = canvas.getContext('2d');
+  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+  resize(); window.addEventListener('resize', resize);
+  const colors = ['#ffcf6e','#2be3c8','#a94dff'];
+  const flies = Array.from({length:35}, ()=>({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    r: Math.random()*1.8+0.6, a: Math.random()*Math.PI*2, speed: Math.random()*0.5+0.2,
+    c: colors[Math.floor(Math.random()*colors.length)]
+  }));
+  function tick(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    flies.forEach(f=>{
+      f.a += 0.01*f.speed;
+      f.x += Math.sin(f.a)*0.6; f.y += Math.cos(f.a*0.7)*0.4;
+      if(f.x<0)f.x=canvas.width; if(f.x>canvas.width)f.x=0;
+      if(f.y<0)f.y=canvas.height; if(f.y>canvas.height)f.y=0;
+      const flicker = 0.4+0.6*Math.abs(Math.sin(t*0.002+f.a));
+      ctx.beginPath();
+      ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+      ctx.fillStyle = f.c; ctx.globalAlpha = flicker;
+      ctx.shadowBlur = 10; ctx.shadowColor = f.c;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+</script>
+</body>
+</html>
