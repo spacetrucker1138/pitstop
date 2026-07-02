@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP 5 — Glitch Boot Portal | The JURN</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root{--ink:#050505;--cy:#00fff2;--mag:#ff00c8;--yel:#f4ff00;--dim:#7a7a7a;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--ink);color:#eee;font-family:'Space Mono',monospace;overflow-x:hidden;}
+  .badge{background:var(--mag);color:#000;text-align:center;font-size:0.7rem;padding:0.4rem;letter-spacing:2px;font-weight:700;position:relative;z-index:200;}
+  canvas#embers{position:fixed;inset:0;z-index:0;}
+
+  /* BOOT OVERLAY */
+  #boot{position:fixed;inset:0;background:#000;z-index:500;font-family:'VT323',monospace;color:var(--cy);
+    padding:3rem;font-size:1.3rem;display:flex;flex-direction:column;justify-content:center;
+    transition:opacity 0.6s ease;}
+  #boot.hide{opacity:0;pointer-events:none;}
+  #boot .line{opacity:0;animation:appear 0.05s forwards;}
+  @keyframes appear{to{opacity:1;}}
+  #boot .cursor-blink{display:inline-block;width:10px;height:1.1em;background:var(--cy);animation:blink 1s step-end infinite;vertical-align:text-bottom;}
+  @keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+
+  header{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:1.25rem 3rem;border-bottom:1px solid rgba(0,255,242,0.15);}
+  .logo{font-family:'Archivo Black',sans-serif;font-size:1.2rem;color:#fff;text-decoration:none;letter-spacing:1px;}
+  .logo span{color:var(--mag);}
+  nav ul{display:flex;gap:1.75rem;list-style:none;font-size:0.8rem;}
+  nav a{color:var(--dim);text-decoration:none;text-transform:uppercase;letter-spacing:1px;}
+  nav a:hover{color:var(--cy);}
+
+  .hero{position:relative;z-index:10;text-align:center;padding:9vh 1.5rem 5vh;}
+  .glitch-title{
+    font-family:'Archivo Black',sans-serif;font-size:clamp(3rem,11vw,8rem);letter-spacing:2px;
+    position:relative;color:#fff;display:inline-block;
+  }
+  .glitch-title::before,.glitch-title::after{
+    content:'THE JURN';position:absolute;top:0;left:0;width:100%;height:100%;
+  }
+  .glitch-title::before{color:var(--mag);animation:glitch1 3s infinite linear alternate-reverse;clip-path:inset(0 0 55% 0);}
+  .glitch-title::after{color:var(--cy);animation:glitch2 2.4s infinite linear alternate-reverse;clip-path:inset(55% 0 0 0);}
+  @keyframes glitch1{0%{transform:translate(0);}10%{transform:translate(-4px,2px);}20%{transform:translate(3px,-2px);}30%{transform:translate(-2px,1px);}100%{transform:translate(0);}}
+  @keyframes glitch2{0%{transform:translate(0);}15%{transform:translate(3px,-1px);}30%{transform:translate(-3px,2px);}45%{transform:translate(2px,-2px);}100%{transform:translate(0);}}
+  .hero .tag{font-family:'VT323',monospace;font-size:1.4rem;letter-spacing:6px;color:var(--yel);margin-top:0.75rem;text-transform:uppercase;}
+  .hero p{max-width:540px;margin:1.5rem auto 0;color:#aaa;line-height:1.7;font-size:0.9rem;}
+  .cta-row{margin-top:2.25rem;display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;}
+  .btn{padding:0.85rem 1.9rem;text-decoration:none;font-size:0.85rem;letter-spacing:1px;font-weight:700;text-transform:uppercase;transition:all 0.2s;border:2px solid transparent;}
+  .btn-a{background:var(--mag);color:#000;}
+  .btn-a:hover{background:#fff;box-shadow:0 0 30px rgba(255,0,200,0.6);}
+  .btn-b{border-color:var(--cy);color:var(--cy);background:transparent;}
+  .btn-b:hover{background:rgba(0,255,242,0.1);}
+
+  .status-bar{position:relative;z-index:10;display:flex;justify-content:center;gap:2.5rem;margin-top:3rem;font-family:'VT323',monospace;font-size:1.1rem;color:var(--dim);flex-wrap:wrap;}
+  .status-bar b{color:var(--cy);}
+  .status-bar .live::before{content:'● ';color:var(--yel);}
+
+  .section{position:relative;z-index:10;max-width:1150px;margin:0 auto;padding:6rem 1.5rem;}
+  .section-title{font-family:'VT323',monospace;font-size:1.5rem;color:var(--dim);letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:2.5rem;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+  .card{
+    background:#0c0c0c;border:1px solid #222;padding:1.75rem;text-decoration:none;color:#eee;
+    transition:all 0.2s;position:relative;overflow:hidden;
+  }
+  .card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--mag);transform:scaleY(0);transition:transform 0.25s;}
+  .card:hover::before{transform:scaleY(1);}
+  .card:hover{background:#111;border-color:var(--cy);}
+  .card .idx{font-family:'VT323',monospace;color:var(--dim);font-size:0.9rem;}
+  .card h3{font-family:'Archivo Black',sans-serif;font-size:1.3rem;margin:0.5rem 0;color:#fff;}
+  .card p{font-size:0.8rem;color:#999;}
+  .card .flag{display:inline-block;margin-top:0.6rem;font-size:0.65rem;padding:0.2rem 0.5rem;background:var(--yel);color:#000;font-weight:700;letter-spacing:1px;}
+
+  footer{position:relative;z-index:10;text-align:center;padding:3rem 1.5rem;font-family:'VT323',monospace;font-size:1rem;color:var(--dim);border-top:1px solid rgba(0,255,242,0.15);}
+
+  @media(max-width:800px){.grid{grid-template-columns:1fr 1fr;}nav{display:none;}}
+  @media(max-width:480px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="badge">MOCKUP CONCEPT — NOT LIVE — INTERNAL PREVIEW ONLY</div>
+<canvas id="embers"></canvas>
+
+<div id="boot">
+  <div class="line" style="animation-delay:0.1s">&gt; connecting to afterverse.signal ...</div>
+  <div class="line" style="animation-delay:0.5s">&gt; authenticating undead credentials ... OK</div>
+  <div class="line" style="animation-delay:0.9s">&gt; loading THE JURN v6.0 ...</div>
+  <div class="line" style="animation-delay:1.3s">&gt; status: <span style="color:#f4ff00">LIVE</span></div>
+  <div class="line" style="animation-delay:1.7s">&gt; welcome back<span class="cursor-blink"></span></div>
+</div>
+
+<header>
+  <a href="#" class="logo">THE <span>JURN</span></a>
+  <nav><ul>
+    <li><a href="#">Music</a></li><li><a href="#">Library</a></li><li><a href="#">Games</a></li>
+    <li><a href="#">Dead Report</a></li><li><a href="#">Wall</a></li>
+  </ul></nav>
+</header>
+
+<div class="hero">
+  <div class="glitch-title">THE JURN</div>
+  <div class="tag">Horror Punk Signal</div>
+  <p>Broadcasting live from the Afterverse. Music, comics, and a graveyard of games — tune in before the signal cuts out.</p>
+  <div class="cta-row">
+    <a href="#" class="btn btn-a">▶ Watch Live</a>
+    <a href="#" class="btn btn-b">Hear the Music</a>
+  </div>
+  <div class="status-bar">
+    <div class="live"><b>LIVE NOW</b></div>
+    <div>ORIGIN: <b>AMITYVILLE NY</b></div>
+    <div>MODE: <b>UNDEAD</b></div>
+    <div>SIGNAL: <b>24/7</b></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">// select transmission</div>
+  <div class="grid">
+    <a href="#" class="card"><div class="idx">01</div><h3>Music</h3><p>Live radio + full discography</p></a>
+    <a href="#" class="card"><div class="idx">02</div><h3>The Library</h3><p>Restored horror comics</p><span class="flag">NEW</span></a>
+    <a href="#" class="card"><div class="idx">03</div><h3>Necropolis Rising</h3><p>Idle clicker, build the Graveyard Dimension</p><span class="flag">BETA</span></a>
+    <a href="#" class="card"><div class="idx">04</div><h3>Games Arcade</h3><p>The full undead lineup</p></a>
+    <a href="#" class="card"><div class="idx">05</div><h3>Dead Report</h3><p>News from beyond</p></a>
+    <a href="#" class="card"><div class="idx">06</div><h3>The Wall</h3><p>Leave your mark</p></a>
+  </div>
+</div>
+
+<footer>© 2026 THE JURN — THE DEAD NEVER STOP TOURING</footer>
+
+<script>
+  setTimeout(()=>document.getElementById('boot').classList.add('hide'), 2400);
+
+  const canvas = document.getElementById('embers');
+  const ctx = canvas.getContext('2d');
+  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+  resize(); window.addEventListener('resize', resize);
+  const colors = ['#00fff2','#ff00c8','#f4ff00'];
+  const particles = Array.from({length:60}, ()=>({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    r: Math.random()*2+0.5, vy: -(Math.random()*0.4+0.1), vx:(Math.random()-0.5)*0.2,
+    c: colors[Math.floor(Math.random()*colors.length)], a: Math.random()*0.6+0.2
+  }));
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.y += p.vy; p.x += p.vx;
+      if(p.y < -10){ p.y = canvas.height+10; p.x = Math.random()*canvas.width; }
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = p.c; ctx.globalAlpha = p.a;
+      ctx.shadowBlur = 8; ctx.shadowColor = p.c;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  }
+  tick();
+</script>
+</body>
+</html>
