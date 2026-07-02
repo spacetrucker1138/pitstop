@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP 2 — Web3 Séance Terminal | The JURN</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root{--bg:#040406;--purple:#bf00ff;--green:#39ff14;--bone:#e8e0d4;--red:#ff1744;--dim:#6f6f7a;--cyan:#00e5ff;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--bone);font-family:'JetBrains Mono',monospace;overflow-x:hidden;}
+  .badge{background:var(--red);color:#fff;text-align:center;font-size:0.7rem;padding:0.4rem;letter-spacing:2px;font-weight:600;}
+
+  /* grid floor bg */
+  .grid-bg{
+    position:fixed;inset:0;z-index:-1;
+    background-image:
+      linear-gradient(rgba(191,0,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(191,0,255,0.08) 1px, transparent 1px);
+    background-size:40px 40px;
+    background-position:center;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 20%, black 20%, transparent 80%);
+  }
+
+  nav{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 3rem;border-bottom:1px solid rgba(191,0,255,0.25);}
+  .logo{font-family:'Creepster',cursive;font-size:1.4rem;color:var(--bone);text-decoration:none;}
+  .logo::before{content:'⛓ ';color:var(--green);}
+  .navlinks{display:flex;gap:1.5rem;list-style:none;margin:0;padding:0;font-size:0.75rem;letter-spacing:1px;}
+  .navlinks a{color:var(--dim);text-decoration:none;text-transform:uppercase;}
+  .navlinks a:hover{color:var(--cyan);}
+  .connect-btn{border:1px solid var(--green);color:var(--green);padding:0.4rem 0.9rem;border-radius:20px;font-size:0.7rem;text-decoration:none;}
+
+  /* HERO: terminal boot + hologram tombstone */
+  .hero{max-width:1150px;margin:3rem auto 0;padding:0 1.5rem;display:grid;grid-template-columns:1.1fr 0.9fr;gap:2.5rem;align-items:center;}
+  .terminal{
+    background:rgba(10,5,20,0.7);border:1px solid rgba(191,0,255,0.3);border-radius:10px;
+    padding:1.75rem;box-shadow:0 0 40px rgba(191,0,255,0.1);
+  }
+  .term-header{display:flex;gap:0.4rem;margin-bottom:1rem;}
+  .term-dot{width:10px;height:10px;border-radius:50%;}
+  .term-header .r{background:var(--red);} .term-header .y{background:#ffaa00;} .term-header .g{background:var(--green);}
+  .term-line{font-size:0.85rem;margin:0.4rem 0;color:var(--dim);}
+  .term-line .prompt{color:var(--green);}
+  .term-line .val{color:var(--cyan);}
+  .big-title{
+    font-family:'Creepster',cursive;font-size:clamp(2.2rem,5vw,3.6rem);color:var(--bone);
+    line-height:1.05;margin:1rem 0 0.5rem;text-shadow:0 0 25px rgba(191,0,255,0.4);
+  }
+  .big-title span{color:var(--purple);}
+  .tagline{color:var(--dim);font-size:0.95rem;line-height:1.6;margin-bottom:1.5rem;}
+  .cta-row{display:flex;gap:0.9rem;flex-wrap:wrap;}
+  .btn{font-size:0.8rem;padding:0.75rem 1.5rem;border-radius:6px;text-decoration:none;letter-spacing:0.5px;transition:all 0.2s;font-weight:600;}
+  .btn-a{background:linear-gradient(135deg,var(--purple),#7c00b8);color:#fff;box-shadow:0 0 25px rgba(191,0,255,0.4);}
+  .btn-a:hover{box-shadow:0 0 40px rgba(191,0,255,0.7);}
+  .btn-b{border:1px solid var(--cyan);color:var(--cyan);background:transparent;}
+  .btn-b:hover{background:rgba(0,229,255,0.08);}
+
+  /* hologram tombstone */
+  .holo-wrap{display:flex;justify-content:center;align-items:center;position:relative;height:340px;}
+  .holo-tomb{
+    width:180px;height:240px;position:relative;
+    border:2px solid var(--cyan);border-radius:90px 90px 8px 8px;
+    background:linear-gradient(180deg, rgba(0,229,255,0.08), rgba(191,0,255,0.05));
+    box-shadow:0 0 40px rgba(0,229,255,0.35), inset 0 0 30px rgba(0,229,255,0.15);
+    animation:hover 3s ease-in-out infinite;
+  }
+  @keyframes hover{0%,100%{transform:translateY(0);}50%{transform:translateY(-14px);}}
+  .holo-tomb::before{
+    content:'RIP';position:absolute;top:60px;left:50%;transform:translateX(-50%);
+    font-family:'Creepster',cursive;font-size:1.8rem;color:var(--cyan);text-shadow:0 0 15px var(--cyan);
+  }
+  .holo-ring{position:absolute;bottom:10px;width:220px;height:40px;border:1px solid rgba(0,229,255,0.4);border-radius:50%;animation:spin 8s linear infinite;}
+  @keyframes spin{from{transform:rotateX(70deg) rotate(0deg);}to{transform:rotateX(70deg) rotate(360deg);}}
+  .scan-line{position:absolute;left:0;right:0;height:2px;background:rgba(0,229,255,0.6);box-shadow:0 0 10px var(--cyan);animation:scan 2.5s linear infinite;}
+  @keyframes scan{0%{top:0;}100%{top:100%;}}
+
+  /* LEDGER / BLOCK SECTIONS */
+  .ledger-title{max-width:1150px;margin:5rem auto 1.5rem;padding:0 1.5rem;font-size:0.8rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;}
+  .ledger-title span{color:var(--green);}
+  .block-grid{max-width:1150px;margin:0 auto;padding:0 1.5rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+  .block{
+    background:rgba(15,10,25,0.6);border:1px solid rgba(191,0,255,0.25);border-radius:10px;
+    padding:1.5rem;text-decoration:none;color:var(--bone);transition:all 0.25s;position:relative;overflow:hidden;
+  }
+  .block:hover{border-color:var(--cyan);box-shadow:0 0 30px rgba(0,229,255,0.2);transform:translateY(-4px);}
+  .block .hash{font-size:0.65rem;color:var(--dim);margin-bottom:0.75rem;}
+  .block h3{font-family:'Creepster',cursive;font-size:1.5rem;margin:0 0 0.4rem;color:var(--green);}
+  .block p{font-size:0.75rem;color:var(--dim);margin:0;line-height:1.5;}
+  .block .badge-tag{display:inline-block;margin-top:0.75rem;font-size:0.6rem;padding:0.2rem 0.5rem;border-radius:4px;border:1px solid var(--purple);color:var(--purple);letter-spacing:1px;}
+
+  footer{text-align:center;padding:3rem 1.5rem;font-size:0.7rem;color:var(--dim);margin-top:3rem;border-top:1px solid rgba(191,0,255,0.15);}
+
+  @media(max-width:900px){.hero{grid-template-columns:1fr;}.block-grid{grid-template-columns:1fr 1fr;}.navlinks{display:none;}}
+  @media(max-width:520px){.block-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="badge">MOCKUP CONCEPT — NOT LIVE — INTERNAL PREVIEW ONLY</div>
+<div class="grid-bg"></div>
+
+<nav>
+  <a href="#" class="logo">The JURN</a>
+  <ul class="navlinks">
+    <li><a href="#">Music</a></li>
+    <li><a href="#">Library</a></li>
+    <li><a href="#">Games</a></li>
+    <li><a href="#">Dead Report</a></li>
+    <li><a href="#">Wall</a></li>
+  </ul>
+  <a href="#" class="connect-btn">● Live</a>
+</nav>
+
+<div class="hero">
+  <div>
+    <div class="terminal">
+      <div class="term-header"><span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span></div>
+      <div class="term-line"><span class="prompt">&gt;</span> connecting to afterverse.node ...</div>
+      <div class="term-line"><span class="prompt">&gt;</span> origin: <span class="val">Amityville, NY</span></div>
+      <div class="term-line"><span class="prompt">&gt;</span> status: <span class="val">ONLINE — undead / active</span></div>
+      <div class="term-line"><span class="prompt">&gt;</span> genre: <span class="val">horror punk</span></div>
+    </div>
+    <div class="big-title">THE <span>JURN</span></div>
+    <p class="tagline">Horror punk from the grave. Music, comics, and a growing graveyard of games — all broadcasting live from the Afterverse.</p>
+    <div class="cta-row">
+      <a href="#" class="btn btn-a">▶ Enter the Signal</a>
+      <a href="#" class="btn btn-b">Who We Are</a>
+    </div>
+  </div>
+  <div class="holo-wrap">
+    <div class="holo-ring"></div>
+    <div class="holo-tomb"><div class="scan-line"></div></div>
+  </div>
+</div>
+
+<div class="ledger-title">// <span>explore the ledger</span> — six transmissions, one signal</div>
+<div class="block-grid">
+  <a href="#" class="block"><div class="hash">0x001</div><h3>Music</h3><p>Live radio + full discography.</p></a>
+  <a href="#" class="block"><div class="hash">0x002</div><h3>The Library</h3><p>Restored horror comics.</p><span class="badge-tag">NEW</span></a>
+  <a href="#" class="block"><div class="hash">0x003</div><h3>Necropolis Rising</h3><p>Idle clicker — build the Graveyard Dimension.</p><span class="badge-tag">BETA</span></a>
+  <a href="#" class="block"><div class="hash">0x004</div><h3>Games Arcade</h3><p>The full lineup of undead games.</p></a>
+  <a href="#" class="block"><div class="hash">0x005</div><h3>Dead Report</h3><p>News and transmissions from beyond.</p></a>
+  <a href="#" class="block"><div class="hash">0x006</div><h3>The Wall</h3><p>Leave your mark on the Afterverse.</p></a>
+</div>
+
+<footer>© 2026 THE JURN — THE DEAD NEVER STOP TOURING</footer>
+</body>
+</html>
