@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fiends — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="The JURN — Horror Punk from the Grave. Music, animation, and transmissions from the Afterverse.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+</head>
+<body>
+  <!-- nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+<li><a href="music.html">Music</a></li>
+<li><a href="library.html">The Library</a></li>
+<li><a href="about.html">About</a></li>
+<li><a href="games.html">Games</a></li>
+<li><a href="dead-report.html">The Dead Report</a></li>
+<li><a href="wall/">The Wall</a></li>
+<li><a href="fiends.html" class="active">Fiends</a></li>
+<li><a href="links.html">Links</a></li>
+
+    </ul>
+  </div>
+</nav>
+<main>
+
+<div class="hero">
+  <div class="tagline">Fiends</div>
+  <p class="intro">Friends of the Afterverse. Other haunts, other sites, other weirdos worth a visit — a corner for anyone who wants to share what they're building.</p>
+</div>
+
+<div class="links-grid fade-in">
+  <a href="https://dudeontheweb.nekoweb.org/" target="_blank" class="link-card">
+    <img src="https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/images/fiends/dude-on-the-web.jpg" alt="Dude On The Web" style="width:100%;max-width:64px;height:auto;border-radius:6px;">
+    <div><div class="link-name">Dude On The Web</div><div class="link-sub">Just another dude on the web &mdash; hosted on the Hive blockchain</div></div>
+  </a>
+</div>
+
+<div class="hero" style="padding-top:3rem;">
+  <p class="intro">Want your site promoted here? Message us at <a href="mailto:contact@thejurn.com" style="color:var(--neon-green);">contact@thejurn.com</a></p>
+</div>
+
+</main>
+<footer>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
+    <a href="https://discord.gg/4aWt5h52t" target="_blank">Discord</a>
+    <a href="https://ko-fi.com/spacetrucker" target="_blank">Ko-fi</a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
+    <a href="https://www.twitch.tv/spacetrucker138" target="_blank">Twitch</a>
+    <a href="mailto:contact@thejurn.com">Contact</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<script>
+  // Scroll-in animations
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
+
+<!-- R3X page tracker — REST only, no SDK, no conflicts -->
+<script>
+(function(){try{
+  var p='fiends',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
+  fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){
+    fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)});
+  }).catch(function(){});
+}catch(e){}})();
+</script>
+</body>
+</html>
