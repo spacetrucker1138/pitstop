@@ -2,15 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-RG06HTMTSE');
-  </script>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>The Pit Stop Wall - thejurn.com</title>
 <style>
@@ -347,6 +338,12 @@
   #btn-eraser.unlocked {
     display: inline-flex !important;
   }
+  #btn-clearall {
+    display: none !important;
+  }
+  #btn-clearall.unlocked {
+    display: inline-flex !important;
+  }
 
 </style>
 </head>
@@ -430,6 +427,7 @@
   <button class="tool-btn" id="btn-spray" title="Spray paint">🎨 Spray</button>
   <button class="tool-btn" id="btn-text" title="Type text on wall">💬 Text</button>
   <button class="tool-btn" id="btn-eraser" title="Eraser">🧹 Eraser</button>
+  <button class="tool-btn" id="btn-clearall" title="Clear entire wall">💀 Clear All</button>
 
   <div class="separator"></div>
 
@@ -480,6 +478,7 @@ const ctx = canvas.getContext('2d');
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  inkBudgetPx = canvas.width * canvas.height * 0.30;
   redrawAll();
 }
 window.addEventListener('resize', resizeCanvas);
@@ -494,6 +493,11 @@ let strokes = []; // All strokes from Firebase
 let localStrokes = []; // Current user's strokes for undo
 let currentStroke = null;
 let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+// ── Ink Tank (invisible per-session drawing budget for normal users) ──
+let inkBudgetPx = 0; // recomputed on resize = 30% of canvas area
+let inkUsed = 0; // running total for this session's own marks
+let inkQueue = []; // FIFO of {stroke, point, cost} or {stroke, cost, wholeText:true}
 
 // ── Status Message ──
 function showStatus(msg, duration=2000) {
@@ -651,8 +655,74 @@ function endDraw() {
     strokes.push(currentStroke);
     localStrokes.push(strokes.length - 1);
     pushStroke(currentStroke);
+    accountInkForStroke(currentStroke);
   }
   currentStroke = null;
+}
+
+// ── Ink Tank Accounting ──
+function accountInkForStroke(stroke) {
+  var pts = stroke.points;
+  var size = stroke.size || 4;
+  var total = 0;
+  for (var i = 1; i < pts.length; i++) {
+    var dx = (pts[i].x - pts[i-1].x) * canvas.width;
+    var dy = (pts[i].y - pts[i-1].y) * canvas.height;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    var cost = dist * size;
+    total += cost;
+    inkQueue.push({ stroke: stroke, point: pts[i], cost: cost });
+  }
+  inkUsed += total;
+  enforceInkBudget();
+}
+
+function accountInkForTextStroke(stroke) {
+  var fontSize = (stroke.size || 4) * 5 + 14;
+  var textLen = stroke.text ? stroke.text.length : 1;
+  var cost = textLen * fontSize * fontSize * 0.5;
+  inkQueue.push({ stroke: stroke, cost: cost, wholeText: true });
+  inkUsed += cost;
+  enforceInkBudget();
+}
+
+function removeStrokeCompletely(s) {
+  var i = strokes.indexOf(s);
+  if (i !== -1) strokes.splice(i, 1);
+  if (s._fbKey && firebaseReady && db) db.ref('wall/strokes').child(s._fbKey).remove();
+}
+
+function enforceInkBudget() {
+  if (inkUsed <= inkBudgetPx) return;
+  var dirtyKeys = {};
+  var touched = false;
+  while (inkUsed > inkBudgetPx && inkQueue.length) {
+    var entry = inkQueue.shift();
+    var s = entry.stroke;
+    if (entry.wholeText) {
+      inkUsed -= entry.cost;
+      removeStrokeCompletely(s);
+      touched = true;
+      continue;
+    }
+    var idx = s.points.indexOf(entry.point);
+    if (idx !== -1) {
+      s.points.splice(0, idx + 1);
+    }
+    inkUsed -= entry.cost;
+    touched = true;
+    if (s.points.length < 2) {
+      removeStrokeCompletely(s);
+    } else if (s._fbKey) {
+      dirtyKeys[s._fbKey] = s.points.slice();
+    }
+  }
+  if (firebaseReady && db) {
+    Object.keys(dirtyKeys).forEach(function(k) {
+      db.ref('wall/strokes').child(k).update({ points: dirtyKeys[k] });
+    });
+  }
+  if (touched) redrawAll();
 }
 
 // Text tool
@@ -678,6 +748,7 @@ canvas.addEventListener('click', (e) => {
   localStrokes.push(strokes.length - 1);
   drawTextStroke(textStroke);
   pushStroke(textStroke);
+  accountInkForTextStroke(textStroke);
   showStatus('Tagged the wall! 🤘');
 });
 
@@ -696,7 +767,8 @@ canvas.addEventListener('touchend', endDraw);
 function pushStroke(stroke) {
   if (!firebaseReady || !db) return;
   try {
-    db.ref('wall/strokes').push(stroke);
+    var ref = db.ref('wall/strokes').push(stroke);
+    stroke._fbKey = ref.key;
   } catch(e) {
     console.warn('Firebase push failed:', e);
   }
@@ -711,6 +783,7 @@ function listenForStrokes() {
     if (!stroke) return;
     // Don't re-add our own strokes (we already have them locally)
     if (stroke.userId === userId) return;
+    stroke._fbKey = snap.key;
 
     strokes.push(stroke);
     if (stroke.type === 'text') {
@@ -720,17 +793,31 @@ function listenForStrokes() {
     }
   });
 
-  // Listen for stroke removals (eraser from any user)
+  // Listen for stroke removals (eraser / clear-all from any user)
   db.ref('wall/strokes').on('child_removed', function(snap) {
     var removed = snap.val();
     if (!removed) return;
     for (var i = strokes.length - 1; i >= 0; i--) {
-      if (strokes[i].timestamp === removed.timestamp && strokes[i].userId === removed.userId) {
+      if (strokes[i]._fbKey === snap.key || (strokes[i].timestamp === removed.timestamp && strokes[i].userId === removed.userId)) {
         strokes.splice(i, 1);
         break;
       }
     }
     redrawAll();
+  });
+
+  // Listen for stroke updates (ink-tank trimming from any user)
+  db.ref('wall/strokes').on('child_changed', function(snap) {
+    var updated = snap.val();
+    if (!updated) return;
+    for (var i = 0; i < strokes.length; i++) {
+      if (strokes[i]._fbKey === snap.key) {
+        updated._fbKey = snap.key;
+        strokes[i] = updated;
+        redrawAll();
+        break;
+      }
+    }
   });
 
   // Presence system
@@ -753,13 +840,15 @@ function loadExistingStrokes() {
   }
 
   db.ref('wall/strokes').orderByChild('timestamp').once('value', (snap) => {
-    const data = snap.val();
-    if (data) {
-      strokes = Object.values(data);
-      strokes.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-      redrawAll();
-      showStatus(`Loaded ${strokes.length} marks on the wall`, 2000);
-    }
+    const loaded = [];
+    snap.forEach(function(child) {
+      var val = child.val();
+      if (val) { val._fbKey = child.key; loaded.push(val); }
+    });
+    strokes = loaded;
+    strokes.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    redrawAll();
+    showStatus(`Loaded ${strokes.length} marks on the wall`, 2000);
     document.getElementById('loading').classList.add('hide');
     listenForStrokes();
   }).catch(() => {
@@ -806,7 +895,14 @@ document.getElementById('btn-text').addEventListener('click', () => {
 document.getElementById('btn-undo').addEventListener('click', () => {
   if (localStrokes.length === 0) { showStatus('Nothing to undo'); return; }
   const idx = localStrokes.pop();
+  const removedStroke = strokes[idx];
   strokes.splice(idx, 1);
+  if (removedStroke) {
+    inkQueue = inkQueue.filter(function(e) {
+      if (e.stroke === removedStroke) { inkUsed -= e.cost; return false; }
+      return true;
+    });
+  }
   redrawAll();
   // Note: undo is local only - Firebase strokes persist
   showStatus('Undone (local only)');
@@ -862,6 +958,7 @@ setTimeout(() => {
   // Check session unlock
   if (sessionStorage.getItem('eraserUnlocked')) {
     document.getElementById('btn-eraser').classList.add('unlocked');
+    document.getElementById('btn-clearall').classList.add('unlocked');
     calcFloor.style.display = 'none';
   }
 
@@ -911,6 +1008,7 @@ setTimeout(() => {
         calcScreen.style.color = '#1a1a1a';
         sessionStorage.setItem('eraserUnlocked', 'true');
         document.getElementById('btn-eraser').classList.add('unlocked');
+        document.getElementById('btn-clearall').classList.add('unlocked');
         calcFloor.style.display = 'none';
       }, 800);
     } else {
@@ -988,6 +1086,21 @@ document.getElementById('btn-eraser').addEventListener('click', function() {
   document.querySelectorAll('.tool-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('btn-eraser').classList.add('active');
   canvas.style.cursor = 'cell';
+});
+
+// ── Clear All Tool (secret mode) ──
+document.getElementById('btn-clearall').addEventListener('click', function() {
+  if (!sessionStorage.getItem('eraserUnlocked')) return;
+  if (!confirm('Erase the entire wall? This cannot be undone.')) return;
+  if (firebaseReady && db) {
+    db.ref('wall/strokes').remove();
+  }
+  strokes = [];
+  localStrokes = [];
+  inkQueue = [];
+  inkUsed = 0;
+  redrawAll();
+  showStatus('Wall wiped clean 💀');
 });
 
 function eraseAtPoint(e) {
