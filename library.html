@@ -49,6 +49,53 @@
       margin: 3rem auto 0;
       padding: 0 1.5rem;
     }
+    .latest-release-note {
+      max-width: 900px;
+      margin: 2rem auto 0;
+      padding: 0 1.5rem;
+    }
+    .jurn-feature-card {
+      max-width: 620px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(150px, 190px) 1fr;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1.25rem;
+      border: 1px solid rgba(255,23,68,0.35);
+      border-radius: 10px;
+      background: var(--bg-card);
+      box-shadow: 0 0 42px rgba(255,23,68,0.08);
+    }
+    .jurn-feature-card img {
+      width: 100%;
+      aspect-ratio: 334 / 500;
+      object-fit: contain;
+      display: block;
+      background: #0d0d0d;
+    }
+    .jurn-feature-card h2 {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      letter-spacing: 1px;
+      color: var(--bone-white);
+      margin: 0 0 .6rem;
+    }
+    .jurn-feature-card p { color: var(--text-body); line-height: 1.6; margin: 0 0 1rem; }
+    .jurn-feature-card .edition-note { color: var(--neon-green); font: .68rem/1.4 'Courier New', monospace; letter-spacing: 1px; text-transform: uppercase; }
+    .catalog-promo {
+      max-width: 900px;
+      margin: 2.5rem auto 0;
+      padding: 0 1.5rem;
+    }
+    .catalog-promo .featured-card { grid-template-columns: 170px 1fr; }
+    .catalog-promo .featured-cover { min-height: 245px; }
+    @media (max-width: 640px) {
+      .jurn-feature-card { grid-template-columns: 115px 1fr; gap: 1rem; padding: 1rem; }
+      .jurn-feature-card h2 { font-size: 1.45rem; }
+      .catalog-promo .featured-card { grid-template-columns: 1fr; }
+      .catalog-promo .featured-cover { min-height: 220px; max-height: 280px; }
+    }
     .featured-section h2 {
       font-family: 'Courier New', monospace;
       font-size: 0.65rem;
@@ -243,19 +290,23 @@
     <p>Comics, horror, and art from the Afterverse. Every book written, drawn, and published by Bobby Griffith. Available now on Amazon.</p>
   </div>
 
-  <div class="featured-grid fade-in" style="margin-bottom:1.5rem;">
-    <a href="https://www.amazon.com/dp/B0HFMWTP8B" target="_blank" rel="noopener" class="featured-book" style="text-decoration:none;">
-      <div class="featured-cover"><img src="https://images-na.ssl-images-amazon.com/images/P/B0HFMWTP8B.01._SX400_.jpg" alt="Tales from the Pit Stop: The JURN black-and-white edition cover" loading="lazy"></div>
-      <div class="book-info"><span class="book-tag tag-restore">New release / Black &amp; White</span><h2>Tales from the Pit Stop: The JURN</h2><p>The latest JURN transmission in a black-and-white edition.</p><span class="btn-amazon btn-amazon-lg">Get it on Amazon &rarr;</span></div>
-    </a>
-    <a href="https://www.amazon.com/dp/B0HFX96WYM" target="_blank" rel="noopener" class="featured-book" style="text-decoration:none;">
-      <div class="featured-cover"><img src="https://images-na.ssl-images-amazon.com/images/P/B0HFX96WYM.01._SX400_.jpg" alt="Tales from the Pit Stop: The JURN color edition cover" loading="lazy"></div>
-      <div class="book-info"><span class="book-tag tag-horror">New release / Full Color</span><h2>Tales from the Pit Stop: The JURN</h2><p>The latest JURN transmission in a full-color edition.</p><span class="btn-amazon btn-amazon-lg">Get it on Amazon &rarr;</span></div>
-    </a>
-  </div>
+  <section class="latest-release-note fade-in" aria-labelledby="jurn-latest-title">
+    <div class="jurn-feature-card">
+      <a href="https://www.amazon.com/dp/B0HFX96WYM" target="_blank" rel="noopener">
+        <img src="https://images-na.ssl-images-amazon.com/images/P/B0HFX96WYM.01._SX400_.jpg" alt="Tales from the Pit Stop: The JURN full-color edition cover" loading="lazy">
+      </a>
+      <div>
+        <span class="book-tag tag-horror">New release / Full color</span>
+        <h2 id="jurn-latest-title">Tales from the Pit Stop: The JURN</h2>
+        <p>The latest JURN transmission in full color.</p>
+        <div class="edition-note">Black-and-white edition also available.</div>
+        <a href="https://www.amazon.com/dp/B0HFX96WYM" target="_blank" rel="noopener" class="btn-amazon btn-amazon-lg" style="margin-top:1rem;">Get it on Amazon &rarr;</a>
+      </div>
+    </div>
+  </section>
 
-  <section class="featured-section fade-in">
-    <h2>Latest Release</h2>
+  <section class="catalog-promo featured-section fade-in">
+    <h2>Featured in the catalog</h2>
     <a href="https://a.co/d/031pYTet" target="_blank" rel="noopener" style="text-decoration:none;">
       <div class="featured-card">
         <div class="featured-cover">
@@ -286,6 +337,24 @@
           <span class="book-tag tag-restore">Restoration</span>
           <h3>Beware! Terror Tales<br><span style="font-size:0.75em;opacity:0.8;">The Complete Series &bull; All 8 Issues</span></h3>
           <p>The full run in one volume &mdash; all 8 issues of the classic Golden Age horror anthology, <em>Beware! Terror Tales</em>. Pre-Code monsters, madness, and macabre twists, restored and collected for the first time in a single definitive edition.</p>
+          <span class="btn-amazon btn-amazon-lg">Get it on Amazon &rarr;</span>
+        </div>
+      </div>
+    </a>
+  </section>
+
+  <section class="catalog-promo featured-section fade-in">
+    <h2>More from the vault</h2>
+    <a href="https://www.amazon.com/dp/B0H2R49LXC?binding=paperback" target="_blank" rel="noopener" style="text-decoration:none;">
+      <div class="featured-card">
+        <div class="featured-cover">
+          <img src="https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/images/book-covers/horrific-vol1.jpg" alt="Horrific Complete Collection cover" loading="lazy">
+          <span class="featured-badge">Featured</span>
+        </div>
+        <div class="featured-body">
+          <span class="book-tag tag-restore">Restoration</span>
+          <h3>Horrific<br><span style="font-size:0.75em;opacity:0.8;">Complete Collection</span></h3>
+          <p>Four volumes of 1950s pre-Code horror — monsters, the macabre, and relentlessly strange restored anthology comics in full black-and-white pulp glory.</p>
           <span class="btn-amazon btn-amazon-lg">Get it on Amazon &rarr;</span>
         </div>
       </div>
