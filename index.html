@@ -1,1 +1,446 @@
-���0
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="The JURN — Horror Punk from the Grave. Music, animation, and transmissions from the Afterverse.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+  <style>
+    /* ---- V6: SIGNAL BOARD ---- */
+
+    /* Top signal bar — thin announcement strip */
+    .v6-signal-bar {
+      background: rgba(57,255,20,0.07);
+      border-bottom: 1px solid rgba(57,255,20,0.2);
+      padding: 0.45rem 1.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--neon-green);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .v6-signal-bar .blink { animation: v6blink 1.2s step-end infinite; }
+    @keyframes v6blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+    /* HERO: full-width intercept panel */
+    .v6-intercept {
+      padding: 80px 1.5rem 0;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .v6-panel {
+      border: 1px solid rgba(191,0,255,0.3);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(191,0,255,0.08), inset 0 0 60px rgba(0,0,0,0.3);
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      min-height: 420px;
+    }
+
+    /* Left: identity */
+    .v6-id {
+      padding: 3rem 2.5rem;
+      border-right: 1px solid rgba(191,0,255,0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+    }
+    .v6-id::before {
+      content: 'SIGNAL INTERCEPTED';
+      position: absolute;
+      top: 1.25rem; right: 1.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      color: rgba(191,0,255,0.4);
+    }
+
+    .v6-label {
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--neon-green);
+      margin-bottom: 1rem;
+    }
+    .v6-label::before { content: '> '; }
+
+    .v6-title {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(3rem, 5.5vw, 6rem);
+      color: var(--bone-white);
+      line-height: 0.9;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 0 40px rgba(191,0,255,0.25);
+    }
+    .v6-title em {
+      color: var(--neon-purple);
+      font-style: normal;
+      font-size: 0.55em;
+      display: block;
+      letter-spacing: 2px;
+      margin-top: 0.5rem;
+      text-shadow: 0 0 20px rgba(191,0,255,0.5);
+    }
+
+    .v6-data-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+    }
+    .v6-data-item { color: var(--text-dim); }
+    .v6-data-item strong { display: block; color: var(--bone-white); font-size: 0.85rem; margin-bottom: 0.2rem; }
+
+    .v6-cta-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .v6-cta-a {
+      padding: 0.7rem 1.75rem;
+      background: var(--neon-purple);
+      color: #fff;
+      font-family: 'Creepster', cursive;
+      font-size: 1.15rem;
+      text-decoration: none;
+      border-radius: 4px;
+      box-shadow: 0 0 18px rgba(191,0,255,0.3);
+      transition: all 0.25s;
+    }
+    .v6-cta-a:hover { box-shadow: 0 0 35px rgba(191,0,255,0.6); transform: translateY(-2px); }
+    .v6-cta-b {
+      padding: 0.7rem 1.75rem;
+      background: transparent;
+      color: var(--bone-white);
+      font-family: 'Creepster', cursive;
+      font-size: 1.15rem;
+      text-decoration: none;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: all 0.25s;
+    }
+    .v6-cta-b:hover { border-color: var(--bone-white); background: rgba(255,255,255,0.05); }
+
+    /* Right: live feed */
+    .v6-feed {
+      display: flex;
+      flex-direction: column;
+      padding: 2rem 1.75rem;
+      gap: 1rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .v6-feed-header {
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent-red);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .v6-feed-header .dot { width:7px; height:7px; background:var(--accent-red); border-radius:50%; animation:live-flicker 2s infinite; }
+
+    .v6-video-wrap {
+      flex: 1;
+      min-height: 180px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(191,0,255,0.2);
+      box-shadow: 0 0 25px rgba(191,0,255,0.1);
+    }
+    .v6-video-wrap iframe { width:100%; height:100%; border:none; display:block; }
+
+    .v6-feed-link {
+      font-size: 0.8rem;
+      color: var(--neon-purple);
+      text-decoration: none;
+      font-family: 'Courier New', monospace;
+    }
+    .v6-feed-link:hover { color: var(--bone-white); }
+
+    /* Main wrapper */
+    .v6-main-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    @media (max-width: 860px) {
+      .v6-panel { grid-template-columns: 1fr; min-height: unset; }
+      .v6-id { border-right: none; border-bottom: 1px solid rgba(191,0,255,0.2); }
+      .v6-feed { min-height: 280px; }
+      .v6-mission-strip { grid-template-columns: repeat(3,1fr); }
+      .v6-title { font-size: 3rem; }
+    }
+    @media (max-width: 480px) {
+      .v6-mission-strip { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+<style>
+
+    /* 2026 homepage facelift: clear entry path + new release bridge */
+    .jurn-start-here { max-width:1100px; margin:2.5rem auto 0; padding:1.25rem 1.5rem; border:1px solid rgba(57,255,20,.22); border-left:3px solid var(--neon-green); background:linear-gradient(105deg,rgba(57,255,20,.07),rgba(191,0,255,.06)); }
+    .jurn-start-here .eyebrow { font: .65rem/1.2 'Courier New',monospace; letter-spacing:3px; text-transform:uppercase; color:var(--neon-green); }
+    .jurn-start-here p { margin:.35rem 0 0; color:var(--bone-white); font-size:1.02rem; }
+    .jurn-start-here a { color:var(--neon-green); font-family:'Courier New',monospace; font-size:.78rem; letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; }
+    .jurn-release { max-width:1100px; margin:2rem auto 0; padding:0 1.5rem; }
+    .jurn-release-head { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+    .jurn-release-head h2 { font-family:'Creepster',cursive; color:var(--bone-white); font-size:clamp(1.8rem,4vw,2.8rem); line-height:1; }
+    .jurn-release-head p { max-width:36rem; color:var(--text-dim); font-size:.82rem; margin:0; }
+    .jurn-release-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(191,0,255,.28); border:1px solid rgba(191,0,255,.28); overflow:hidden; border-radius:8px; }
+    .jurn-edition { display:grid; grid-template-columns:minmax(125px,180px) 1fr; background:rgba(10,10,10,.88); min-height:250px; text-decoration:none; transition:background .25s, transform .25s; }
+    .jurn-edition:hover { background:rgba(34,14,40,.92); }
+    .jurn-edition-cover { background:#050505; min-height:250px; }
+    .jurn-edition-cover img { width:100%; height:100%; object-fit:cover; display:block; }
+    .jurn-edition-copy { padding:1.25rem; display:flex; flex-direction:column; justify-content:center; gap:.55rem; }
+    .jurn-edition-copy .tag { color:var(--accent-red); font: .6rem/1.2 'Courier New',monospace; letter-spacing:2px; text-transform:uppercase; }
+    .jurn-edition-copy h3 { color:var(--bone-white); font-family:'Creepster',cursive; font-size:clamp(1.3rem,2.5vw,2rem); line-height:1.05; }
+    .jurn-edition-copy p { color:var(--text-body); font-size:.82rem; line-height:1.5; margin:0; }
+    .jurn-edition-copy .buy { color:var(--neon-green); font: .68rem/1.2 'Courier New',monospace; letter-spacing:1.5px; text-transform:uppercase; margin-top:.25rem; }
+    @media (max-width:700px) { .jurn-release-head { display:block; } .jurn-release-head p { margin-top:.5rem; } .jurn-release-grid { grid-template-columns:1fr; } .jurn-edition { grid-template-columns:120px 1fr; } .jurn-edition-cover { min-height:190px; } .jurn-edition-copy { padding:1rem; } }
+    @media (prefers-reduced-motion:reduce) { .jurn-edition { transition:none; } }
+
+  </style>
+</head>
+<body>
+
+<div class="v6-signal-bar">
+  <span class="blink">▶</span>
+  <span>SPACETRUCKER'S PIT STOP &nbsp;/&nbsp; TRANSMISSION ACTIVE &nbsp;/&nbsp; AMITYVILLE, NY</span>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="music.html">Music</a></li>
+      <li><a href="library.html">The Library</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="games.html">Games</a></li>
+      <li><a href="dead-report.html">The Dead Report</a></li>
+      <li><a href="wall/" class="nav-wall-glitch">The Wall</a></li>
+      <li><a href="fiends.html">Fiends</a></li>
+      <li><a href="links.html">Links</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="v6-intercept">
+
+  <div class="v6-panel">
+    <div class="v6-id">
+      <div class="v6-label">Spacetrucker's Pit Stop</div>
+      <h1 class="v6-title">
+        The JURN
+        <em>Horror Punk from the Grave</em>
+      </h1>
+      <div class="v6-data-row">
+        <div class="v6-data-item"><strong>Origin</strong>Amityville, New York</div>
+        <div class="v6-data-item"><strong>Status</strong>Undead / Active</div>
+        <div class="v6-data-item"><strong>Genre</strong>Horror Punk</div>
+        <div class="v6-data-item"><strong>Signal</strong>24/7 Live Radio</div>
+      </div>
+      <div class="v6-cta-row">
+        <a href="music.html" class="v6-cta-a">Music</a>
+        <a href="about.html" class="v6-cta-b">Who We Are</a>
+      </div>
+    </div>
+
+    <div class="v6-feed">
+      <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Live Now &mdash; Double Future Radio</span></div>
+      <div class="v6-video-wrap">
+        <iframe id="yt-live-frame"
+                src="https://www.youtube.com/embed/FEoQI1XNSKg?enablejsapi=1&autoplay=0&rel=0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen loading="lazy"></iframe>
+      </div>
+      <a href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" class="v6-feed-link" id="yt-feed-link">
+        &#8594; Open on YouTube
+      </a>
+    </div>
+  </div>
+
+  <div class="jurn-start-here fade-in">
+    <div class="eyebrow">First transmission / start here</div>
+    <p>New to The JURN? Start with the latest book, then drop into the original world.</p>
+    <a href="#latest-release">Read the latest transmission &darr;</a>
+  </div>
+
+
+
+</div>
+
+<main>
+<div class="v6-main-wrap">
+
+  <div class="merch-section fade-in" style="padding:0;">
+    <a href="https://graveyard.thejurn.com" target="_blank" rel="noopener"
+       style="display:block;border-radius:10px;overflow:hidden;box-shadow:0 0 50px rgba(191,0,255,0.18);line-height:0;">
+      <img src="https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/images/graveyard-banner.jpg"
+           alt="The Graveyard Dimension — Enter if you dare" loading="lazy"
+           style="width:100%;height:auto;display:block;">
+    </a>
+  </div>
+
+  <div class="merch-section fade-in" style="padding:0;">
+    <a href="https://my-store-10204e2.creator-spring.com/" target="_blank" rel="noopener"
+       style="display:block;border-radius:10px;overflow:hidden;box-shadow:0 0 50px rgba(191,0,255,0.08);transition:box-shadow 0.3s ease;line-height:0;"
+       onmouseover="this.style.boxShadow='0 0 70px rgba(191,0,255,0.22)'" onmouseout="this.style.boxShadow='0 0 50px rgba(191,0,255,0.08)'">
+      <img src="https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/images/merch-shop.png"
+           alt="The Jurn Merch Shop — Rep the Band. Support the Undead." loading="lazy"
+           style="width:100%;height:auto;display:block;">
+    </a>
+  </div>
+
+  <section id="latest-release" class="jurn-release fade-in" aria-labelledby="latest-release-title">
+    <div class="jurn-release-head">
+      <div><div class="section-title" style="margin-bottom:.3rem;">New Release</div><h2 id="latest-release-title">Tales from the Pit Stop: The JURN</h2></div>
+      <p>Two editions. One transmission. Read the book, then continue into the music, games, reports, and lore.</p>
+    </div>
+    <div class="jurn-release-grid" style="grid-template-columns:1fr;">
+      <a class="jurn-edition" href="https://www.amazon.com/dp/B0HFX96WYM" target="_blank" rel="noopener" style="grid-template-columns:minmax(220px,320px) 1fr;">
+        <div class="jurn-edition-cover"><img src="https://surething.io/api/files/a5b73d3e-7d81-48cd-9560-59c5852a3581/download?t=9Tvoub8gwwMT0HfARSgkyw.1787258920" alt="Tales from the Pit Stop: The JURN — full-color edition cover" loading="lazy"></div>
+        <div class="jurn-edition-copy"><span class="tag">New transmission / full color</span><h3>Tales from the Pit Stop: The JURN</h3><p>The full-color edition of the latest JURN release, packed with strange stories from the Pit Stop.</p><p style="color:var(--text-dim);font-size:.75rem;">A black-and-white edition is also available.</p><span class="buy">Get the color edition on Amazon &rarr;</span></div>
+      </a>
+    </div>
+    <div style="text-align:center;margin-top:1rem;"><a href="library.html" style="color:var(--neon-purple);font: .72rem/1.2 'Courier New',monospace;letter-spacing:2px;text-transform:uppercase;text-decoration:none;">Browse the full Library &rarr;</a></div>
+  </section>
+
+
+</div>
+</main>
+<footer>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
+    <a href="https://discord.gg/4aWt5h52t" target="_blank">Discord</a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
+    <a href="mailto:contact@thejurn.com">Contact</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
+
+  <script>
+    var _ytLive = (function() {
+      var PLAYLIST_ID = 'PLXyoDBFD4smNZm4vJlYG1YsKWVoSHk1fO';
+      var switched = false;
+      var isLive = false;
+      var errorTimer = null;
+      function switchToPlaylist() {
+        if (switched) return;
+        switched = true;
+        var frame = document.getElementById('yt-live-frame');
+        var statusText = document.getElementById('yt-status-text');
+        var dot = document.getElementById('yt-dot');
+        var link = document.getElementById('yt-feed-link');
+        frame.src = 'https://www.youtube.com/embed?listType=playlist&list=' + PLAYLIST_ID + '&autoplay=0&loop=1&rel=0&modestbranding=1';
+        statusText.innerHTML = 'Music Videos &mdash; Double Future Radio';
+        if (dot) { dot.style.background = '#555'; dot.style.animation = 'none'; }
+        if (link) { link.href = 'https://www.youtube.com/playlist?list=' + PLAYLIST_ID; link.textContent = '\u2192 View Playlist on YouTube'; }
+      }
+      return {
+        switchToPlaylist: switchToPlaylist,
+        setLive: function() { isLive = true; if (errorTimer) { clearTimeout(errorTimer); errorTimer = null; } },
+        scheduleError: function() {
+          if (errorTimer) clearTimeout(errorTimer);
+          errorTimer = setTimeout(function() { if (!isLive) switchToPlaylist(); }, 4000);
+        }
+      };
+    })();
+
+    function onYouTubeIframeAPIReady() {
+      new YT.Player('yt-live-frame', {
+        events: {
+          onError: function() {
+            // Wait 4s before falling back — avoids snap if stream is momentarily loading
+            _ytLive.scheduleError();
+          },
+          onStateChange: function(e) {
+            if (e.data === 1) { _ytLive.setLive(); }   // playing = stream confirmed live
+            if (e.data === 0) { _ytLive.switchToPlaylist(); } // ended = fall back
+            // -1/2/3/5 (unstarted/paused/buffering/cued) — do nothing
+          }
+        }
+      });
+    }
+
+    (function() {
+      var tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    })();
+  </script>
+
+  <script>
+    /* thejurn.com site tracker — writes to Firebase site/stats */
+    (function() {
+      var FIREBASE_CONFIG = {
+        apiKey: "AIzaSyCO1jJVET2TBOMfrJD839jxU0ENYShQ1Fg",
+        authDomain: "pitstop-wall.firebaseapp.com",
+        databaseURL: "https://pitstop-wall-default-rtdb.firebaseio.com",
+        storageBucket: "pitstop-wall.firebasestorage.app"
+      };
+      var isNew = !localStorage.getItem("site_visit_id");
+      if (isNew) localStorage.setItem("site_visit_id", "1");
+
+      import("https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js").then(function(m) {
+        var app = m.initializeApp(FIREBASE_CONFIG, "site-tracker");
+        return import("https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js").then(function(db) {
+          var database = db.getDatabase(app);
+          var statsRef = db.ref(database, "site/stats");
+          db.get(statsRef).then(function(snap) {
+            var cur = snap.exists() ? snap.val() : { visits: 0, unique: 0 };
+            db.set(statsRef, {
+              visits: (cur.visits || 0) + 1,
+              unique: (cur.unique || 0) + (isNew ? 1 : 0)
+            });
+          }).catch(function(){});
+        });
+      }).catch(function(){});
+    })();
+  </script>
+
+<!-- R3X page tracker — REST only, no SDK, no conflicts -->
+<script>
+(function(){try{
+  var p='home',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
+  fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){
+    fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)});
+  }).catch(function(){});
+}catch(e){}})();
+</script>
+</body>
+</html>
