@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE JURN: CHANNEL ZERO — Episode 1 | Spacetrucker's Pit Stop</title>
+  <meta name="description" content="THE JURN: CHANNEL ZERO — Episode 1. Beauty never dies. DieAnna Graves infiltrates the NeuraNest Institute to steal the plans for Channel Zero. A pixel-horror first-person shooter, now in Beta.">
+  <link rel="stylesheet" href="../../style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☠</text></svg>">
+  <style>
+    .cz-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1.5rem 5rem;
+    }
+    .cz-hero {
+      position: relative;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    .cz-hero img {
+      width: 100%;
+      display: block;
+    }
+    .cz-badge-beta {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1a0a00;
+      padding: 0.3rem 0.9rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 12px rgba(245,158,11,0.6);
+      z-index: 1;
+    }
+    .cz-eyebrow {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #0f8;
+      font-weight: 700;
+      margin-top: 1.5rem;
+    }
+    .cz-title {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(2rem, 5vw, 3rem);
+      color: #fff;
+      text-shadow: 0 0 30px rgba(191,0,255,0.35);
+      margin: 0.3rem 0 0.2rem;
+      letter-spacing: 1px;
+    }
+    .cz-sub {
+      font-family: 'Creepster', cursive;
+      font-size: 1.1rem;
+      color: var(--neon-purple);
+      letter-spacing: 1px;
+      margin-bottom: 1.5rem;
+    }
+    .cz-tagline {
+      font-style: italic;
+      color: var(--neon-green);
+      font-size: 1.15rem;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 0 10px rgba(57,255,20,0.25);
+    }
+    .cz-body p {
+      color: var(--text-body);
+      margin-bottom: 1rem;
+      line-height: 1.7;
+    }
+    .cz-body p.station {
+      color: var(--bone-white);
+      font-weight: 600;
+    }
+    .cz-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1.5rem 0;
+    }
+    .cz-tag {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      background: rgba(168,85,247,0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168,85,247,0.25);
+    }
+    .cz-play-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1rem 2.5rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(0,255,136,0.3), rgba(0,255,136,0.15));
+      border: 1px solid rgba(0,255,136,0.5);
+      color: #0f8;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-decoration: none;
+      margin-top: 1rem;
+      transition: all 0.25s ease;
+    }
+    .cz-play-btn:hover {
+      background: linear-gradient(135deg, rgba(0,255,136,0.45), rgba(0,255,136,0.25));
+      box-shadow: 0 0 25px rgba(0,255,136,0.3);
+      transform: translateY(-2px);
+    }
+    .cz-beta-note {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+    .cz-back {
+      display: inline-block;
+      margin-top: 3rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+    }
+    .cz-back:hover {
+      color: var(--neon-green);
+    }
+  </style>
+</head>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../../index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="../../index.html">Home</a></li>
+      <li><a href="../../music.html">Music</a></li>
+      <li><a href="../../library.html">The Library</a></li>
+      <li><a href="../../about.html">About</a></li>
+      <li><a href="../../games.html" class="active">Games</a></li>
+      <li><a href="../../dead-report.html">The Dead Report</a></li>
+      <li><a href="../../wall/">The Wall</a></li>
+      <li><a href="../../fiends.html">Fiends</a></li>
+      <li><a href="../../links.html">Links</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="cz-wrap" style="padding-top: 100px;">
+
+  <div class="cz-hero">
+    <img src="title_card.jpg" alt="THE JURN: CHANNEL ZERO title screen">
+    <span class="cz-badge-beta">BETA</span>
+  </div>
+
+  <div class="cz-eyebrow">The JURN &nbsp;·&nbsp; First-Person Shooter &nbsp;·&nbsp; Episode 1</div>
+  <h1 class="cz-title">THE JURN: CHANNEL ZERO</h1>
+  <div class="cz-sub">Episode 1 — The NeuraNest Files</div>
+  <p class="cz-tagline">Beauty Never Dies.</p>
+
+  <div class="cz-body">
+    <p>DieAnna Graves has a problem.</p>
+    <p>NeuraNest Institute has been working on something they don't want the world to know about&mdash;a secret weapon capable of manipulating the mysterious broadcast known only as Channel Zero, the station that does not exist.</p>
+    <p>DieAnna's mission is simple: infiltrate the NeuraNest facility, fight her way through its heavily guarded laboratories, steal the plans for the secret weapon, and get the hell out.</p>
+    <p>Armed with nothing but a pistol, a knife, and an attitude that refuses to stay dead, DieAnna must navigate the dark corridors of the Institute while uncovering the truth behind V!SION and its connection to Channel Zero.</p>
+    <p>The deeper she goes, the stranger things become.</p>
+    <p>NeuraNest is watching.<br>Channel Zero is broadcasting.<br>And DieAnna Graves is coming for the plans.</p>
+    <p class="station">Survive. Fight. Disrupt.<br>The station that does not exist.</p>
+  </div>
+
+  <div class="cz-tags">
+    <span class="cz-tag">First-Person Shooter</span>
+    <span class="cz-tag">Pixel Horror</span>
+    <span class="cz-tag">Boss Fights</span>
+    <span class="cz-tag">Episode 1</span>
+    <span class="cz-tag">Channel Zero</span>
+  </div>
+
+  <a href="https://jurn-fps-c7vtr.surething.host" target="_blank" rel="noopener" class="cz-play-btn">&#9654; Play Episode 1</a>
+  <p class="cz-beta-note">This is a Beta release &mdash; the NeuraNest Files are still being uncovered. Expect rough edges while Episode 1 keeps evolving.</p>
+
+  <a href="../../games.html" class="cz-back">&larr; Back to Games</a>
+
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
+    <a href="https://discord.gg/4aWt5h52t" target="_blank">Discord</a>
+    <a href="https://ko-fi.com/spacetrucker" target="_blank">Ko-fi</a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
+    <a href="mailto:contact@thejurn.com">Contact</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<!-- R3X page tracker — REST only, no SDK, no conflicts -->
+<script>
+(function(){try{
+  var p='games-channel-zero',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
+  fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){
+    fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)});
+  }).catch(function(){});
+}catch(e){}})();
+</script>
+</body>
+</html>
