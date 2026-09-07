@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="Behind the scenes at Spacetrucker's Pit Stop — the Studio Floor crew keeping The JURN signal alive.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+<li><a href="music.html">Music</a></li>
+<li><a href="library.html">The Library</a></li>
+<li><a href="about.html">About</a></li>
+<li><a href="games.html">Games</a></li>
+<li><a href="dead-report.html">The Dead Report</a></li>
+<li><a href="wall/">The Wall</a></li>
+<li><a href="fiends.html">Fiends</a></li>
+<li><a href="studio.html" class="active">Studio</a></li>
+<li><a href="links.html">Links</a></li>
+
+    </ul>
+  </div>
+</nav>
+<main>
+
+<div class="quote">Same space. Darker vibes. Higher productivity.</div>
+
+<div class="bio-section fade-in">
+  <h3>The Studio Floor</h3>
+  <p>A peek behind Spacetrucker&rsquo;s Pit Stop &mdash; the crew that cuts Shorts, ships music videos, keeps Double Future Radio humming, and wrangles the undead band The JURN.</p>
+  <p>Interactive pixel office coming soon. For now, meet the roster and see the gothic floor plan vibe.</p>
+</div>
+
+<div class="bio-section fade-in" style="text-align:center;">
+  <img src="images/studio/office-preview.png" alt="Gothic pixel studio office preview — Spacetrucker&rsquo;s Pit Stop" style="max-width:100%;height:auto;border:1px solid rgba(138,92,255,0.35);border-radius:8px;box-shadow:0 0 24px rgba(155,28,44,0.25);">
+</div>
+
+<div class="bio-section fade-in">
+  <h3>Tonight&rsquo;s Crew</h3>
+  <ul style="line-height:1.8;list-style:none;padding:0;">
+    <li><strong>R3X</strong> &mdash; Studio Boss</li>
+    <li><strong>Showrunner</strong> &mdash; Story / continuity</li>
+    <li><strong>Look &amp; Merch</strong> &mdash; Art / thumbs / shirts</li>
+    <li><strong>Soundstage</strong> &mdash; Lyrics / tracks / MV</li>
+    <li><strong>Pit Stop Desk</strong> &mdash; YouTube / Shorts</li>
+    <li><strong>Bench</strong> &mdash; Hardware / site / experiments</li>
+    <li><strong>Grave Hog</strong> &mdash; Graveyard Dimension roadie</li>
+    <li><strong>Double Future</strong> &mdash; Radio / signal desk</li>
+  </ul>
+</div>
+
+</main>
+<footer>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank">YouTube</a>
+    <a href="https://discord.gg/4aWt5h52t" target="_blank">Discord</a>
+    <a href="https://ko-fi.com/spacetrucker" target="_blank">Ko-fi</a>
+    <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank">Afterverse Wiki</a>
+    <a href="mailto:contact@thejurn.com">Contact</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<script>
+  // Scroll-in animations
+  document.addEventListener('DOMContentLoaded', function() {
+    var targets = document.querySelectorAll('.fade-in');
+    if (!targets.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function(el) { observer.observe(el); });
+  });
+</script>
+
+<!-- R3X page tracker — REST only, no SDK, no conflicts -->
+<script>
+(function(){try{
+  var p='studio',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
+  fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){
+    fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)});
+  }).catch(function(){});
+}catch(e){}})();
+</script>
+</body>
+</html>
