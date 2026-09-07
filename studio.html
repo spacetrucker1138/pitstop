@@ -12,8 +12,8 @@
   </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About — Spacetrucker's Pit Stop</title>
-  <meta name="description" content="The JURN — Horror Punk from the Grave. Music, animation, and transmissions from the Afterverse.">
+  <title>Studio — Spacetrucker's Pit Stop</title>
+  <meta name="description" content="Behind the scenes at Spacetrucker's Pit Stop — the Studio Floor crew keeping The JURN signal alive.">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
 </head>
@@ -28,12 +28,12 @@
       <li><a href="index.html">Home</a></li>
 <li><a href="music.html">Music</a></li>
 <li><a href="library.html">The Library</a></li>
-<li><a href="about.html" class="active">About</a></li>
+<li><a href="about.html">About</a></li>
 <li><a href="games.html">Games</a></li>
 <li><a href="dead-report.html">The Dead Report</a></li>
 <li><a href="wall/">The Wall</a></li>
 <li><a href="fiends.html">Fiends</a></li>
-<li><a href="studio.html">Studio</a></li>
+<li><a href="studio.html" class="active">Studio</a></li>
 <li><a href="links.html">Links</a></li>
 
     </ul>
@@ -41,23 +41,30 @@
 </nav>
 <main>
 
-<div class="quote">"Comic book artist. Stone age to digital age. Underground and indie."</div>
+<div class="quote">Same space. Darker vibes. Higher productivity.</div>
 
 <div class="bio-section fade-in">
-  <h3>Spacetrucker</h3>
-  <p>Founder, coordinator, ghoul manager. Former comic book artist from Amityville, New York. When the hands gave out, the art evolved &mdash; into music, animation, and a 24/7 radio station broadcasting from the other side.</p>
-  <p>Spacetrucker handles mixing, animation, and remote coordination for The JURN. The reluctant host of every cursed broadcast and the keeper of the Afterverse signal.</p>
+  <h3>The Studio Floor</h3>
+  <p>A peek behind Spacetrucker&rsquo;s Pit Stop &mdash; the crew that cuts Shorts, ships music videos, keeps Double Future Radio humming, and wrangles the undead band The JURN.</p>
+  <p>Interactive pixel office coming soon. For now, meet the roster and see the gothic floor plan vibe.</p>
+</div>
+
+<div class="bio-section fade-in" style="text-align:center;">
+  <img src="images/studio/office-preview.png" alt="Gothic pixel studio office preview — Spacetrucker&rsquo;s Pit Stop" style="max-width:100%;height:auto;border:1px solid rgba(138,92,255,0.35);border-radius:8px;box-shadow:0 0 24px rgba(155,28,44,0.25);">
 </div>
 
 <div class="bio-section fade-in">
-  <h3>The JURN</h3>
-  <p>The JURN is a horror-punk band of undead misfits traveling through time, reality, and the grave to deliver cursed riffs and forbidden lore. The band formed in the wreckage of underground punk and classic horror &mdash; skeleton characters with names like Vox De Gaunt, Taz De Gaunt, Riff-Rot, and Sir Bonecrush.</p>
-</div>
-
-<div class="bio-section fade-in">
-  <h3>The Afterverse</h3>
-  <p>The mythology behind The JURN &mdash; a universe of graveyard dimensions, boxcar prophecies, and rituals that keep the dead touring forever. The full lore runs deep.</p>
-  <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki" target="_blank" class="cta-button">📖 Explore the Full Afterverse Lore</a>
+  <h3>Tonight&rsquo;s Crew</h3>
+  <ul style="line-height:1.8;list-style:none;padding:0;">
+    <li><strong>R3X</strong> &mdash; Studio Boss</li>
+    <li><strong>Showrunner</strong> &mdash; Story / continuity</li>
+    <li><strong>Look &amp; Merch</strong> &mdash; Art / thumbs / shirts</li>
+    <li><strong>Soundstage</strong> &mdash; Lyrics / tracks / MV</li>
+    <li><strong>Pit Stop Desk</strong> &mdash; YouTube / Shorts</li>
+    <li><strong>Bench</strong> &mdash; Hardware / site / experiments</li>
+    <li><strong>Grave Hog</strong> &mdash; Graveyard Dimension roadie</li>
+    <li><strong>Double Future</strong> &mdash; Radio / signal desk</li>
+  </ul>
 </div>
 
 </main>
@@ -94,7 +101,7 @@
 <!-- R3X page tracker — REST only, no SDK, no conflicts -->
 <script>
 (function(){try{
-  var p='about',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
+  var p='studio',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
   fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){
     fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)});
   }).catch(function(){});
