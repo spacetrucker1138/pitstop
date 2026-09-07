@@ -1,124 +1,123 @@
 {
-  "role": "designer",
-  "name": "Gore Director",
-  "slug": "gore-director",
+  "role": "gate",
+  "name": "Spacetrucker",
+  "slug": "spacetrucker",
   "grid": [
     16,
     20
   ],
   "palette": [
-    "#E8DECB",
-    "#1A1A1A",
-    "#C035A8",
-    "#FF66CC",
-    "#3A3A3A",
-    "#6B2C91",
-    "#F4B9D6",
     "#000000",
+    "#2B2B2B",
+    "#4A3520",
+    "#2D4B7F",
+    "#555555",
+    "#D7B899",
+    "#00D4FF",
+    "#FF3B3B",
+    "#EAE6D0",
+    "#C9A646",
     "#0A0A0A",
-    "#2A2A2A",
-    "#8C8C8C",
-    "#A02888",
-    "#D0C8B0",
-    "#FF99DD"
+    "#1A1A1A",
+    "#3A3A3A"
   ],
   "frames": {
     "idle-normal": {
       "file": "idle-normal.png",
-      "opaquePixels": 151,
+      "opaquePixels": 149,
       "sourceCell": "normal",
       "sourceBBox": [
-        63,
-        467,
-        245,
-        738
+        62,
+        460,
+        247,
+        740
       ]
     },
     "idle-happy": {
       "file": "idle-happy.png",
-      "opaquePixels": 142,
+      "opaquePixels": 154,
       "sourceCell": "happy",
       "sourceBBox": [
         306,
         460,
-        489,
-        738
+        488,
+        733
       ]
     },
     "idle-sleepy": {
       "file": "idle-sleepy.png",
-      "opaquePixels": 144,
+      "opaquePixels": 167,
       "sourceCell": "sleepy",
       "sourceBBox": [
-        550,
-        467,
-        728,
-        739
+        546,
+        474,
+        729,
+        733
       ]
     },
     "idle-focused": {
       "file": "idle-focused.png",
-      "opaquePixels": 151,
+      "opaquePixels": 153,
       "sourceCell": "focused",
       "sourceBBox": [
-        787,
-        467,
-        968,
-        738
+        782,
+        474,
+        964,
+        740
       ]
     },
     "idle-surprised": {
       "file": "idle-surprised.png",
-      "opaquePixels": 145,
+      "opaquePixels": 156,
       "sourceCell": "surprised",
       "sourceBBox": [
-        1029,
-        467,
-        1209,
-        738
+        1019,
+        474,
+        1204,
+        740
       ]
     },
     "idle-tired": {
       "file": "idle-tired.png",
-      "opaquePixels": 152,
+      "opaquePixels": 151,
       "sourceCell": "tired",
       "sourceBBox": [
-        1268,
-        467,
-        1451,
-        738
+        1261,
+        474,
+        1443,
+        740
       ]
     },
     "idle-confused": {
       "file": "idle-confused.png",
-      "opaquePixels": 151,
+      "opaquePixels": 153,
       "sourceCell": "confused",
       "sourceBBox": [
-        1510,
-        467,
-        1690,
-        738
+        1500,
+        474,
+        1683,
+        740
       ]
     },
     "walk1": {
       "file": "walk1.png",
-      "opaquePixels": 123,
+      "opaquePixels": 132,
       "sourceCell": "walk1",
       "sourceBBox": [
-        334,
+        340,
         110,
-        519,
+        529,
         410
       ]
     },
     "walk2": {
       "file": "walk2.png",
-      "opaquePixels": 127,
+      "opaquePixels": 145,
       "sourceCell": "walk2",
       "sourceBBox": [
-        605,
-        119,
-        789,
+        601,
+        128,
+        787,
         410
       ]
     }
