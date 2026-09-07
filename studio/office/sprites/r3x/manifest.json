@@ -1,0 +1,109 @@
+{
+  "role": "pm",
+  "name": "R3X",
+  "grid": [
+    16,
+    20
+  ],
+  "frames": {
+    "idle-normal": {
+      "file": "idle-normal.png",
+      "opaquePixels": 105,
+      "sourceCell": "normal",
+      "sourceBBox": [
+        68,
+        460,
+        230,
+        736
+      ]
+    },
+    "idle-happy": {
+      "file": "idle-happy.png",
+      "opaquePixels": 104,
+      "sourceCell": "happy",
+      "sourceBBox": [
+        309,
+        460,
+        470,
+        736
+      ]
+    },
+    "idle-sleepy": {
+      "file": "idle-sleepy.png",
+      "opaquePixels": 113,
+      "sourceCell": "sleepy",
+      "sourceBBox": [
+        548,
+        470,
+        710,
+        736
+      ]
+    },
+    "idle-focused": {
+      "file": "idle-focused.png",
+      "opaquePixels": 118,
+      "sourceCell": "focused",
+      "sourceBBox": [
+        790,
+        471,
+        950,
+        736
+      ]
+    },
+    "idle-surprised": {
+      "file": "idle-surprised.png",
+      "opaquePixels": 123,
+      "sourceCell": "surprised",
+      "sourceBBox": [
+        1029,
+        471,
+        1189,
+        736
+      ]
+    },
+    "idle-tired": {
+      "file": "idle-tired.png",
+      "opaquePixels": 118,
+      "sourceCell": "tired",
+      "sourceBBox": [
+        1271,
+        471,
+        1430,
+        736
+      ]
+    },
+    "idle-confused": {
+      "file": "idle-confused.png",
+      "opaquePixels": 121,
+      "sourceCell": "confused",
+      "sourceBBox": [
+        1513,
+        471,
+        1674,
+        736
+      ]
+    },
+    "walk1": {
+      "file": "walk1.png",
+      "opaquePixels": 97,
+      "sourceCell": "walk1",
+      "sourceBBox": [
+        336,
+        110,
+        497,
+        410
+      ]
+    },
+    "walk2": {
+      "file": "walk2.png",
+      "opaquePixels": 105,
+      "sourceCell": "walk2",
+      "sourceBBox": [
+        601,
+        118,
+        761,
+        410
+      ]
+    }
+  }
+}
