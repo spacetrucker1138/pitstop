@@ -1,0 +1,3 @@
+Pit Stop Studio Floor embeds a modified build of Agent Virtual Office (MIT, Copyright 2026 KbWen).
+Source upstream: https://github.com/KbWen/agent-virtual-office
+Gothic / zombie reskin by Spacetrucker studio.
