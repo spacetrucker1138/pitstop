@@ -1,0 +1,15 @@
+Add The Last Selfie to my website.
+
+This zip is a finished static HTML game. Do not rewrite it in WordPress or rebuild it. Publish the files as-is.
+
+Steps:
+1. Unzip the folder. Inside you will find index.html plus sprites/, backgrounds/, bonus/, sfx/, assets/, title-cover.jpg, favicon.svg.
+2. Create a page/path on my site called /the-last-selfie (or a menu link named The Last Selfie).
+3. Upload EVERY file from this unzipped folder into that directory. Keep the folder structure. index.html must sit next to the sprites, bonus, sfx, backgrounds, and assets folders — not one level above them.
+4. Link it from the main site menu.
+5. Do not change asset paths. Do not convert images. Do not wrap it in an iframe unless you have to; a direct page is better.
+6. Limits this pack already meets: 34 files, none over 2MB, total about 15MB.
+
+The game is The Last Selfie — a railroad-trespass warning. After 6 levels there is a Trash Queen bonus stage. The YouTube button already opens https://youtu.be/apJMXjBr_Xg in a new tab (song title: The Last Selfie - A Trash Queen Warning).
+
+If you host through SureThing website publishing, publish this whole folder as a subpath. Then tell me the live URL.
