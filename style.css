@@ -1028,3 +1028,13 @@ footer .footer-links a:hover {
   opacity: 1;
   transform: translateY(0);
 }
+
+
+/* JURN identity marks */
+.site-footer-logo-link { display:block; width:min(280px, 72vw); margin:0 auto 1.25rem; line-height:0; opacity:.92; transition:opacity .25s, filter .25s; }
+.site-footer-logo-link:hover { opacity:1; filter:drop-shadow(0 0 14px rgba(191,0,255,.38)); }
+.site-footer-logo { display:block; width:100%; height:auto; }
+.music-page-header { text-align:center; padding:1.35rem 0 .35rem; margin-bottom:.35rem; }
+.music-page-logo { display:block; width:min(560px, 92vw); height:auto; margin:0 auto .85rem; filter:drop-shadow(0 0 18px rgba(191,0,255,.24)); }
+.music-page-kicker { color:var(--neon-green); font: .65rem/1.2 'Courier New',monospace; letter-spacing:3px; text-transform:uppercase; margin:0; }
+@media (max-width:600px) { .music-page-kicker { letter-spacing:1.5px; font-size:.58rem; } .site-footer-logo-link { width:min(240px,72vw); } }
