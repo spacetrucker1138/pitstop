@@ -90,6 +90,19 @@
       margin-bottom: 1.5rem;
       text-shadow: 0 0 40px rgba(191,0,255,0.25);
     }
+    .jurn-hero-logo {
+      display: block;
+      width: min(100%, 620px);
+      height: auto;
+      max-height: 190px;
+      object-fit: contain;
+      object-position: left center;
+      margin: 0 0 1.5rem;
+      filter: drop-shadow(0 0 18px rgba(191,0,255,0.28));
+    }
+    @media (max-width: 860px) {
+      .jurn-hero-logo { max-height: 125px; }
+    }
     .v6-title em {
       color: var(--neon-purple);
       font-style: normal;
@@ -253,7 +266,7 @@
     <div class="v6-id">
       <div class="v6-label">Spacetrucker's Pit Stop</div>
       <h1 class="v6-title">
-        The JURN
+        <img class="jurn-hero-logo" src="images/jurn-logo.png" alt="The JURN" width="1942" height="809">
         <em>Horror Punk from the Grave</em>
       </h1>
       <div class="v6-data-row">
@@ -346,9 +359,7 @@
     var targets = document.querySelectorAll('.fade-in');
     if (!targets.length) return;
     var observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
-      });
+      entries.forEach(function(entry) { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     targets.forEach(function(el) { observer.observe(el); });
   });
@@ -375,34 +386,23 @@
       return {
         switchToPlaylist: switchToPlaylist,
         setLive: function() { isLive = true; if (errorTimer) { clearTimeout(errorTimer); errorTimer = null; } },
-        scheduleError: function() {
-          if (errorTimer) clearTimeout(errorTimer);
-          errorTimer = setTimeout(function() { if (!isLive) switchToPlaylist(); }, 4000);
-        }
+        scheduleError: function() { if (errorTimer) clearTimeout(errorTimer); errorTimer = setTimeout(function() { if (!isLive) switchToPlaylist(); }, 4000); }
       };
     })();
 
     function onYouTubeIframeAPIReady() {
       new YT.Player('yt-live-frame', {
         events: {
-          onError: function() {
-            // Wait 4s before falling back — avoids snap if stream is momentarily loading
-            _ytLive.scheduleError();
-          },
+          onError: function() { _ytLive.scheduleError(); },
           onStateChange: function(e) {
-            if (e.data === 1) { _ytLive.setLive(); }   // playing = stream confirmed live
-            if (e.data === 0) { _ytLive.switchToPlaylist(); } // ended = fall back
-            // -1/2/3/5 (unstarted/paused/buffering/cued) — do nothing
+            if (e.data === 1) { _ytLive.setLive(); }
+            if (e.data === 0) { _ytLive.switchToPlaylist(); }
           }
         }
       });
     }
 
-    (function() {
-      var tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
-    })();
+    (function() { var tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag); })();
   </script>
 
   <script>
@@ -416,19 +416,11 @@
       };
       var isNew = !localStorage.getItem("site_visit_id");
       if (isNew) localStorage.setItem("site_visit_id", "1");
-
       import("https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js").then(function(m) {
         var app = m.initializeApp(FIREBASE_CONFIG, "site-tracker");
         return import("https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js").then(function(db) {
-          var database = db.getDatabase(app);
-          var statsRef = db.ref(database, "site/stats");
-          db.get(statsRef).then(function(snap) {
-            var cur = snap.exists() ? snap.val() : { visits: 0, unique: 0 };
-            db.set(statsRef, {
-              visits: (cur.visits || 0) + 1,
-              unique: (cur.unique || 0) + (isNew ? 1 : 0)
-            });
-          }).catch(function(){});
+          var database = db.getDatabase(app); var statsRef = db.ref(database, "site/stats");
+          db.get(statsRef).then(function(snap) { var cur = snap.exists() ? snap.val() : { visits: 0, unique: 0 }; db.set(statsRef, { visits: (cur.visits || 0) + 1, unique: (cur.unique || 0) + (isNew ? 1 : 0) }); }).catch(function(){});
         });
       }).catch(function(){});
     })();
@@ -436,12 +428,7 @@
 
 <!-- R3X page tracker — REST only, no SDK, no conflicts -->
 <script>
-(function(){try{
-  var p='home',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/';
-  fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){
-    fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)});
-  }).catch(function(){});
-}catch(e){}})();
+(function(){try{ var p='home',b='https://pitstop-wall-default-rtdb.firebaseio.com/site/pages/'; fetch(b+p+'.json').then(function(r){return r.json()}).then(function(n){ fetch(b+p+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify((n||0)+1)}); }); }catch(e){}})();
 </script>
 </body>
 </html>
