@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TDOC — WARRANT 261368 — LOOP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blood: #8b1111;
+      --blood-bright: #c41e1e;
+      --amber: #c9a227;
+      --paper: #c4b49a;
+      --void: #070605;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--void);
+      color: var(--paper);
+      font-family: "Cormorant Garamond", Georgia, serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image:
+        radial-gradient(ellipse at 50% -10%, rgba(139,17,17,0.18), transparent 55%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 3px);
+    }
+
+    body.zeroed {
+      animation: shock 0.9s ease-out;
+    }
+
+    @keyframes shock {
+      0% { filter: contrast(1.8) saturate(0.4); }
+      12% { filter: invert(1); }
+      20% { filter: none; }
+      35% { filter: contrast(2) hue-rotate(-20deg); }
+      100% { filter: none; }
+    }
+
+    .scan {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.12) 3px,
+        rgba(0,0,0,0.12) 4px
+      );
+      animation: roll 8s linear infinite;
+      z-index: 20;
+    }
+
+    @keyframes roll {
+      from { background-position: 0 0; }
+      to { background-position: 0 400px; }
+    }
+
+    .vignette {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      box-shadow: inset 0 0 180px 40px #000;
+      z-index: 15;
+    }
+
+    header {
+      text-align: center;
+      padding: 2.2rem 1rem 0.5rem;
+      letter-spacing: 0.28em;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.72rem;
+      color: #6a5a48;
+      text-transform: uppercase;
+    }
+
+    header .seal {
+      display: inline-block;
+      border: 1px solid #5a3a2a;
+      padding: 0.35rem 0.8rem;
+      color: var(--amber);
+    }
+
+    h1 {
+      text-align: center;
+      font-family: "Special Elite", cursive;
+      font-weight: 400;
+      font-size: clamp(1.6rem, 4.5vw, 2.8rem);
+      color: #e8d8c0;
+      letter-spacing: 0.08em;
+      margin: 1.4rem 1rem 0.3rem;
+      text-shadow: 0 0 24px rgba(139,17,17,0.45);
+    }
+
+    .aka {
+      text-align: center;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.78rem;
+      color: #7a6854;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    .file {
+      max-width: 720px;
+      margin: 1.6rem auto 0;
+      padding: 0 1.2rem;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #b9a88c;
+    }
+
+    .file p { margin-bottom: 0.7rem; }
+
+    .file em { color: #d4c3a4; font-style: italic; }
+
+    .stamp {
+      display: inline-block;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      border: 1px dashed #8b1111;
+      color: var(--blood-bright);
+      padding: 0.2rem 0.5rem;
+      transform: rotate(-2deg);
+      margin: 0.4rem 0 1rem;
+    }
+
+    .clock-wrap {
+      max-width: 880px;
+      margin: 2rem auto 1.4rem;
+      padding: 0 1rem;
+    }
+
+    .label {
+      text-align: center;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.32em;
+      color: var(--amber);
+      text-transform: uppercase;
+      margin-bottom: 0.9rem;
+    }
+
+    .clock {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.7rem;
+    }
+
+    .unit {
+      background: linear-gradient(180deg, #14100c 0%, #0b0907 100%);
+      border: 1px solid #3a2a1e;
+      box-shadow:
+        0 0 0 1px #000,
+        inset 0 0 30px rgba(139,17,17,0.12),
+        0 12px 30px rgba(0,0,0,0.55);
+      padding: 1rem 0.4rem 0.75rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .unit::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 40%);
+      pointer-events: none;
+    }
+
+    .digits {
+      font-family: "Share Tech Mono", monospace;
+      font-size: clamp(1.7rem, 7vw, 3.4rem);
+      color: #f2e6c9;
+      text-shadow: 0 0 12px rgba(196,30,30,0.55), 0 0 2px #fff;
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+
+    .unit .name {
+      margin-top: 0.55rem;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      color: #8a7058;
+      text-transform: uppercase;
+    }
+
+    .ms .digits {
+      color: #c9a227;
+      text-shadow: 0 0 10px rgba(201,162,39,0.5);
+    }
+
+    .status {
+      text-align: center;
+      margin: 1.4rem 1rem 0;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      color: #9a3a3a;
+      text-transform: uppercase;
+    }
+
+    .status .live {
+      color: var(--blood-bright);
+      animation: blink 1.2s steps(2, start) infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.15; }
+    }
+
+    #flash {
+      display: none;
+      text-align: center;
+      margin: 1.1rem 1rem 0;
+      font-family: "Special Elite", cursive;
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      color: var(--blood-bright);
+      letter-spacing: 0.18em;
+    }
+
+    footer {
+      max-width: 720px;
+      margin: 2.4rem auto 3rem;
+      padding: 0 1.2rem;
+      text-align: center;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: #5a4a3a;
+      line-height: 1.7;
+      text-transform: uppercase;
+    }
+
+    .rule {
+      width: 80px;
+      height: 1px;
+      background: #3a2a1e;
+      margin: 1.2rem auto;
+    }
+
+    @media (max-width: 520px) {
+      .clock { gap: 0.4rem; }
+      .unit { padding: 0.7rem 0.2rem 0.55rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scan"></div>
+  <div class="vignette"></div>
+
+  <header>
+    <div class="seal">Tennessee Department of Correction · Riverbend Maximum Security Institution</div>
+  </header>
+
+  <h1>CHRISTA GAIL PIKE</h1>
+  <div class="aka">TDOC #261368 · Archival Loop · Easter Egg</div>
+
+  <div class="file">
+    <div class="stamp">RECURRING · 10:00 CDT · NEVER CLOSES</div>
+    <p>
+      Lethal injection. Pentobarbital. Riverbend. First woman the State of Tennessee
+      put to death in more than two hundred years. Sentenced in 1996 for the
+      January 1995 murder of <em>Colleen Slemmer</em>, age 19. Pike was 18.
+    </p>
+    <p>
+      The original warrant was 10:00 a.m. Central, 30 September 2026.
+      This copy does not stop. When the digits die, they come back.
+      The clock keeps the appointment every morning at ten.
+    </p>
+  </div>
+
+  <div class="clock-wrap" id="clockWrap">
+    <div class="label">Until the next 10:00 a.m. Central</div>
+    <div class="clock">
+      <div class="unit">
+        <div class="digits" id="h">00</div>
+        <div class="name">Hours</div>
+      </div>
+      <div class="unit">
+        <div class="digits" id="m">00</div>
+        <div class="name">Minutes</div>
+      </div>
+      <div class="unit">
+        <div class="digits" id="s">00</div>
+        <div class="name">Seconds</div>
+      </div>
+      <div class="unit ms">
+        <div class="digits" id="ms">000</div>
+        <div class="name">Millisec</div>
+      </div>
+    </div>
+    <div class="status"><span class="live">●</span> Looping countdown · America/Chicago</div>
+    <div id="flash">ZERO — RESTARTING</div>
+  </div>
+
+  <div class="rule"></div>
+  <footer>
+    Archival easter egg. Not an official state document.<br>
+    Target repeats daily at 10:00:00 America/Chicago.<br>
+    Original warrant date: 2026-09-30.
+  </footer>
+
+  <script>
+    const elH = document.getElementById("h");
+    const elM = document.getElementById("m");
+    const elS = document.getElementById("s");
+    const elMs = document.getElementById("ms");
+    const flash = document.getElementById("flash");
+
+    let lastCycleKey = null;
+    let flashing = false;
+
+    function pad(n, w) {
+      return String(Math.max(0, n)).padStart(w, "0");
+    }
+
+    // Next 10:00:00 in America/Chicago, including "now" only if we are exactly on it.
+    function nextTenCentral(fromMs) {
+      const tz = "America/Chicago";
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(new Date(fromMs));
+
+      const get = (t) => parts.find((p) => p.type === t).value;
+      const y = Number(get("year"));
+      const mo = Number(get("month"));
+      const d = Number(get("day"));
+      const h = Number(get("hour"));
+      const mi = Number(get("minute"));
+      const s = Number(get("second"));
+
+      // Build today's 10:00 Chicago as an ISO-like guess, then search nearby UTC instants.
+      const alreadyPassed = h > 10 || (h === 10 && (mi > 0 || s > 0));
+
+      function chicagoYmd(offsetDays) {
+        const utcGuess = Date.UTC(y, mo - 1, d + offsetDays, 16, 0, 0); // noon-ish UTC buffer
+        const p = new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hourCycle: "h23"
+        }).formatToParts(new Date(utcGuess));
+        const gy = p.find((x) => x.type === "year").value;
+        const gm = p.find((x) => x.type === "month").value;
+        const gd = p.find((x) => x.type === "day").value;
+        return { gy, gm, gd };
+      }
+
+      const dayShift = alreadyPassed ? 1 : 0;
+      const { gy, gm, gd } = chicagoYmd(dayShift);
+
+      // Find the UTC ms where Chicago local time is 10:00:00 on that Y-M-D
+      // Scan a 48h window around a reasonable UTC guess (CDT=UTC-5, CST=UTC-6).
+      const guess = Date.UTC(Number(gy), Number(gm) - 1, Number(gd), 15, 0, 0);
+      const fmt = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23"
+      });
+
+      for (let delta = -6 * 3600000; delta <= 6 * 3600000; delta += 1000) {
+        const t = guess + delta;
+        const fp = fmt.formatToParts(new Date(t));
+        const fv = (type) => fp.find((x) => x.type === type).value;
+        if (
+          fv("year") === gy &&
+          fv("month") === gm &&
+          fv("day") === gd &&
+          fv("hour") === "10" &&
+          fv("minute") === "00" &&
+          fv("second") === "00"
+        ) {
+          return t;
+        }
+      }
+      // Fallback: 15:00 UTC (CDT)
+      return guess;
+    }
+
+    function triggerRestartFlash() {
+      if (flashing) return;
+      flashing = true;
+      flash.style.display = "block";
+      document.body.classList.remove("zeroed");
+      void document.body.offsetWidth;
+      document.body.classList.add("zeroed");
+      setTimeout(() => {
+        flash.style.display = "none";
+        document.body.classList.remove("zeroed");
+        flashing = false;
+      }, 1100);
+    }
+
+    function tick() {
+      const now = Date.now();
+      let target = nextTenCentral(now);
+      let diff = target - now;
+
+      // If we landed exactly on or a hair past, jump to the following cycle
+      if (diff <= 0) {
+        target = nextTenCentral(now + 1000);
+        diff = target - now;
+        const key = String(target);
+        if (key !== lastCycleKey && lastCycleKey !== null) {
+          triggerRestartFlash();
+        }
+      }
+
+      const key = String(target);
+      if (lastCycleKey !== null && key !== lastCycleKey) {
+        triggerRestartFlash();
+      }
+      lastCycleKey = key;
+
+      const hours = Math.floor(diff / 3600000);
+      diff -= hours * 3600000;
+      const mins = Math.floor(diff / 60000);
+      diff -= mins * 60000;
+      const secs = Math.floor(diff / 1000);
+      const ms = diff % 1000;
+
+      elH.textContent = pad(hours, 2);
+      elM.textContent = pad(mins, 2);
+      elS.textContent = pad(secs, 2);
+      elMs.textContent = pad(ms, 3);
+
+      requestAnimationFrame(tick);
+    }
+
+    tick();
+  </script>
+</body>
+</html>
