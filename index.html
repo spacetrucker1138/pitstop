@@ -282,15 +282,15 @@
     </div>
 
     <div class="v6-feed">
-      <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Live Now &mdash; Double Future Radio</span></div>
+      <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Connecting to Double Future Radio&hellip;</span></div>
       <div class="v6-video-wrap">
         <iframe id="yt-live-frame"
-                src="https://www.youtube.com/embed/gmo9PT20Y6o?enablejsapi=1&autoplay=0&rel=0"
+                src="https://www.youtube.com/embed/KAiunWhI9DA?enablejsapi=1&autoplay=1&mute=1&playsinline=1&rel=0&origin=https%3A%2F%2Fthejurn.com"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen loading="lazy"></iframe>
       </div>
-      <a href="https://www.youtube.com/watch?v=gmo9PT20Y6o" target="_blank" class="v6-feed-link" id="yt-feed-link">
-        &#8594; Open on YouTube
+      <a href="https://www.youtube.com/playlist?list=PLXyoDBFD4smNZm4vJlYG1YsKWVoSHk1fO" target="_blank" rel="noopener" class="v6-feed-link" id="yt-feed-link">
+        &#8594; Open Radio Playlist on YouTube
       </a>
     </div>
   </div>
@@ -369,38 +369,83 @@
   <script>
     var _ytLive = (function() {
       var PLAYLIST_ID = 'PLXyoDBFD4smNZm4vJlYG1YsKWVoSHk1fO';
+      var PLAYLIST_URL = 'https://www.youtube.com/playlist?list=' + PLAYLIST_ID;
+      var LIVE_URL = 'https://www.youtube.com/@Spacetrucker138/live';
       var switched = false;
       var isLive = false;
-      var errorTimer = null;
+      var player = null;
+      var fallbackTimer = null;
+
       function switchToPlaylist() {
-        if (switched) return;
+        if (switched || isLive) return;
         switched = true;
+        if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
         var frame = document.getElementById('yt-live-frame');
         var statusText = document.getElementById('yt-status-text');
         var dot = document.getElementById('yt-dot');
         var link = document.getElementById('yt-feed-link');
-        frame.src = 'https://www.youtube.com/embed?listType=playlist&list=' + PLAYLIST_ID + '&autoplay=0&loop=1&rel=0&modestbranding=1';
-        statusText.innerHTML = 'Music Videos &mdash; Double Future Radio';
+        var playlistEmbed = 'https://www.youtube.com/embed/videoseries?list=' + PLAYLIST_ID + '&autoplay=1&mute=1&loop=1&rel=0';
+        if (statusText) statusText.textContent = 'Live stream unavailable — Double Future Radio playlist';
         if (dot) { dot.style.background = '#555'; dot.style.animation = 'none'; }
-        if (link) { link.href = 'https://www.youtube.com/playlist?list=' + PLAYLIST_ID; link.textContent = '\u2192 View Playlist on YouTube'; }
+        if (link) { link.href = PLAYLIST_URL; link.textContent = '\u2192 Open Radio Playlist on YouTube'; }
+        try {
+          if (player && typeof player.loadPlaylist === 'function') {
+            player.loadPlaylist({ listType: 'playlist', list: PLAYLIST_ID, index: 0 });
+            if (typeof player.setLoop === 'function') player.setLoop(true);
+            return;
+          }
+        } catch (e) {}
+        if (frame) frame.src = playlistEmbed;
       }
+
+      function setLive() {
+        if (switched) return;
+        isLive = true;
+        if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+        var statusText = document.getElementById('yt-status-text');
+        var dot = document.getElementById('yt-dot');
+        var link = document.getElementById('yt-feed-link');
+        if (statusText) statusText.textContent = 'Live Now — Double Future Radio';
+        if (dot) { dot.style.background = 'var(--accent-red)'; dot.style.animation = 'live-flicker 2s infinite'; }
+        if (link) { link.href = LIVE_URL; link.textContent = '\u2192 Open Live Stream on YouTube'; }
+      }
+
+      function scheduleFallback() {
+        if (switched || isLive) return;
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        fallbackTimer = setTimeout(switchToPlaylist, 18000);
+      }
+
+      scheduleFallback();
       return {
         switchToPlaylist: switchToPlaylist,
-        setLive: function() { isLive = true; if (errorTimer) { clearTimeout(errorTimer); errorTimer = null; } },
-        scheduleError: function() { if (errorTimer) clearTimeout(errorTimer); errorTimer = setTimeout(function() { if (!isLive) switchToPlaylist(); }, 4000); }
+        setLive: setLive,
+        scheduleFallback: scheduleFallback,
+        setPlayer: function(value) { player = value; },
+        canTryLive: function() { return !switched; }
       };
     })();
 
     function onYouTubeIframeAPIReady() {
-      new YT.Player('yt-live-frame', {
-        events: {
-          onError: function() { _ytLive.scheduleError(); },
-          onStateChange: function(e) {
-            if (e.data === 1) { _ytLive.setLive(); }
-            if (e.data === 0) { _ytLive.switchToPlaylist(); }
+      if (!_ytLive.canTryLive()) return;
+      try {
+        var player = new YT.Player('yt-live-frame', {
+          events: {
+            onReady: function(event) {
+              try { event.target.mute(); event.target.playVideo(); } catch (e) {}
+              _ytLive.scheduleFallback();
+            },
+            onError: function() { _ytLive.switchToPlaylist(); },
+            onStateChange: function(event) {
+              if (event.data === YT.PlayerState.PLAYING) _ytLive.setLive();
+              if (event.data === YT.PlayerState.ENDED) _ytLive.switchToPlaylist();
+            }
           }
-        }
-      });
+        });
+        _ytLive.setPlayer(player);
+      } catch (e) {
+        _ytLive.switchToPlaylist();
+      }
     }
 
     (function() { var tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag); })();
