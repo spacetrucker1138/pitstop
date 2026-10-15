@@ -285,7 +285,7 @@
       <div class="v6-feed-header"><span class="dot" id="yt-dot"></span> <span id="yt-status-text">Connecting to Double Future Radio&hellip;</span></div>
       <div class="v6-video-wrap">
         <iframe id="yt-live-frame"
-                src="https://www.youtube.com/embed/KAiunWhI9DA?enablejsapi=1&autoplay=1&mute=1&playsinline=1&rel=0&origin=https%3A%2F%2Fthejurn.com"
+                src="https://www.youtube.com/embed/live_stream?channel=UCI32pO4OO1m5lAEvWEAEBOA&enablejsapi=1&autoplay=1&mute=1&playsinline=1&rel=0&origin=https%3A%2F%2Fthejurn.com"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen loading="lazy"></iframe>
       </div>
@@ -389,8 +389,9 @@
       var fallbackTimer = null;
 
       function switchToPlaylist() {
-        if (switched || isLive) return;
+        if (switched) return;
         switched = true;
+        isLive = false;
         if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
         var frame = document.getElementById('yt-live-frame');
         var statusText = document.getElementById('yt-status-text');
