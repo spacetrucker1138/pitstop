@@ -653,8 +653,8 @@ function endDraw() {
 
   if (currentStroke.points.length > 1) {
     strokes.push(currentStroke);
-    localStrokes.push(strokes.length - 1);
     pushStroke(currentStroke);
+    localStrokes.push(currentStroke);
     accountInkForStroke(currentStroke);
   }
   currentStroke = null;
@@ -745,9 +745,9 @@ canvas.addEventListener('click', (e) => {
   };
 
   strokes.push(textStroke);
-  localStrokes.push(strokes.length - 1);
   drawTextStroke(textStroke);
   pushStroke(textStroke);
+  localStrokes.push(textStroke);
   accountInkForTextStroke(textStroke);
   showStatus('Tagged the wall! 🤘');
 });
@@ -894,18 +894,34 @@ document.getElementById('btn-text').addEventListener('click', () => {
 
 document.getElementById('btn-undo').addEventListener('click', () => {
   if (localStrokes.length === 0) { showStatus('Nothing to undo'); return; }
-  const idx = localStrokes.pop();
-  const removedStroke = strokes[idx];
-  strokes.splice(idx, 1);
-  if (removedStroke) {
+  const removedStroke = localStrokes.pop();
+  if (!removedStroke) { showStatus('Nothing to undo'); return; }
+
+  const removeLocalStroke = () => {
+    const idx = strokes.indexOf(removedStroke);
+    if (idx !== -1) strokes.splice(idx, 1);
     inkQueue = inkQueue.filter(function(e) {
       if (e.stroke === removedStroke) { inkUsed -= e.cost; return false; }
       return true;
     });
+    redrawAll();
+  };
+
+  if (removedStroke._fbKey && firebaseReady && db) {
+    db.ref('wall/strokes').child(removedStroke._fbKey).remove()
+      .then(() => {
+        removeLocalStroke();
+        showStatus('Undone');
+      })
+      .catch(() => {
+        localStrokes.push(removedStroke);
+        showStatus('Could not undo — check your connection', 3000);
+      });
+    return;
   }
-  redrawAll();
-  // Note: undo is local only - Firebase strokes persist
-  showStatus('Undone (local only)');
+
+  removeLocalStroke();
+  showStatus('Undone');
 });
 
 document.getElementById('btn-save').addEventListener('click', () => {
