@@ -783,6 +783,8 @@ function listenForStrokes() {
     if (!stroke) return;
     // Don't re-add our own strokes (we already have them locally)
     if (stroke.userId === userId) return;
+    // The initial child_added event replays existing records after loadExistingStrokes.
+    if (strokes.some(existing => existing._fbKey === snap.key)) return;
     stroke._fbKey = snap.key;
 
     strokes.push(stroke);
