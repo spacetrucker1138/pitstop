@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Horror Movie Night Roulette — Ghoul Box | The JURN</title>
+<meta name="description" content="Spin for a random classic horror movie, a snack and a cursed house rule for tonight. Share the spin with your crew. Free from The JURN.">
+<meta name="theme-color" content="#050508">
+<link rel="canonical" href="https://thejurn.com/ghoulbox/movie-night/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The JURN — Ghoul Box">
+<meta property="og:title" content="Horror Movie Night Roulette — Ghoul Box | The JURN">
+<meta property="og:description" content="Spin for a random classic horror movie, a snack and a cursed house rule for tonight. Share the spin with your crew. Free from The JURN.">
+<meta property="og:url" content="https://thejurn.com/ghoulbox/movie-night/">
+<meta property="og:image" content="https://thejurn.com/ghoulbox/assets/og/movie-night.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Horror Movie Night Roulette — Ghoul Box | The JURN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Horror Movie Night Roulette — Ghoul Box | The JURN">
+<meta name="twitter:description" content="Spin for a random classic horror movie, a snack and a cursed house rule for tonight. Share the spin with your crew. Free from The JURN.">
+<meta name="twitter:image" content="https://thejurn.com/ghoulbox/assets/og/movie-night.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/ghoulbox.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="https://thejurn.com/">The JURN</a>
+  <nav aria-label="Ghoul Box">
+    <a href="../">Ghoul Box</a>
+    <a href="../band-name/">Band Names</a>
+    <a href="../which-member/">Quiz</a>
+    <a href="../tombstone/">Tombstones</a>
+    <a href="../movie-night/" class="on">Movie Night</a>
+    <a href="../radio-fortune/">Radio</a>
+    <a href="../v1sion-test/">V1SION</a>
+    <a href="https://thejurn.com/music.html">Music</a>
+  </nav>
+</div></header>
+<main class="wrap">
+
+  <p class="crumbs"><a href="../">Ghoul Box</a> / Horror Movie Night Roulette</p>
+  <section class="hero">
+    <div class="eyebrow">Ghoul Box tool #4</div>
+    <h1>Horror <span class="g">Movie Night</span> Roulette</h1>
+    <p>Stop scrolling for an hour. Pull the lever and let the crypt decide: one horror movie, one snack, one cursed house rule. No take-backs.</p>
+  </section>
+  <div class="stage wide">
+    <p id="shared" class="hint" hidden>📼 Someone spun this movie night for you. Spin your own below.</p>
+    <div class="reels" aria-live="polite">
+      <div class="reel"><div class="rl">🎬 Tonight's feature</div><div class="rv" id="v-movie">???</div><div class="rs" id="v-year"></div></div>
+      <div class="reel"><div class="rl">🍿 Snack</div><div class="rv" id="v-snack">???</div></div>
+      <div class="reel"><div class="rl">🕯 Cursed house rule</div><div class="rv rule" id="v-rule">???</div></div>
+    </div>
+    <div class="actions"><button id="spin" class="btn big" type="button">🎰 Spin the Reels</button></div>
+    <div class="reroll actions" id="rerolls" hidden>
+      <button class="btn alt sm" type="button" data-k="m">↻ Movie only</button>
+      <button class="btn alt sm" type="button" data-k="s">↻ Snack only</button>
+      <button class="btn alt sm" type="button" data-k="r">↻ Rule only</button>
+    </div>
+    <div id="result" hidden>
+      <canvas id="ticket" class="cover tall" width="1080" height="1350" role="img" aria-label="Movie night ticket"></canvas>
+      <div class="actions">
+        <button id="dl" class="btn" type="button">⬇ Download Ticket</button>
+        <button id="share" class="btn alt" type="button">📤 Share</button>
+        <a id="xshare" class="btn alt" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">𝕏 Post</a>
+        <button id="copy" class="btn alt" type="button">📋 Copy Link</button>
+      </div>
+      <p class="hint">Send the link to your movie night crew. Everyone sees the same movie, snack and rule.</p>
+    </div>
+  </div>
+
+  <section class="explore" aria-labelledby="explore-h">
+    <h2 id="explore-h">Keep Digging</h2>
+    <div class="links">
+      <a class="main" href="../">🧰 Explore the Ghoul Box</a>
+      <a href="https://thejurn.com/">💀 The JURN — thejurn.com</a>
+      <a href="https://frightqueue.thejurn.com">🎮 Fright Queue — free horror games</a>
+      <a href="https://buttondown.com/frightqueue">📬 Join the newsletter</a>
+      <a href="https://www.youtube.com/@Spacetrucker138/live">📻 Double Future Radio — live 24/7</a>
+      <a href="https://thejurn.com/music.html">🎸 The JURN music</a>
+      <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki">📜 The JURN Wiki</a>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap jurn">
+  <img src="../assets/jurn-logo.png" alt="The JURN" width="116" height="48">
+  <span>Ghoul Box is a pile of free toys from <a href="https://thejurn.com/">The JURN</a>, the undead horror punk band from Amityville. Keep your ribs open.</span>
+</div></footer>
+<script src="../assets/ghoulbox.js"></script>
+<script src="lists.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

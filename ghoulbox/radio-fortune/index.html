@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Double Future Radio Fortune — Ghoul Box | The JURN</title>
+<meta name="description" content="Tune in to Double Future Radio, the pirate broadcast from the future, and receive your fortune for the week. Free from The JURN.">
+<meta name="theme-color" content="#050508">
+<link rel="canonical" href="https://thejurn.com/ghoulbox/radio-fortune/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The JURN — Ghoul Box">
+<meta property="og:title" content="Double Future Radio Fortune — Ghoul Box | The JURN">
+<meta property="og:description" content="Tune in to Double Future Radio, the pirate broadcast from the future, and receive your fortune for the week. Free from The JURN.">
+<meta property="og:url" content="https://thejurn.com/ghoulbox/radio-fortune/">
+<meta property="og:image" content="https://thejurn.com/ghoulbox/assets/og/radio-fortune.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Double Future Radio Fortune — Ghoul Box | The JURN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Double Future Radio Fortune — Ghoul Box | The JURN">
+<meta name="twitter:description" content="Tune in to Double Future Radio, the pirate broadcast from the future, and receive your fortune for the week. Free from The JURN.">
+<meta name="twitter:image" content="https://thejurn.com/ghoulbox/assets/og/radio-fortune.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600;700;800;900&family=VT323&display=swap">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/ghoulbox.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="https://thejurn.com/">The JURN</a>
+  <nav aria-label="Ghoul Box">
+    <a href="../">Ghoul Box</a>
+    <a href="../band-name/">Band Names</a>
+    <a href="../which-member/">Quiz</a>
+    <a href="../tombstone/">Tombstones</a>
+    <a href="../movie-night/">Movie Night</a>
+    <a href="../radio-fortune/" class="on">Radio</a>
+    <a href="../v1sion-test/">V1SION</a>
+    <a href="https://thejurn.com/music.html">Music</a>
+  </nav>
+</div></header>
+<main class="wrap">
+
+  <p class="crumbs"><a href="../">Ghoul Box</a> / Double Future Radio Fortune</p>
+  <section class="hero">
+    <div class="eyebrow">Ghoul Box tool #5 · broadcasting tomorrow's ghosts today</div>
+    <h1>Double Future <span class="g">Radio</span> Fortune</h1>
+    <p>A pirate signal is leaking backward through time, and this week it has your name on it. Tune in, catch the transmission and share your fate.</p>
+  </section>
+  <div class="stage wide">
+    <div class="crt" id="crt">
+      <canvas id="static" class="static" width="320" height="240" aria-hidden="true"></canvas>
+      <div class="crt-in">
+        <div class="crt-top"><span id="freq">FREQ 138.0 · DFR</span><span class="rec">● LIVE</span></div>
+        <div id="tx" class="tx" aria-live="polite"><p class="dim">&gt; NO SIGNAL. ENTER YOUR NAME (OPTIONAL) AND TUNE IN…</p></div>
+      </div>
+    </div>
+    <form class="tune" onsubmit="return false">
+      <label for="f-name" class="sr-only">Your name (optional)</label>
+      <input id="f-name" maxlength="24" placeholder="Your name (optional)" autocomplete="off">
+      <button id="tune" class="btn big" type="submit">📻 Tune In</button>
+    </form>
+    <label class="snd"><input type="checkbox" id="sound"> 🔊 static crackle sound</label>
+    <p id="shared" class="hint" hidden>📡 Someone forwarded you their transmission. Tune in to catch yours.</p>
+    <div id="result" hidden>
+      <div class="actions">
+        <button id="dl" class="btn" type="button">⬇ Download PNG</button>
+        <button id="share" class="btn alt" type="button">📤 Share</button>
+        <a id="xshare" class="btn alt" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">𝕏 Post</a>
+        <button id="copy" class="btn alt" type="button">📋 Copy Link</button>
+      </div>
+      <p class="hint">Same name, same week, same fortune. The link replays this exact transmission for anyone you send it to.</p>
+      <canvas id="card" width="1080" height="1350" hidden></canvas>
+    </div>
+    <div class="actions"><a class="btn alt" href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" rel="noopener">📻 Listen to Double Future Radio live</a></div>
+  </div>
+
+  <section class="explore" aria-labelledby="explore-h">
+    <h2 id="explore-h">Keep Digging</h2>
+    <div class="links">
+      <a class="main" href="../">🧰 Explore the Ghoul Box</a>
+      <a href="https://thejurn.com/">💀 The JURN — thejurn.com</a>
+      <a href="https://frightqueue.thejurn.com">🎮 Fright Queue — free horror games</a>
+      <a href="https://buttondown.com/frightqueue">📬 Join the newsletter</a>
+      <a href="https://www.youtube.com/@Spacetrucker138/live">📻 Double Future Radio — live 24/7</a>
+      <a href="https://thejurn.com/music.html">🎸 The JURN music</a>
+      <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki">📜 The JURN Wiki</a>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap jurn">
+  <img src="../assets/jurn-logo.png" alt="The JURN" width="116" height="48">
+  <span>Ghoul Box is a pile of free toys from <a href="https://thejurn.com/">The JURN</a>, the undead horror punk band from Amityville. Keep your ribs open.</span>
+</div></footer>
+<script src="../assets/ghoulbox.js"></script>
+<script src="lists.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

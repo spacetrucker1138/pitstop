@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tombstone Maker — Ghoul Box | The JURN</title>
+<meta name="description" content="Carve a name, dates, a cause of death and an epitaph onto a tombstone, then download or share the PNG. Free from The JURN.">
+<meta name="theme-color" content="#050508">
+<link rel="canonical" href="https://thejurn.com/ghoulbox/tombstone/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The JURN — Ghoul Box">
+<meta property="og:title" content="Tombstone Maker — Ghoul Box | The JURN">
+<meta property="og:description" content="Carve a name, dates, a cause of death and an epitaph onto a tombstone, then download or share the PNG. Free from The JURN.">
+<meta property="og:url" content="https://thejurn.com/ghoulbox/tombstone/">
+<meta property="og:image" content="https://thejurn.com/ghoulbox/assets/og/tombstone.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tombstone Maker — Ghoul Box | The JURN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tombstone Maker — Ghoul Box | The JURN">
+<meta name="twitter:description" content="Carve a name, dates, a cause of death and an epitaph onto a tombstone, then download or share the PNG. Free from The JURN.">
+<meta name="twitter:image" content="https://thejurn.com/ghoulbox/assets/og/tombstone.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600;700;800;900&family=Cinzel:wght@600;800&family=IM+Fell+English:ital@0;1&display=swap">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/ghoulbox.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="https://thejurn.com/">The JURN</a>
+  <nav aria-label="Ghoul Box">
+    <a href="../">Ghoul Box</a>
+    <a href="../band-name/">Band Names</a>
+    <a href="../which-member/">Quiz</a>
+    <a href="../tombstone/" class="on">Tombstones</a>
+    <a href="../movie-night/">Movie Night</a>
+    <a href="../radio-fortune/">Radio</a>
+    <a href="../v1sion-test/">V1SION</a>
+    <a href="https://thejurn.com/music.html">Music</a>
+  </nav>
+</div></header>
+<main class="wrap">
+
+  <p class="crumbs"><a href="../">Ghoul Box</a> / Tombstone Maker</p>
+  <section class="hero">
+    <div class="eyebrow">Ghoul Box tool #3</div>
+    <h1>Tombstone <span class="g">Maker</span></h1>
+    <p>Everybody gets a stone eventually. Carve yours now while the rates are low: a name, some dates, a cause of death and famous last words.</p>
+  </section>
+  <div class="ts-grid">
+    <form class="ts-form" id="tsform" autocomplete="off" onsubmit="return false">
+      <p id="shared" class="hint" hidden>🪦 Someone carved this one for you. Edit anything to carve your own.</p>
+      <label>Name on the stone <input id="f-name" maxlength="40" placeholder="Your name (or your enemy's)"></label>
+      <div class="row2">
+        <label>Born <input id="f-born" maxlength="22" placeholder="1986"></label>
+        <label>Died <input id="f-died" maxlength="22" placeholder="Next Tuesday"></label>
+      </div>
+      <button id="r-dates" class="btn alt sm" type="button">🎲 Cursed dates</button>
+      <label>Cause of death <input id="f-cause" maxlength="60" placeholder="Death by…"></label>
+      <button id="r-cause" class="btn alt sm" type="button">🎲 Random cause</button>
+      <label>Epitaph <textarea id="f-epi" maxlength="90" rows="2" placeholder="Famous last words"></textarea></label>
+      <button id="r-epi" class="btn alt sm" type="button">🎲 Random epitaph</button>
+      <fieldset class="picker"><legend>Pick a stone</legend><div id="stones" class="stones" role="radiogroup" aria-label="Tombstone background"></div></fieldset>
+      <div class="actions"><button id="r-all" class="btn big" type="button">💀 Surprise Me</button></div>
+    </form>
+    <div class="ts-out">
+      <canvas id="stone" class="stonecv" width="1080" height="1350" role="img" aria-label="Your tombstone"></canvas>
+      <div class="actions">
+        <button id="dl" class="btn" type="button">⬇ Download PNG</button>
+        <button id="share" class="btn alt" type="button">📤 Share</button>
+        <a id="xshare" class="btn alt" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">𝕏 Post</a>
+        <button id="copy" class="btn alt" type="button">📋 Copy Link</button>
+      </div>
+      <p class="hint">The link in your address bar always carries your stone and wording, so whoever opens it sees the same tombstone.</p>
+    </div>
+  </div>
+
+  <section class="explore" aria-labelledby="explore-h">
+    <h2 id="explore-h">Keep Digging</h2>
+    <div class="links">
+      <a class="main" href="../">🧰 Explore the Ghoul Box</a>
+      <a href="https://thejurn.com/">💀 The JURN — thejurn.com</a>
+      <a href="https://frightqueue.thejurn.com">🎮 Fright Queue — free horror games</a>
+      <a href="https://buttondown.com/frightqueue">📬 Join the newsletter</a>
+      <a href="https://www.youtube.com/@Spacetrucker138/live">📻 Double Future Radio — live 24/7</a>
+      <a href="https://thejurn.com/music.html">🎸 The JURN music</a>
+      <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki">📜 The JURN Wiki</a>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap jurn">
+  <img src="../assets/jurn-logo.png" alt="The JURN" width="116" height="48">
+  <span>Ghoul Box is a pile of free toys from <a href="https://thejurn.com/">The JURN</a>, the undead horror punk band from Amityville. Keep your ribs open.</span>
+</div></footer>
+<script src="../assets/ghoulbox.js"></script>
+<script src="stones.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

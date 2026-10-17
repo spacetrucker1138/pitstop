@@ -1,0 +1,33 @@
+/* Ghoul Box — Double Future Radio Fortune lists.
+   APPEND-ONLY: share links store list indices (?f=), so never reorder or delete entries (add new ones at the end). */
+window.DFR_LISTS = {
+  openers: ['THIS IS DOUBLE FUTURE RADIO, BROADCASTING TOMORROW\'S GHOSTS TODAY.', '…KSSHHH… SIGNAL ACQUIRED FROM THE FAR FUTURE…',
+    'SPACETRUCKER HERE, PATCHING THROUGH FROM A TIMELINE NEAR YOU.', 'THIS TRANSMISSION WAS RECORDED NEXT WEEK. PLEASE STAND BY.',
+    'R3X HAS REROUTED THE ANTENNA THROUGH A TOASTER. WE ARE LIVE.', 'LIVE FROM THE GRAVEYARD DIMENSION, WHERE IT IS ALWAYS 3 AM.',
+    'WARNING: THIS FORECAST HAS NOT BEEN APPROVED BY NEURANEST.', 'INTERCEPTED ON A DEAD FREQUENCY. NOBODY ELSE CAN HEAR THIS.',
+    'GRAVE HOG FOUND THIS TAPE IN A COFFIN. HE SAYS IT\'S FOR YOU.', 'BOUNCING OFF A DEAD SATELLITE AND INTO YOUR SPEAKERS…'],
+  prophecies: ['A song you forgot will find you again. Turn it up when it does.', 'Something you buried is about to resurface. Good news: it\'s a snack.',
+    'You will be the first to notice a strange noise. Do NOT investigate alone.', 'An old friend will text you at a suspicious hour. Answer. They\'re probably fine.',
+    'This week the dead are on your side. Use this power to win small arguments.', 'A door you thought was locked is open. Metaphorically. Also check your actual doors.',
+    'Your energy this week: Taz at soundcheck. Loud, chaotic, oddly lovable.', 'Your energy this week: Riff-Rot fixing an amp. Grumpy, brilliant, correct.',
+    'Your energy this week: Vox mid-monologue. Dramatic, but everyone is listening.', 'Your energy this week: Sir Bonecrush on drums. Steady, mighty, apologizing to furniture.',
+    'A corporate voice will tell you to calm down and comply. Politely turn up the distortion.', 'The fog is rolling in. Inside it: one great idea and several bad ones. Choose wisely.',
+    'You will find money in an old jacket, in a currency that doesn\'t exist yet.', 'Someone out there is writing a song about you. It\'s mostly flattering.',
+    'Expect a plot twist on Thursday. You\'ll see it coming. Act surprised anyway.', 'The stars are aligned. The skeletons are aligned. Your spine, less so. Stretch.',
+    'Your luck rises like a zombie at midnight: slowly, then all at once.', 'A small creature will judge you this week. Earn its respect.',
+    'You are due for an encore. Take the bow.', 'The static is trying to tell you something: drink some water.',
+    'A shortcut will tempt you. In the movies this goes badly. Take the long way.', 'Your future self tuned in to say: "Good call on that thing. You know the thing."',
+    'Something weird and wonderful is headed your way. Leave the porch light on.', 'Rest is not giving up. Even the undead nap in their coffins.',
+    'You will be offered comfort in exchange for silence. Keep your voice.', 'A creepy old house will feel strangely like home. That\'s normal for you.',
+    'This week the dial lands on BOLD. Say the thing. Wear the jacket.', 'Grave Hog predicts you\'ll trip over something cursed. He also predicts you\'ll be fine.',
+    'DieAnna Graves says your look this week is "literally to die for."', 'The universe is shuffling your playlist. Skip nothing.'],
+  items: ['a cassette with no label', 'a skeleton key', 'a glow stick', 'a VHS tape (rewound)', 'a guitar pick', 'a slice of cold pizza', 'a black candle',
+    'a lucky femur', 'a pocket watch that runs backward', 'a weird keychain', 'a broken radio that still works', 'a homemade backstage pass',
+    'a plastic vampire fang', 'a lava lamp', 'a mixtape from the future', 'a single drumstick (origin unknown)'],
+  warnings: ['anyone who says "trust the algorithm"', 'basements after 9 PM', 'mirrors that blink first', 'suspiciously cheap houses', 'crisp white business suits',
+    'the phrase "just a quick meeting"', 'dolls that sit up on their own', 'splitting up the group', 'reading Latin out loud', 'Taz\'s next great idea',
+    'silence that lasts too long', 'free trials from NeuraNest', 'the last slice of pizza (someone wants it more)', 'elevators in old hotels', 'phone calls from your own number'],
+  albums: ['THE JURN', 'SECOND DOSE', 'THIRD STRIKE', 'FOUR SCORE', 'FEAR THE FIFTH'],
+  signoffs: ['KEEP YOUR RIBS OPEN. SPACETRUCKER OUT.', 'THIS HAS BEEN DOUBLE FUTURE RADIO. SEE YOU YESTERDAY.', 'STAY WEIRD. STAY LOUD. STAY UNCOMPLIANT.',
+    'END OF TRANSMISSION. THE SIGNAL NEVER DIES.', 'DON\'T TOUCH THAT DIAL. IT BITES.']
+};
