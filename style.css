@@ -1038,3 +1038,9 @@ footer .footer-links a:hover {
 .music-page-logo { display:block; width:min(560px, 92vw); height:auto; max-height:200px; object-fit:contain; object-position:center; margin:0 auto .85rem; filter:drop-shadow(0 0 18px rgba(191,0,255,.24)); }
 .music-page-kicker { color:var(--neon-green); font: .65rem/1.2 'Courier New',monospace; letter-spacing:3px; text-transform:uppercase; margin:0; }
 @media (max-width:600px) { .music-page-kicker { letter-spacing:1.5px; font-size:.58rem; } .site-footer-logo-link { width:min(240px,72vw); } }
+
+/* Footer contact line (Comments & inquiries) */
+footer .footer-contact {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+}
