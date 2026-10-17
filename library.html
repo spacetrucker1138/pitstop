@@ -260,6 +260,12 @@
       .book-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     }
   </style>
+<style>
+.easter-egg{display:block;width:40px;margin:24px 8px 8px auto;opacity:.35;transition:opacity .3s,transform .3s}
+.easter-egg img{display:block;width:40px;height:auto}
+.easter-egg:hover,.easter-egg:focus{opacity:1;animation:egg-wiggle .5s ease-in-out}
+@keyframes egg-wiggle{0%,100%{transform:rotate(0) scale(1.15)}25%{transform:rotate(-10deg) scale(1.15)}75%{transform:rotate(10deg) scale(1.15)}}
+</style>
 </head>
 <body>
 <nav>
@@ -277,7 +283,6 @@
       <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
       <li><a href="wall/">The Wall</a></li>
       <li><a href="fiends.html">Fiends</a></li>
-      <li><a href="studio.html">Studio</a></li>
 <li><a href="links.html">Links</a></li>
     </ul>
   </div>
@@ -564,6 +569,7 @@
     </div>
   </section>
 
+<a href="studio.html" class="easter-egg" title=""><img src="images/studio-egg.png" alt="a strange egg" width="40" height="55"></a>
 </main>
 
 <footer>
