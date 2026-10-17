@@ -25,7 +25,7 @@ header.top nav a.on{color:var(--green)}
 .tools{display:grid;grid-template-columns:1fr;gap:1rem;margin:1.5rem 0}
 .tool{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
 .tool:hover{transform:translateY(-3px);box-shadow:0 0 26px rgba(57,255,20,.18),0 0 18px rgba(191,0,255,.3)}
-.tool img{width:100%;aspect-ratio:1200/630;object-fit:cover;background:#111}
+.tool img{width:100%;height:auto;aspect-ratio:1200/630;object-fit:contain;background:#111}
 .tool .b{padding:1rem}
 .tool h3{font-family:Creepster,cursive;font-size:1.7rem;color:var(--green);letter-spacing:1.5px;font-weight:400;line-height:1.1}
 .tool p{font-size:.9rem;color:var(--bone);margin:.3rem 0 .6rem}
@@ -50,7 +50,7 @@ canvas.cover{width:100%;height:auto;aspect-ratio:1/1;border-radius:12px;border:1
 .opt:hover{border-color:var(--green);box-shadow:0 0 14px rgba(57,255,20,.2)}
 .opt.picked{background:rgba(57,255,20,.12);border-color:var(--green)}
 .member{display:grid;gap:1.2rem;align-items:start;margin:1rem 0}
-.member .tcard{max-width:360px;width:100%;margin:0 auto;border-radius:16px;box-shadow:0 0 40px rgba(191,0,255,.35);animation:flip .7s ease-out}
+.member .tcard{max-width:360px;width:100%;height:auto;aspect-ratio:600/900;object-fit:contain;margin:0 auto;border-radius:16px;box-shadow:0 0 40px rgba(191,0,255,.35);animation:flip .7s ease-out}
 @keyframes flip{from{transform:perspective(800px) rotateY(90deg);opacity:0}to{transform:none;opacity:1}}
 .member h2{font-family:Creepster,cursive;font-weight:400;font-size:clamp(2.2rem,9vw,3.2rem);color:var(--green);letter-spacing:2px;line-height:1;text-shadow:0 0 18px rgba(57,255,20,.4)}
 .member .role{color:var(--lav);text-transform:uppercase;letter-spacing:2px;font-size:.75rem;font-weight:700}
