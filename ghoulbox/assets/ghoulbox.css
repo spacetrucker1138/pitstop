@@ -31,6 +31,10 @@ header.top nav a.on{color:var(--green)}
 .tool p{font-size:.9rem;color:var(--bone);margin:.3rem 0 .6rem}
 .tool.soon{opacity:.75;border-style:dashed}
 .tool.soon .b{display:flex;flex-direction:column;justify-content:center;min-height:180px;text-align:center}
+/* hub card seam fix: image melts into a purple-to-black body (sampled #2c0322 = OG image bottom) */
+.tool:has(>img){background:#2c0322}
+.tool>img{-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);mask-image:linear-gradient(180deg,#000 75%,transparent)}
+.tool>img+.b{flex:1;margin-top:-1px;background:linear-gradient(180deg,#2c0322 0%,#170a1c 45%,#0d0d14 100%)}
 /* generator */
 .stage{max-width:560px;margin:0 auto;text-align:center}
 .result{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;margin:1rem 0}
