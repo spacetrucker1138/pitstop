@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Graveyard Dimension Passport — Ghoul Box | The JURN</title>
+<meta name="description" content="Get an official Graveyard Dimension Passport: undead class, cause of entry, home plot, allergies and a visa stamped by Grave Hog. Add your photo (it never leaves your device). Free from The JURN.">
+<meta name="theme-color" content="#050508">
+<link rel="canonical" href="https://thejurn.com/ghoulbox/passport/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The JURN — Ghoul Box">
+<meta property="og:title" content="Graveyard Dimension Passport — Ghoul Box | The JURN">
+<meta property="og:description" content="Get an official Graveyard Dimension Passport: undead class, cause of entry, home plot, allergies and a visa stamped by Grave Hog. Add your photo (it never leaves your device). Free from The JURN.">
+<meta property="og:url" content="https://thejurn.com/ghoulbox/passport/">
+<meta property="og:image" content="https://thejurn.com/ghoulbox/assets/og/passport.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Graveyard Dimension Passport — Ghoul Box | The JURN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Graveyard Dimension Passport — Ghoul Box | The JURN">
+<meta name="twitter:description" content="Get an official Graveyard Dimension Passport: undead class, cause of entry, home plot, allergies and a visa stamped by Grave Hog. Add your photo (it never leaves your device). Free from The JURN.">
+<meta name="twitter:image" content="https://thejurn.com/ghoulbox/assets/og/passport.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600;700;800;900&family=Special+Elite&family=Share+Tech+Mono&family=IM+Fell+English:ital@1&display=swap">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/ghoulbox.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="https://thejurn.com/">The JURN</a>
+  <nav aria-label="Ghoul Box">
+    <a href="../">Ghoul Box</a>
+    <a href="../band-name/">Band Names</a>
+    <a href="../which-member/">Quiz</a>
+    <a href="../tombstone/">Tombstones</a>
+    <a href="../movie-night/">Movie Night</a>
+    <a href="../radio-fortune/">Radio</a>
+    <a href="../v1sion-test/">V1SION</a>
+    <a href="../passport/" class="on">Passport</a>
+    <a href="https://thejurn.com/music.html">Music</a>
+  </nav>
+</div></header>
+<main class="wrap">
+
+  <p class="crumbs"><a href="../">Ghoul Box</a> / Graveyard Dimension Passport</p>
+  <section class="hero">
+    <div class="eyebrow">Ghoul Box tool #7 · Office of the Groundskeeper</div>
+    <h1>Graveyard Dimension <span class="g">Passport</span></h1>
+    <p>Crossing over? You'll need papers. Grave Hog, self-appointed Groundskeeper of the Graveyard Dimension (actual authority: none whatsoever), will stamp anything.</p>
+  </section>
+  <div class="ts-grid pp-grid">
+    <form class="ts-form" id="ppform" autocomplete="off" onsubmit="return false">
+      <p id="shared" class="hint" hidden>🛂 Someone showed you their papers. Edit anything to get your own.</p>
+      <label>Name of traveler <input id="f-name" maxlength="28" placeholder="Your name (or your ghoul name)"></label>
+      <fieldset class="picker"><legend>Photo (optional)</legend>
+        <div class="pp-photo">
+          <label class="btn alt sm pp-file">📷 Add a photo<input id="f-photo" type="file" accept="image/*"></label>
+          <button id="rm-photo" class="btn alt sm" type="button" hidden>✕ Remove photo</button>
+        </div>
+        <p class="hint">Your photo stays on your device. It is never uploaded and never goes in the share link (links show your avatar instead).</p>
+      </fieldset>
+      <fieldset class="picker"><legend>Or pick a ghoul</legend><div id="avatars" class="stones avatars" role="radiogroup" aria-label="Avatar"></div></fieldset>
+      <div class="actions">
+        <button id="reroll" class="btn big" type="button">🎲 Reroll My Papers</button>
+      </div>
+      <div class="pp-rr">
+        <button class="btn alt sm" type="button" data-k="k">↻ Class</button>
+        <button class="btn alt sm" type="button" data-k="c">↻ Cause</button>
+        <button class="btn alt sm" type="button" data-k="l">↻ Allergy</button>
+        <button class="btn alt sm" type="button" data-k="v">↻ Visa</button>
+        <button class="btn alt sm" type="button" data-k="s">↻ Stamps</button>
+      </div>
+    </form>
+    <div class="ts-out">
+      <canvas id="pass" class="stonecv" width="1080" height="1350" role="img" aria-label="Your Graveyard Dimension Passport"></canvas>
+      <div class="actions">
+        <button id="dl" class="btn" type="button">⬇ Download PNG</button>
+        <button id="share" class="btn alt" type="button">📤 Share</button>
+        <a id="xshare" class="btn alt" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">𝕏 Post</a>
+        <button id="copy" class="btn alt" type="button">📋 Copy Link</button>
+      </div>
+      <p class="hint">The link in your address bar carries your name and stamps (never your photo), so anyone who opens it sees the same papers.</p>
+    </div>
+  </div>
+
+  <section class="explore" aria-labelledby="explore-h">
+    <h2 id="explore-h">Keep Digging</h2>
+    <div class="links">
+      <a class="main" href="../">🧰 Explore the Ghoul Box</a>
+      <a href="https://thejurn.com/">💀 The JURN — thejurn.com</a>
+      <a href="https://frightqueue.thejurn.com">🎮 Fright Queue — free horror games</a>
+      <a href="https://buttondown.com/frightqueue">📬 Join the newsletter</a>
+      <a href="https://www.youtube.com/@Spacetrucker138/live">📻 Double Future Radio — live 24/7</a>
+      <a href="https://thejurn.com/music.html">🎸 The JURN music</a>
+      <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki">📜 The JURN Wiki</a>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap jurn">
+  <img src="../assets/jurn-logo.png" alt="The JURN" width="116" height="48">
+  <span>Ghoul Box is a pile of free toys from <a href="https://thejurn.com/">The JURN</a>, the undead horror punk band from Amityville. Keep your ribs open.</span>
+</div>
+<div class="wrap contact" style="margin-top:.75rem;font-size:.8rem;">Comments &amp; inquiries: <a href="mailto:contact@thejurn.com">contact@thejurn.com</a></div></footer>
+<script src="../assets/ghoulbox.js"></script>
+<script src="lists.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

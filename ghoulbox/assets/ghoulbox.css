@@ -146,3 +146,12 @@ canvas.stonecv{width:100%;height:auto;border-radius:12px;border:1px solid var(--
 .nn-verdict{font-family:ui-monospace,monospace;font-size:.85rem;color:var(--lav);border-left:3px solid var(--purple);padding:.3rem .7rem;margin:.8rem 0}
 .vres .actions{justify-content:flex-start}
 @media(min-width:860px){.vres{grid-template-columns:420px 1fr}}
+/* passport */
+.pp-photo{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.pp-file{position:relative;overflow:hidden;cursor:pointer}
+.pp-file input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0!important}
+.pp-file:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.avatars{grid-template-columns:repeat(6,1fr)}
+.avatars button{aspect-ratio:3/4}
+.pp-rr{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
+@media(min-width:860px){.tool.soon{grid-column:span 2}}
