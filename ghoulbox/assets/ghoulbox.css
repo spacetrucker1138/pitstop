@@ -206,3 +206,15 @@ canvas.stonecv{width:100%;height:auto;border-radius:12px;border:1px solid var(--
 .newsletter .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .btn.amz{background:linear-gradient(135deg,#ff9900,#c46a00);border-color:#ff9900;color:#111}
 .btn.amz:hover{box-shadow:0 0 22px rgba(255,153,0,.5)}
+/* movie night recipes */
+.mn-rec{margin-top:.6rem;text-align:left;font-size:.85rem}
+.mn-rec summary{cursor:pointer;color:var(--purple);font-weight:700;list-style:revert;min-height:32px}
+.mn-rec ul,.mn-rec ol,.rec ul,.rec ol{padding-left:1.2rem;margin:.3rem 0}
+.mn-rec h4,.rec h4{margin:.6rem 0 .2rem;font-size:.9rem}
+.rec-meta{color:var(--dim);font-size:.8rem}
+.rec-allergen{font-size:.8rem;color:#ffcc66}
+.rec-shop{font-size:.8rem}
+.recipes{text-align:left}
+.rec{border-top:1px solid var(--border);padding:1rem 0;scroll-margin-top:80px}
+.rec-toc ol{columns:2 240px}
+.rec-top{font-size:.75rem}

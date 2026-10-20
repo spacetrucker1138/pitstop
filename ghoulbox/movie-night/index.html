@@ -64,7 +64,8 @@
     <p id="shared" class="hint" hidden>📼 Someone spun this movie night for you. Spin your own below.</p>
     <div class="reels" aria-live="polite">
       <div class="reel"><div class="rl">🎬 Tonight's feature</div><div class="rv" id="v-movie">???</div><div class="rs" id="v-year"></div></div>
-      <div class="reel"><div class="rl">🍿 Snack</div><div class="rv" id="v-snack">???</div></div>
+      <div class="reel"><div class="rl">🍿 Snack</div><div class="rv" id="v-snack">???</div>
+        <details class="mn-rec" id="v-recipe" hidden><summary>🧪 Get the recipe</summary><div id="v-recipe-body"></div></details></div>
       <div class="reel"><div class="rl">🕯 Cursed house rule</div><div class="rv rule" id="v-rule">???</div></div>
     </div>
     <div class="actions"><button id="spin" class="btn big" type="button">🎰 Spin the Reels</button></div>
@@ -84,6 +85,7 @@
       <div class="actions"><a id="amazon" class="btn amz" href="https://www.amazon.com/s?i=instant-video&amp;tag=thejurn-20" target="_blank" rel="sponsored noopener">🍿 Watch it on Amazon</a></div>
       <p class="hint">Send the link to your movie night crew. Everyone sees the same movie, snack and rule.</p>
     </div>
+    <p class="hint mn-all"><a href="recipes/">🍲 All horror movie night snack recipes →</a></p>
   </div>
 
   <section class="explore" aria-labelledby="explore-h">
@@ -119,6 +121,7 @@
 <div class="wrap contact" style="margin-top:.75rem;font-size:.8rem;">Comments &amp; inquiries: <a href="mailto:contact@thejurn.com">contact@thejurn.com</a></div></footer>
 <script src="../assets/ghoulbox.js"></script>
 <script src="lists.js"></script>
+<script src="recipes.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /* Ghoul Box — Horror Movie Night Roulette */
 (function () {
   'use strict';
-  var GB = window.GB, L = window.MN_LISTS, $ = function (id) { return document.getElementById(id); };
+  var GB = window.GB, L = window.MN_LISTS, REC = window.MN_RECIPES || [], $ = function (id) { return document.getElementById(id); };
   var canvas = $('ticket'), ctx = canvas.getContext('2d'), cur = null, spinning = false;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var rnd = function (n) { return Math.floor(Math.random() * n); };
@@ -19,9 +19,14 @@
   }
   function texts(r) { var mv = L.movies[r.m]; return { title: mv[0], year: mv[1], tag: mv[2], snack: L.snacks[r.s], rule: L.rules[r.r] }; }
   function shareText(t) { return '🎬 Horror movie night: ' + t.title + ' (' + t.year + ') + ' + t.snack.toLowerCase() + '. Cursed house rule: ' + t.rule; }
+  function recipe(i) {
+    var d = $('v-recipe'), b = $('v-recipe-body'), x = REC[i]; if (!d || !b) return;
+    if (!x) { d.hidden = true; return; }
+    b.innerHTML = x.html + '<p><a href="recipes/#' + x.slug + '">Open on the recipes page →</a></p>'; d.open = false; d.hidden = false;
+  }
   function paint(r) {
     var t = texts(r);
-    $('v-movie').textContent = t.title; $('v-year').textContent = t.year + ' · ' + t.tag; $('v-snack').textContent = t.snack; $('v-rule').textContent = t.rule;
+    $('v-movie').textContent = t.title; $('v-year').textContent = t.year + ' · ' + t.tag; $('v-snack').textContent = t.snack; $('v-rule').textContent = t.rule; recipe(r.s);
   }
   function animate(target, keys) {
     return new Promise(function (done) {
@@ -35,9 +40,9 @@
           if (now - start < dur[i]) {
             all = false; var v = rnd(L[KEYS[k]].length);
             if (k === 'm') { $('v-movie').textContent = L.movies[v][0]; $('v-year').textContent = L.movies[v][1]; }
-            if (k === 's') $('v-snack').textContent = L.snacks[v];
+            if (k === 's') { $('v-snack').textContent = L.snacks[v]; $('v-recipe').hidden = true; }
             if (k === 'r') $('v-rule').textContent = L.rules[v];
-          } else { reels[i].classList.remove('spin'); var tt = texts(target); if (k === 'm') { $('v-movie').textContent = tt.title; $('v-year').textContent = tt.year + ' · ' + tt.tag; } if (k === 's') $('v-snack').textContent = tt.snack; if (k === 'r') $('v-rule').textContent = tt.rule; }
+          } else { reels[i].classList.remove('spin'); var tt = texts(target); if (k === 'm') { $('v-movie').textContent = tt.title; $('v-year').textContent = tt.year + ' · ' + tt.tag; } if (k === 's') { $('v-snack').textContent = tt.snack; recipe(target.s); } if (k === 'r') $('v-rule').textContent = tt.rule; }
         });
         if (all) done(); else setTimeout(function () { requestAnimationFrame(tick); }, 55);
       })(start);
