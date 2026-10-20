@@ -103,6 +103,7 @@
     $('result').hidden = false; $('rerolls').hidden = false;
     GB.fontsReady().then(function () { drawTicket(r); });
     var url = shareURL(r);
+    $('amazon').href = 'https://www.amazon.com/s?k=' + encodeURIComponent(t.title + ' ' + t.year) + '&i=instant-video&tag=thejurn-20';
     $('xshare').href = GB.xIntent(shareText(t) + ' Spin yours:', url);
     if (push) history.replaceState(null, '', url);
     document.title = t.title + ' (' + t.year + ') — Horror Movie Night Roulette | Ghoul Box';

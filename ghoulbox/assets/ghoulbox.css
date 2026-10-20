@@ -204,3 +204,5 @@ canvas.stonecv{width:100%;height:auto;border-radius:12px;border:1px solid var(--
 .newsletter input[type=email]:focus{outline:2px solid var(--purple);outline-offset:1px}
 .newsletter .fine{font-size:.75rem;color:var(--dim)}
 .newsletter .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.btn.amz{background:linear-gradient(135deg,#ff9900,#c46a00);border-color:#ff9900;color:#111}
+.btn.amz:hover{box-shadow:0 0 22px rgba(255,153,0,.5)}
