@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Undead Horoscope — Weekly Death Signs | Ghoul Box | The JURN</title>
+<meta name="description" content="Forget star signs: find your death sign (The Shallow Grave, The Moth, The Static…) and get this week&#x27;s reading from Double Future Radio. New readings every Monday. Free from The JURN.">
+<meta name="theme-color" content="#050508">
+<link rel="canonical" href="https://thejurn.com/ghoulbox/horoscope/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The JURN — Ghoul Box">
+<meta property="og:title" content="Undead Horoscope — Weekly Death Signs | Ghoul Box | The JURN">
+<meta property="og:description" content="Forget star signs: find your death sign (The Shallow Grave, The Moth, The Static…) and get this week&#x27;s reading from Double Future Radio. New readings every Monday. Free from The JURN.">
+<meta property="og:url" content="https://thejurn.com/ghoulbox/horoscope/">
+<meta property="og:image" content="https://thejurn.com/ghoulbox/assets/og/horoscope.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Undead Horoscope — Weekly Death Signs | Ghoul Box | The JURN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Undead Horoscope — Weekly Death Signs | Ghoul Box | The JURN">
+<meta name="twitter:description" content="Forget star signs: find your death sign (The Shallow Grave, The Moth, The Static…) and get this week&#x27;s reading from Double Future Radio. New readings every Monday. Free from The JURN.">
+<meta name="twitter:image" content="https://thejurn.com/ghoulbox/assets/og/horoscope.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;600;700;800;900&family=VT323&display=swap">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/ghoulbox.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="https://thejurn.com/">The JURN</a>
+  <nav aria-label="Ghoul Box">
+    <a href="../">Ghoul Box</a>
+    <a href="../band-name/">Band Names</a>
+    <a href="../which-member/">Quiz</a>
+    <a href="../tombstone/">Tombstones</a>
+    <a href="../movie-night/">Movie Night</a>
+    <a href="../radio-fortune/">Radio</a>
+    <a href="../v1sion-test/">V1SION</a>
+    <a href="../passport/">Passport</a>
+    <a href="../horoscope/" class="on">Horoscope</a>
+    <a href="https://thejurn.com/music.html">Music</a>
+  </nav>
+</div></header>
+<main class="wrap">
+
+  <p class="crumbs"><a href="../">Ghoul Box</a> / Undead Horoscope</p>
+  <section class="hero">
+    <div class="eyebrow">Ghoul Box tool #8 · broadcast weekly on Double Future Radio</div>
+    <h1>Undead <span class="g">Horoscope</span></h1>
+    <p>The stars are dead. Long live the death signs. Find yours, catch this week's reading, and come back Monday for the next broadcast.</p>
+    <p class="hr-next">🔮 New readings every Monday · next broadcast in <b id="countdown">…</b> <span class="hint">(<span id="flip"></span>)</span></p>
+  </section>
+  <div class="stage wide">
+    <form class="hr-find" onsubmit="return false">
+      <label>Birth month <select id="f-month"><option value="">Month…</option></select></label>
+      <label>Day <span class="hint">(optional)</span> <input id="f-day" type="number" inputmode="numeric" min="1" max="31" placeholder="13"></label>
+      <button id="find" class="btn big" type="submit">💀 Find My Death Sign</button>
+    </form>
+    <p class="hint">…or pick any sign:</p>
+    <div id="signs" class="signs"></div>
+    <p id="shared" class="hint" hidden>📡 Someone forwarded you this broadcast. Pick your own sign above.</p>
+    <section id="result" class="hr-res" hidden aria-live="polite">
+      <div class="eyebrow" id="r-week"></div>
+      <h2 id="r-name"></h2>
+      <div class="role" id="r-range"></div>
+      <p class="hr-trait" id="r-trait"></p>
+      <blockquote id="r-text"></blockquote>
+      <ul class="hr-list">
+        <li><b>Lucky haunt:</b> <span id="r-haunt"></span></li>
+        <li><b>Lucky number:</b> <span id="r-num"></span></li>
+        <li><b>Compatible with:</b> <span id="r-compat"></span></li>
+        <li><b>Avoid:</b> <span id="r-avoid"></span></li>
+        <li><b>Cosmic soundtrack:</b> <span id="r-sound"></span></li>
+        <li class="meters" id="r-meters"></li>
+      </ul>
+      <div class="actions hr-weeks">
+        <button id="prev" class="btn alt sm" type="button">← Last week</button>
+        <button id="now" class="btn alt sm" type="button">This week</button>
+        <button id="next" class="btn alt sm" type="button">Next week →</button>
+      </div>
+      <canvas id="card" class="cover tall" width="1080" height="1350" role="img" aria-label="Your Undead Horoscope card"></canvas>
+      <div class="actions">
+        <button id="dl" class="btn" type="button">⬇ Download PNG</button>
+        <button id="share" class="btn alt" type="button">📤 Share</button>
+        <a id="xshare" class="btn alt" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">𝕏 Post</a>
+        <button id="copy" class="btn alt" type="button">📋 Copy Link</button>
+      </div>
+      <p class="hint">Same sign + same week = the same reading for everyone. Links replay that week's broadcast forever.</p>
+    </section>
+    <div class="actions"><a class="btn alt" href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" rel="noopener">📻 Listen to Double Future Radio live</a></div>
+  </div>
+
+  <section class="explore" aria-labelledby="explore-h">
+    <h2 id="explore-h">Keep Digging</h2>
+    <div class="links">
+      <a class="main" href="../">🧰 Explore the Ghoul Box</a>
+      <a href="https://thejurn.com/">💀 The JURN — thejurn.com</a>
+      <a href="https://frightqueue.thejurn.com">🎮 Fright Queue — free horror games</a>
+      <a href="https://buttondown.com/frightqueue">📬 Join the newsletter</a>
+      <a href="https://www.youtube.com/@Spacetrucker138/live">📻 Double Future Radio — live 24/7</a>
+      <a href="https://thejurn.com/music.html">🎸 The JURN music</a>
+      <a href="https://thejurn.fandom.com/wiki/TheJURN_Wiki">📜 The JURN Wiki</a>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap jurn">
+  <img src="../assets/jurn-logo.png" alt="The JURN" width="116" height="48">
+  <span>Ghoul Box is a pile of free toys from <a href="https://thejurn.com/">The JURN</a>, the undead horror punk band from Amityville. Keep your ribs open.</span>
+</div>
+<div class="wrap contact" style="margin-top:.75rem;font-size:.8rem;">Comments &amp; inquiries: <a href="mailto:contact@thejurn.com">contact@thejurn.com</a></div></footer>
+<script src="../assets/ghoulbox.js"></script>
+<script src="lists.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

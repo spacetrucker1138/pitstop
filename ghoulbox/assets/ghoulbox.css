@@ -154,4 +154,24 @@ canvas.stonecv{width:100%;height:auto;border-radius:12px;border:1px solid var(--
 .avatars{grid-template-columns:repeat(6,1fr)}
 .avatars button{aspect-ratio:3/4}
 .pp-rr{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
-@media(min-width:860px){.tool.soon{grid-column:span 2}}
+/* horoscope */
+.hr-next{font-size:.9rem!important;color:var(--amber)!important}.hr-next b{font-family:VT323,monospace;font-size:1.3rem;color:#fff}
+.hr-find{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;align-items:end;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;margin:1rem 0 .4rem}
+.hr-find label{display:grid;gap:.25rem;font-size:.8rem;color:var(--bone);font-weight:600;text-align:left}
+.hr-find select,.hr-find input{background:#0d0d14;border:1px solid var(--border);color:#fff;padding:.6rem .7rem;border-radius:10px;font:inherit;min-height:44px}
+.hr-find input{width:6.5rem}.hr-find select{min-width:9.5rem}
+.signs{display:grid;grid-template-columns:repeat(2,1fr);gap:.45rem;margin:.5rem 0 1rem}
+.sign{background:#0d0d14;border:1px solid var(--border);color:var(--bone);border-radius:12px;padding:.55rem .6rem;cursor:pointer;font:inherit;text-align:left;display:grid;min-height:52px}
+.sign b{font-family:Creepster,cursive;font-weight:400;color:var(--green);font-size:1.2rem;letter-spacing:1px;line-height:1.1}
+.sign span{font-size:.7rem;color:var(--dim)}
+.sign:hover,.sign[aria-pressed=true]{border-color:var(--green);box-shadow:0 0 12px rgba(57,255,20,.3)}
+.hr-res{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;margin:1rem 0;text-align:left}
+.hr-res h2{font-family:Creepster,cursive;font-weight:400;font-size:clamp(2rem,9vw,3rem);color:var(--green);letter-spacing:2px;line-height:1;text-shadow:0 0 18px rgba(57,255,20,.4)}
+.hr-res .role{color:var(--lav);text-transform:uppercase;letter-spacing:2px;font-size:.72rem;font-weight:700}
+.hr-trait{font-style:italic;color:var(--bone);margin:.4rem 0}
+.hr-res blockquote{border-left:3px solid var(--purple);padding:.4rem .8rem;margin:.8rem 0;color:#fff;font-size:1.1rem;font-weight:600}
+.hr-list{list-style:none;margin:.5rem 0 1rem}.hr-list li{font-size:.92rem;margin:.3rem 0}.hr-list b{color:var(--mint)}
+.hr-list .meters{font-family:VT323,monospace;font-size:1.25rem;color:var(--amber);letter-spacing:1px}
+.hr-weeks .btn[disabled]{opacity:.35;cursor:not-allowed}
+@media(min-width:640px){.signs{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:860px){.signs{grid-template-columns:repeat(4,1fr)}}
