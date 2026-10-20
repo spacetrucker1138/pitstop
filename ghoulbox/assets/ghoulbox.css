@@ -218,3 +218,4 @@ canvas.stonecv{width:100%;height:auto;border-radius:12px;border:1px solid var(--
 .rec{border-top:1px solid var(--border);padding:1rem 0;scroll-margin-top:80px}
 .rec-toc ol{columns:2 240px}
 .rec-top{font-size:.75rem}
+.tool.feat{border-color:#ffb000}@media(min-width:760px){.tool.feat{display:grid!important;grid-template-columns:minmax(0,1.1fr) 1fr;align-items:center}.tool.feat img{height:100%;object-fit:cover}.tool.feat h3{font-size:1.6rem}}
