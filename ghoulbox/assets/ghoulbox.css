@@ -175,3 +175,23 @@ canvas.stonecv{width:100%;height:auto;border-radius:12px;border:1px solid var(--
 .hr-weeks .btn[disabled]{opacity:.35;cursor:not-allowed}
 @media(min-width:640px){.signs{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:860px){.signs{grid-template-columns:repeat(4,1fr)}}
+/* creepy text */
+.ct{text-align:left}
+.ct-in{display:block;font-size:.8rem;color:var(--lav);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.ct-in textarea{display:block;width:100%;box-sizing:border-box;margin-top:.35rem;font:1.1rem/1.4 Inter,system-ui,sans-serif;color:#fff;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.75rem .9rem;resize:vertical;text-transform:none;letter-spacing:0}
+.ct-in textarea:focus{outline:2px solid var(--green);outline-offset:1px}
+.ct-bar{display:flex;justify-content:space-between;align-items:center;margin:.3rem 0 .4rem}.ct-bar .hint{margin:0}
+.ct-zalgo{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.6rem 0;font-size:.85rem;color:var(--bone)}
+.ct-zalgo [aria-pressed=true]{background:var(--purple);color:#fff;border-color:var(--purple)}
+.ct-warn{font-size:.8rem;color:var(--amber);border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.08);border-radius:10px;padding:.55rem .75rem}
+.ct-list{display:grid;gap:.6rem;margin:1rem 0}
+.ct-row{display:grid;grid-template-columns:1fr auto;grid-template-areas:"h c" "o o" "n n";gap:.25rem .6rem;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.7rem .8rem;min-width:0}
+.ct-head{grid-area:h;display:flex;flex-wrap:wrap;gap:.2rem .6rem;align-items:baseline;min-width:0}.ct-head b{color:var(--green);font-size:.85rem}
+.ct-len{font-size:.7rem;color:var(--dim)}.ct-len.warn{color:var(--amber)}
+.ct-copy{grid-area:c;min-width:5.5rem}.ct-copy.ok{background:var(--green);color:#000;border-color:var(--green)}
+.ct-out{grid-area:o;font-size:1.35rem;line-height:1.5;color:#fff;overflow:hidden;overflow-wrap:anywhere;white-space:pre-wrap;padding:.5rem .1rem;min-width:0;user-select:all}
+.ct-note{grid-area:n;font-size:.7rem;color:var(--dim);margin:0}
+.ct-faq{margin-top:2rem;border-top:1px solid var(--border);padding-top:1rem}
+.ct-faq h2{font-family:Creepster,cursive;font-weight:400;color:var(--green);letter-spacing:1px;font-size:1.7rem}
+.ct-faq h3{color:var(--lav);font-size:1rem;margin:1.1rem 0 .3rem}.ct-faq p{color:var(--bone);font-size:.92rem;line-height:1.6}
+.ct-more{text-align:center;margin-top:1.4rem}.ct-more a{color:var(--mint);font-size:.85rem}
