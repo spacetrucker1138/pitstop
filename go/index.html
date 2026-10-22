@@ -35,6 +35,7 @@
   }, true);
 })();
 </script>
+<meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The JURN: Play, Listen, Get Scared | Spacetrucker's Pit Stop</title>
 <meta name="description" content="Every JURN link in one place: play Graveyard Shift (early access), get the Weekly Fright newsletter, free Ghoul Box tools, the Halloween Party Kit, Fright Queue, merch and more.">
@@ -78,7 +79,7 @@ header p{color:var(--lav);font-size:.95rem}
 .news button{min-height:52px;padding:.7rem 1.1rem;border:0;border-radius:10px;background:var(--green);color:#050508;font-weight:800;font-size:1rem;cursor:pointer}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .fine{font-size:.75rem!important}.fine a{color:var(--lav)}
-footer{text-align:center;color:var(--dim);font-size:.8rem;margin-top:1.5rem}footer a{color:var(--lav)}
+footer{text-align:center;color:var(--dim);font-size:.8rem;margin-top:1.5rem}footer a{color:var(--dim)}.soc{margin-bottom:.4rem}.full{min-height:76px;font-size:1.2rem;background:rgba(57,255,20,.12)}
 </style>
 </head>
 <body>
@@ -89,6 +90,7 @@ footer{text-align:center;color:var(--dim);font-size:.8rem;margin-top:1.5rem}foot
   <p>Horror punk from the grave. Pick your poison.</p>
 </header>
 <nav class="links" aria-label="The JURN links">
+  <a class="b hot full" data-label="full_site" href="https://thejurn.com/"><span class="e">☠</span><span>Enter the full JURN site<small>thejurn.com: games, music, lore and more</small></span></a>
   <a class="b hot" data-label="graveyard_shift" href="/games/graveyard-shift/"><span class="e">🪦</span><span>Play Graveyard Shift<small>Early access. Play in your browser, desktop or phone</small></span></a>
   <section class="news" aria-labelledby="news-h">
     <h2 id="news-h">🩸 Get the Weekly Fright</h2>
@@ -102,16 +104,10 @@ footer{text-align:center;color:var(--dim);font-size:.8rem;margin-top:1.5rem}foot
     <p class="fine">Powered by <a href="https://buttondown.com/refer/frightqueue" target="_blank" rel="noopener">Buttondown</a>. You'll get a confirmation email.</p>
   </section>
   <a class="b" data-label="party_kit" href="/ghoulbox/party-kit/"><span class="e">🎃</span><span>Halloween Party Kit</span></a>
-  <a class="b" data-label="ghoulbox" href="/ghoulbox/"><span class="e">💀</span><span>Ghoul Box<small>Free horror punk tools</small></span></a>
-  <a class="b" data-label="frightqueue" href="https://frightqueue.thejurn.com/"><span class="e">👾</span><span>Fright Queue<small>Indie horror games and free demos</small></span></a>
   <a class="b" data-label="creepmas_clipart" href="https://ko-fi.com/s/887f2f0348"><span class="e">🎄</span><span>JURN Creepmas Clip Art Pack</span></a>
   <a class="b" data-label="merch" href="https://app.amazecommerce.com/shop/spacetruckers-pitstop"><span class="e">👕</span><span>Merch</span></a>
-  <a class="b" data-label="rumble" href="https://rumble.com/c/c-7675256"><span class="e">📻</span><span>Rumble<small>Double Future Radio: After Hours</small></span></a>
-  <a class="b" data-label="instagram" href="https://instagram.com/spacetruckers.pit.stop"><span class="e">📸</span><span>Instagram</span></a>
-  <a class="b" data-label="youtube" href="https://www.youtube.com/@Spacetrucker138/live"><span class="e">📺</span><span>YouTube<small>Double Future Radio LIVE 24/7</small></span></a>
-  <a class="b" data-label="discord" href="https://discord.gg/4aWt5h52t"><span class="e">💬</span><span>Discord</span></a>
 </nav>
-<footer>Spacetrucker's Pit Stop · <a href="https://thejurn.com">thejurn.com</a></footer>
+<footer><p class="soc"><a href="https://rumble.com/c/c-7675256">Rumble</a> · <a href="https://instagram.com/spacetruckers.pit.stop">Instagram</a> · <a href="https://www.youtube.com/@Spacetrucker138/live">YouTube</a></p>Spacetrucker's Pit Stop · <a href="https://thejurn.com">thejurn.com</a></footer>
 </main>
 <script>
 document.querySelectorAll('a.b').forEach(function(a){a.addEventListener('click',function(){if(typeof gtag==='function')gtag('event','go_click',{label:a.dataset.label,transport_type:'beacon'});});});
