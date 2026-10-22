@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+<script id="jurn-ga-events">
+/* JURN GA4 events: amazon_click + generate_lead */
+(function(){
+  var SITE = "go";
+  function ok(){ return typeof window.gtag === 'function'; }
+  document.addEventListener('click', function(e){
+    if (!ok() || !e.target || !e.target.closest) return;
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    var h = a.hostname || '';
+    if (!/(^|[.])amazon[.]com$|(^|[.])amzn[.]to$/i.test(h)) return;
+    window.gtag('event', 'amazon_click', {
+      link_url: a.href, page_location: location.href,
+      item: (a.textContent || '').trim().slice(0, 100), site: SITE,
+      transport_type: 'beacon'
+    });
+  }, true);
+  document.addEventListener('submit', function(e){
+    var f = e.target;
+    if (!ok() || !f || !f.getAttribute) return;
+    if ((f.getAttribute('action') || '').indexOf('buttondown.com') === -1) return;
+    window.gtag('event', 'generate_lead', {form: 'weekly_fright', site: SITE, transport_type: 'beacon'});
+  }, true);
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The JURN: Play, Listen, Get Scared | Spacetrucker's Pit Stop</title>
+<meta name="description" content="Every JURN link in one place: play Graveyard Shift (early access), get the Weekly Fright newsletter, free Ghoul Box tools, the Halloween Party Kit, Fright Queue, merch and more.">
+<link rel="canonical" href="https://thejurn.com/go/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Spacetrucker's Pit Stop">
+<meta property="og:title" content="The JURN: Play, Listen, Get Scared">
+<meta property="og:description" content="Play Graveyard Shift (early access), get the Weekly Fright newsletter, free Ghoul Box tools, the Halloween Party Kit and more from The JURN.">
+<meta property="og:url" content="https://thejurn.com/go/">
+<meta property="og:image" content="https://thejurn.com/games/graveyard-shift/og-image.jpg">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="720">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The JURN: Play, Listen, Get Scared">
+<meta name="twitter:description" content="Play Graveyard Shift (early access), get the Weekly Fright newsletter, free Ghoul Box tools and more from The JURN.">
+<meta name="twitter:image" content="https://thejurn.com/games/graveyard-shift/og-image.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#050508;--card:rgba(17,17,25,.85);--green:#39ff14;--purple:#bf00ff;--lav:#c084fc;--bone:#e8e0d4;--dim:#888;--border:rgba(191,0,255,.35)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--bone);font-family:Inter,system-ui,sans-serif;line-height:1.5;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 20% 0%,rgba(100,0,180,.25),transparent 55%),radial-gradient(ellipse at 50% 100%,rgba(57,255,20,.07),transparent 50%)}
+main{max-width:520px;margin:0 auto;padding:1.5rem 1rem 2.5rem}
+header{text-align:center;margin-bottom:1.25rem}
+header img{width:120px;height:auto;margin:0 auto .5rem;display:block}
+h1{font-family:Creepster,cursive;font-weight:400;font-size:2.6rem;color:var(--green);letter-spacing:2px;text-shadow:0 0 18px rgba(57,255,20,.45)}
+header p{color:var(--lav);font-size:.95rem}
+.links{display:flex;flex-direction:column;gap:.8rem}
+.b{display:flex;align-items:center;gap:.8rem;min-height:64px;padding:.9rem 1.1rem;border:2px solid var(--border);border-radius:14px;background:var(--card);color:var(--bone);text-decoration:none;font-weight:600;font-size:1.05rem;transition:transform .1s,border-color .15s}
+.b:hover,.b:focus-visible{border-color:var(--green);transform:translateY(-1px);outline:none}
+.b .e{font-size:1.5rem;width:2rem;text-align:center;flex:none}
+.b small{display:block;font-weight:400;color:var(--dim);font-size:.82rem}
+.hot{border-color:var(--green);box-shadow:0 0 22px rgba(57,255,20,.25)}
+.news{border:2px solid var(--purple);border-radius:14px;background:var(--card);padding:1rem 1.1rem}
+.news h2{font-size:1.05rem}.news p{color:var(--dim);font-size:.85rem;margin:.2rem 0 .6rem}
+.news form{display:flex;gap:.5rem;flex-wrap:wrap}
+.news input[type=email]{flex:1 1 180px;min-height:52px;padding:.7rem .9rem;border-radius:10px;border:1px solid var(--border);background:#0c0c14;color:var(--bone);font-size:1rem}
+.news button{min-height:52px;padding:.7rem 1.1rem;border:0;border-radius:10px;background:var(--green);color:#050508;font-weight:800;font-size:1rem;cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.fine{font-size:.75rem!important}.fine a{color:var(--lav)}
+footer{text-align:center;color:var(--dim);font-size:.8rem;margin-top:1.5rem}footer a{color:var(--lav)}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <img src="/ghoulbox/assets/jurn-logo.png" alt="The JURN logo" width="120" height="60">
+  <h1>The JURN</h1>
+  <p>Horror punk from the grave. Pick your poison.</p>
+</header>
+<nav class="links" aria-label="The JURN links">
+  <a class="b hot" data-label="graveyard_shift" href="/games/graveyard-shift/"><span class="e">🪦</span><span>Play Graveyard Shift<small>Early access. Play in your browser, desktop or phone</small></span></a>
+  <section class="news" aria-labelledby="news-h">
+    <h2 id="news-h">🩸 Get the Weekly Fright</h2>
+    <p>One creepy email a week: horror picks + new Ghoul Box toys. No spam, just screams.</p>
+    <form action="https://buttondown.com/api/emails/embed-subscribe/frightqueue" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.com/frightqueue', 'popupwindow')" class="embeddable-buttondown-form">
+      <label for="bd-email" class="sr">Email address</label>
+      <input type="email" name="email" id="bd-email" placeholder="you@crypt.com" required autocomplete="email">
+      <input type="hidden" value="1" name="embed">
+      <button type="submit" class="btn big">Summon It 🦇</button>
+    </form>
+    <p class="fine">Powered by <a href="https://buttondown.com/refer/frightqueue" target="_blank" rel="noopener">Buttondown</a>. You'll get a confirmation email.</p>
+  </section>
+  <a class="b" data-label="party_kit" href="/ghoulbox/party-kit/"><span class="e">🎃</span><span>Halloween Party Kit</span></a>
+  <a class="b" data-label="ghoulbox" href="/ghoulbox/"><span class="e">💀</span><span>Ghoul Box<small>Free horror punk tools</small></span></a>
+  <a class="b" data-label="frightqueue" href="https://frightqueue.thejurn.com/"><span class="e">👾</span><span>Fright Queue<small>Indie horror games and free demos</small></span></a>
+  <a class="b" data-label="creepmas_clipart" href="https://ko-fi.com/s/887f2f0348"><span class="e">🎄</span><span>JURN Creepmas Clip Art Pack</span></a>
+  <a class="b" data-label="merch" href="https://app.amazecommerce.com/shop/spacetruckers-pitstop"><span class="e">👕</span><span>Merch</span></a>
+  <a class="b" data-label="rumble" href="https://rumble.com/c/c-7675256"><span class="e">📻</span><span>Rumble<small>Double Future Radio: After Hours</small></span></a>
+  <a class="b" data-label="instagram" href="https://instagram.com/spacetruckers.pit.stop"><span class="e">📸</span><span>Instagram</span></a>
+  <a class="b" data-label="youtube" href="https://www.youtube.com/@Spacetrucker138/live"><span class="e">📺</span><span>YouTube<small>Double Future Radio LIVE 24/7</small></span></a>
+  <a class="b" data-label="discord" href="https://discord.gg/4aWt5h52t"><span class="e">💬</span><span>Discord</span></a>
+</nav>
+<footer>Spacetrucker's Pit Stop · <a href="https://thejurn.com">thejurn.com</a></footer>
+</main>
+<script>
+document.querySelectorAll('a.b').forEach(function(a){a.addEventListener('click',function(){if(typeof gtag==='function')gtag('event','go_click',{label:a.dataset.label,transport_type:'beacon'});});});
+</script>
+</body>
+</html>
