@@ -10,6 +10,31 @@
     gtag('js', new Date());
     gtag('config', 'G-RG06HTMTSE');
   </script>
+<script id="jurn-ga-events">
+/* JURN GA4 events: amazon_click + generate_lead */
+(function(){
+  var SITE = "ghoulbox";
+  function ok(){ return typeof window.gtag === 'function'; }
+  document.addEventListener('click', function(e){
+    if (!ok() || !e.target || !e.target.closest) return;
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    var h = a.hostname || '';
+    if (!/(^|[.])amazon[.]com$|(^|[.])amzn[.]to$/i.test(h)) return;
+    window.gtag('event', 'amazon_click', {
+      link_url: a.href, page_location: location.href,
+      item: (a.textContent || '').trim().slice(0, 100), site: SITE,
+      transport_type: 'beacon'
+    });
+  }, true);
+  document.addEventListener('submit', function(e){
+    var f = e.target;
+    if (!ok() || !f || !f.getAttribute) return;
+    if ((f.getAttribute('action') || '').indexOf('buttondown.com') === -1) return;
+    window.gtag('event', 'generate_lead', {form: 'weekly_fright', site: SITE, transport_type: 'beacon'});
+  }, true);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Undead Horoscope — Weekly Death Signs | Ghoul Box | The JURN</title>
 <meta name="description" content="Forget star signs: find your death sign (The Shallow Grave, The Moth, The Static…) and get this week&#x27;s reading from Double Future Radio. New readings every Monday. Free from The JURN.">
