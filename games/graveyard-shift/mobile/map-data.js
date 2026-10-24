@@ -100,7 +100,7 @@ window.GRAVEYARD_MAP = {
   props: [
     // King's Tomb courtyard
     ["statue", 11.5, 17], ["statue", 24.5, 17], ["lamp", 13, 23], ["lamp", 23, 23], ["pillar", 9, 21], ["pillar", 27, 21],
-    ["obelisk", 9, 25.5], ["obelisk", 27, 25.5], ["ghost_candles", 15, 15.5], ["ghost_candles", 21, 15.5],
+    ["obelisk", 9, 25.5], ["obelisk", 27, 25.5], ["pillar", 15, 15.5], ["pillar", 21, 15.5],
     // Maintenance grounds
     ["wheelbarrow", 44, 13], ["crates", 56.5, 8.5], ["crates", 58.5, 9.5], ["coffin_stack", 43.5, 8.5], ["tool_rack", 54.5, 14.5],
     ["lawnmower", 45.5, 17.5], ["dirt_pile", 57.5, 18], ["signpost", 53, 21.6], ["lantern_broken", 47.5, 15.5], ["coffin_stack", 41.5, 15],
@@ -112,7 +112,7 @@ window.GRAVEYARD_MAP = {
     ["pillar", 77, 44.5], ["pillar", 88, 44.5], ["pillar", 77, 57.5], ["pillar", 88, 57.5], ["statue", 80, 41], ["statue", 85, 41],
     ["lamp", 80, 18], ["lamp", 84, 18], ["lamp", 80, 66], ["lamp", 84, 66], ["lamp", 66, 47.5], ["statue", 82, 8.6],
     // Southern forgotten grounds landmarks
-    ["ghost_candles", 28, 90], ["ghost_candles", 33, 91], ["coffin_open", 30, 93], ["tree", 24, 82], ["tree", 40, 92], ["tree", 8, 80],
+    ["pillar", 28, 90], ["pillar", 33, 91], ["coffin_open", 30, 93], ["tree", 24, 82], ["tree", 40, 92], ["tree", 8, 80],
   ],
   // Lines of props: [kind, x0, y0, x1, y1, stepTiles, gapFrom, gapTo] (gap measured along the line in tiles from the start).
   lines: [
@@ -141,11 +141,11 @@ window.GRAVEYARD_MAP = {
   // Random-but-seeded scatter inside rectangles: [rect, seed, count, kinds]
   scatter: [
     [[3, 29, 33, 72], 101, 26, ["tree", "statue", "headstone_vines", "celtic_cross", "family_crypt", "crypt", "bush"]],
-    [[3, 74, 51, 97], 102, 54, ["open_grave", "coffin_open", "coffin", "headstone_vines", "grave_broken", "tree", "bush", "fence_broken", "ghost_candles", "blot", "blot", "dirt_pile"]],
+    [[3, 74, 51, 97], 102, 54, ["open_grave", "coffin_open", "coffin", "headstone_vines", "grave_broken", "tree", "bush", "fence_broken", "pillar", "blot", "blot", "dirt_pile"]],
     [[34, 25, 65, 73], 103, 14, ["tree", "bush", "flowers", "celtic_cross", "obelisk"]],
     [[67, 3, 97, 75], 104, 18, ["statue", "pillar", "obelisk", "flowers", "celtic_cross"]],
     [[34, 3, 65, 23], 105, 8, ["tree", "bush", "dirt_pile"]],
-    [[3, 3, 32, 27], 106, 10, ["tree", "obelisk", "ghost_candles", "blot"]],
+    [[3, 3, 32, 27], 106, 10, ["tree", "obelisk", "pillar", "blot"]],
     [[74, 76, 97, 97], 107, 8, ["tree", "bush", "flowers"]],
   ],
 };

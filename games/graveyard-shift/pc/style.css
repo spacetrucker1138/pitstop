@@ -3,7 +3,7 @@
 .panel .slides{position:absolute;inset:0;background:#05060a;display:flex;flex-direction:column;align-items:center;justify-content:center}.slide-img{max-width:100%;max-height:calc(100% - 64px);object-fit:contain;image-rendering:auto;box-shadow:0 0 0 3px #3a2c22,0 0 0 6px #8a6a44,0 12px 40px #000}.slide-bar{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:0 18px}.slide-count{color:#b9a888;font:15px ui-monospace,monospace;letter-spacing:2px}.slide-next{min-width:150px}
 
 /* v14: title art + level-up tags */
-.panel.title-mode{background-color:#05060c;background-size:cover;background-position:center top;background-repeat:no-repeat;align-items:flex-end;padding:0}
+.panel.title-mode{background-color:#05060c;background-size:cover;background-position:left top;background-repeat:no-repeat;align-items:flex-end;padding:0}
 .card.title-card{max-width:none;width:100%;max-height:none;overflow:visible;background:linear-gradient(180deg,#05060c00,#05060cd9 38%,#05060cf2);border:0;box-shadow:none;padding:34px 16px 12px}
 .title-card .title-sub{margin:0 auto 2px;font:15px ui-monospace,monospace;letter-spacing:3px;color:#f2cd7e;text-shadow:2px 2px #000}
 .title-card .button-row{margin-top:8px}.title-card .game-btn{box-shadow:0 3px #000,0 0 0 1px #000}
@@ -56,3 +56,41 @@ body.touch:not([data-mode="title"]):not([data-mode="playing"]) .touch-btn.fs{dis
   .slide-img{max-height:calc(100% - 48px)}.slide-bar{bottom:6px}
 }
 body.touch[data-mode="title"] .touch-bar{left:auto;right:1.5%}
+/* reroll / banish */
+.lu-tools{margin-top:4px}.lu-tools .game-btn{min-width:150px}.game-btn[disabled]{opacity:.4;cursor:not-allowed;background:#3a3236}
+.lu-hint{margin:6px auto 0!important;font-size:12px}
+.card.banishing .choice{border-color:#d0564a;background:#3a2427}.card.banishing .choice:hover,.card.banishing .choice:focus{background:#5a2a2c;border-color:#ff8a72}
+.card.banishing .choice b{color:#ff9a84;text-decoration:line-through}
+.choice:focus{outline:2px solid #f2cd7e;border-color:#e9bc6f;background:#38313a}
+/* office: 7 perks fit in two rows */
+.card:has(.shop-grid){max-width:880px;width:min(100%,880px)}
+.shop-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+/* tighter office cards */
+.shop-grid{grid-template-columns:repeat(4,1fr);gap:8px;margin:10px auto}
+.shop-item{padding:8px}.shop-item b{font-size:17px;line-height:1.1}.shop-item p{min-height:0;margin:6px 0;line-height:1.35}
+.card:has(.shop-grid) h2{margin:2px}.card:has(.shop-grid) p{margin:6px auto}
+/* phones sideways: level-up cards in one row so reroll/banish stay on screen */
+@media (max-height:520px){
+  .choice-grid{grid-template-columns:repeat(3,1fr)}
+  .choice{font-size:11px;line-height:1.3}.choice b{font-size:14px}.choice-tag{font-size:9px;padding:1px 4px;margin-bottom:3px}
+  .lu-hint{display:none}.lu-tools .game-btn{min-width:120px}
+  .card .slot-count{font-size:11px;margin:0 auto}
+  .shop-grid{grid-template-columns:repeat(4,1fr);gap:5px}.shop-item b{font-size:13px}.shop-item p{font-size:10px;margin:3px 0}.shop-item .game-btn{padding:4px;font-size:12px;min-width:0}
+}
+@media (max-height:520px){.card:has(.lu-tools)>p:not(.slot-count):not(.lu-hint){display:none}.card:has(.lu-tools) .choice-grid{margin:6px auto}}
+/* stats screen */
+.stats-legend{font-size:13px;letter-spacing:1px}.perm{color:#e7bd75}.temp{color:#77d6b8}
+.stats-table{margin:8px auto 4px;border-collapse:collapse;font:14px ui-monospace,monospace;min-width:min(100%,560px)}
+.stats-table th,.stats-table td{padding:4px 10px;text-align:right;border-bottom:1px solid #3a3440}
+.stats-table thead th{font-size:11px;letter-spacing:2px;color:#aaa18e}.stats-table thead th.perm{color:#e7bd75}.stats-table thead th.temp{color:#77d6b8}
+.stats-table tbody th{text-align:left;color:#eadfc9;font-weight:normal}
+.stats-table td.base{color:#8f877a}.stats-table td.none{color:#4e4852}.stats-table td.total{color:#fff2d2;font-weight:bold}
+@media (max-height:520px){.stats-table{font-size:11px}.stats-table th,.stats-table td{padding:2px 6px}.stats-legend{font-size:10px;margin:2px auto!important}}
+@media (max-height:520px){
+  .card:has(.stats-table) .eyebrow,.card:has(.stats-table) .muted{display:none}
+  .card:has(.stats-table) h2{font-size:18px;margin:0}
+  .card:has(.stats-table) .button-row{margin-top:4px}.card:has(.stats-table) .game-btn{padding:4px 10px}
+  .stats-table{margin:4px auto 2px}.stats-table th,.stats-table td{padding:1px 6px;line-height:1.25}.stats-table thead th{font-size:9px}
+  .stats-legend{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media (max-height:520px){.stats-legend .lg-d{display:none}}

@@ -25,7 +25,7 @@
   const saveKey = "graveyard-shift-save-v1";
   const freshSave = () => ({
     wages: 0,
-    perks: { health: 0, damage: 0, speed: 0, xp: 0, magnet: 0 },
+    perks: { health: 0, damage: 0, speed: 0, xp: 0, magnet: 0, reroll: 0, banish: 0 },
     bestKills: 0,
     bestLevel: 1,
     shifts: 0,
@@ -75,7 +75,8 @@
     assetsReady = false,
     fps = 60,
     cleanRender = false,
-    touchVec = { x: 0, y: 0, m: 0 }, // mobile: virtual joystick direction (set by mobile.js)
+    touchVec = { x: 0, y: 0, m: 0 },
+    photoFreeze = false, // P: freeze the action with no menu over it (for screenshots); P again resumes // mobile: virtual joystick direction (set by mobile.js)
     photoCam = null; // QA/screenshot only: frame a landmark instead of following Hog // QA only: hides Hog + vignette for pixel-shift (shimmer) comparisons
   // v16: the user's music pack. One looping track per screen (title / Stage 1 / Stage 2), crossfaded over
   // MUSIC_FADE seconds by musicTick(); the Music slider scales everything and 0 means silent (tracks paused).
@@ -197,6 +198,11 @@
     standees: "assets/props/jurn-standees.png", // the user's JURN band standees (Electronics decoration, no collision)
     coffinDrop: "assets/fx/coffin-drop.png", // 84px coffin; v16: re-baked at 2x2-pixel blocks so the pixels show
     // v16 (the user's sheets, white removed, 4 frames each)
+    hat: "assets/fx/sprinkler-hat.png", // Graveyard Sprinkler hat worn by Hog: 2 frames of 31x30 (spinning pipe head)
+    hatIcon: "assets/fx/sprinkler-hat-icon.png", // hat frame 1 as the weapon icon (64x64)
+    chest: "assets/fx/chest.png", // treasure chest, 4 frames of 44x49 (green ghost-glow loop)
+    hud_clockmap: "assets/hud/clockmap.png", // clock + minimap device (176x272); window at CLOCKMAP_WIN
+    hud_clockmap_broken: "assets/hud/clockmap_broken.png", // same device after the 6 AM clock explosion
     fire: "assets/fx/molotov-fire.png", // Molotov fire, 4 x 112x72
     flies: "assets/fx/witch-flies.png", // Witch's Jar fly swarm, 4 x 96x80
     trashQueen: "assets/props/trash-queen.png", // Trash Queen cameo: idle + 3 run frames, 4 x 84x80 (faces right)
@@ -505,7 +511,7 @@
     playMusic("title");
     // v14: the user's title art ("Grave Hog's Break") fills the frame; the logo is part of the art, so the menu
     // sits in a dark strip along the bottom where it can't cover Hog or the logo.
-    panelShow(`<p class="title-sub">STARRING GRAVE HOG · SIX HOURS TILL HE CLOCKS OUT</p>`);
+    panelShow(`<p class="title-sub">SIX HOURS TILL HE CLOCKS OUT</p>`);
     panel.classList.add("title-mode");
     panel.style.backgroundImage = `url(${IMAGE_FILES.title})`;
     const c = panel.firstElementChild;
@@ -581,7 +587,7 @@
   function showControls() {
     mode = "title";
     panelShow(
-      `<div class="eyebrow">THE RULES</div><h2>HOW TO SURVIVE THE SHIFT</h2><p><b>WASD or Arrow Keys</b> move (on a phone: drag your thumb anywhere to steer). Grave Hog attacks nearby monsters automatically. Walk over the glowing drops to collect them: <b>gems</b> are experience, <b>gold coins</b> are Cemetery Wages, pizza heals.</p><p>XP fills the bar; every level pauses the shift and offers three upgrades. <b>ESC</b> pauses (or the ❚❚ button on touch screens). The run lasts from midnight to 6 AM (about 12 minutes).</p><p>Shovel, nail gun, holy water, chainsaw and haunted lanterns can all stack. The maintenance office buys permanent upgrades with Cemetery Wages.</p>`,
+      `<div class="eyebrow">THE RULES</div><h2>HOW TO SURVIVE THE SHIFT</h2><p><b>WASD or Arrow Keys</b> move (on a phone: drag your thumb anywhere to steer). Grave Hog attacks nearby monsters automatically. Walk over the glowing drops to collect them: <b>gems</b> are experience, <b>gold coins</b> are Cemetery Wages, pizza heals.</p><p>XP fills the bar; every level pauses the shift and offers three upgrades. Don't like them? <b>Reroll</b> (R) draws three new ones, <b>Banish</b> (B) removes one for the rest of the shift. Buy extra rerolls and banishes in the office. <b>ESC</b> pauses (or the ❚❚ button on touch screens). The run lasts from midnight to 6 AM (about 12 minutes).</p><p><b>Controller:</b> left stick or D-pad moves, Start pauses, Back/Select shows the map, A picks, B goes back, X rerolls, Y banishes.</p><p>Shovel, nail gun, holy water, chainsaw and haunted lanterns can all stack. The maintenance office buys permanent upgrades with Cemetery Wages.</p>`,
     );
     addButtons(panel.firstElementChild, [
       ["BACK", showTitle, "primary"],
@@ -597,11 +603,18 @@
     ["speed", "Fast Clock-Out", "+4% movement speed / level"],
     ["xp", "Experience Clause", "+5% XP gain / level"],
     ["magnet", "Long-Handled Grabber", "+8% pickup radius / level"],
+    ["reroll", "Second Opinion", "+1 level-up reroll per shift"],
+    ["banish", "Write 'Em Up", "+1 level-up banish per shift"],
   ];
+  // Rerolls / banishes: every shift starts with BASE_*; the office adds up to PERK_MAX more (and costs a step more).
+  const BASE_REROLLS = 2,
+    BASE_BANISHES = 1,
+    PERK_MAX = { reroll: 3, banish: 2 };
   const perkCost = (lvl) => Math.floor(12 + 12 * lvl * lvl + lvl * 8);
+  const perkCostFor = (id, lvl) => (PERK_MAX[id] ? perkCost(lvl + 1) : perkCost(lvl));
   function perkRefund() {
     let t = 0;
-    for (const id of Object.keys(save.perks)) for (let l = 0; l < save.perks[id]; l++) t += perkCost(l);
+    for (const id of Object.keys(save.perks)) for (let l = 0; l < save.perks[id]; l++) t += perkCostFor(id, l);
     return t;
   }
   function menuBackBtn() {
@@ -613,12 +626,16 @@
     const p = save.perks,
       midShift = menuBack === "pause" && state;
     panelShow(
-      `<div class="eyebrow">CEMETERY MAINTENANCE OFFICE</div><h2>PAYDAY, SORT OF</h2><p class="status-line">CEMETERY WAGES: ${save.wages}</p><p>Permanent perks survive a bad shift.${midShift ? " Perks bought now kick in from your next shift." : ""} Changed your mind? Reset the time card for a full refund.</p><div class="shop-grid">${PERK_ITEMS.map(([id, name, desc]) => `<div class="shop-item"><b>${name}</b><p>${desc}<br>Level ${p[id]} · Next cost ${perkCost(p[id])}</p><button class="game-btn" data-buy="${id}">BUY</button></div>`).join("")}</div>`,
+      `<div class="eyebrow">CEMETERY MAINTENANCE OFFICE</div><h2>PAYDAY, SORT OF</h2><p class="status-line">CEMETERY WAGES: ${save.wages}</p><p>Permanent perks survive a bad shift.${midShift ? " Perks bought now kick in from your next shift." : ""} Changed your mind? Reset the time card for a full refund.</p><div class="shop-grid">${PERK_ITEMS.map(([id, name, desc]) => {
+        const maxed = PERK_MAX[id] && p[id] >= PERK_MAX[id];
+        return `<div class="shop-item"><b>${name}</b><p>${desc}<br>Level ${p[id]}${PERK_MAX[id] ? `/${PERK_MAX[id]}` : ""} · ${maxed ? "MAXED" : `Next cost ${perkCostFor(id, p[id])}`}</p><button class="game-btn" data-buy="${id}"${maxed ? " disabled" : ""}>${maxed ? "MAXED" : "BUY"}</button></div>`;
+      }).join("")}</div>`,
     );
     for (const b of panel.querySelectorAll("[data-buy]"))
       b.onclick = () => {
         const id = b.dataset.buy,
-          c = perkCost(p[id]);
+          c = perkCostFor(id, p[id]);
+        if (PERK_MAX[id] && p[id] >= PERK_MAX[id]) return;
         if (save.wages < c) {
           toastMsg("Not enough wages. Grave Hog has filed a complaint.");
           return;
@@ -794,6 +811,9 @@
       eventUntil: 0,
       bossesDead: {},
       bossesSpawned: {},
+      rerolls: BASE_REROLLS + Math.min(PERK_MAX.reroll, save.perks.reroll || 0),
+      banishes: BASE_BANISHES + Math.min(PERK_MAX.banish, save.perks.banish || 0),
+      banished: [], // upgrade ids banished this shift: never offered again
       weapons: {
         shovel: { level: 1, cooldown: 0, range: 48, arc: 1.05, damage: 25 },
         nail: { level: 0, cooldown: 0.9, damage: 17, speed: 350 },
@@ -893,7 +913,6 @@
     fence_broken: { src: P5(9), foot: [60, 16, 2] },
     fence_broken_v: { src: P5(9), foot: [30, 32, 0] },
     coffin_open: { src: P5(10), foot: [40, 18, 4] },
-    ghost_candles: { src: P5(11), foot: [36, 16, 2], glow: "#7dff8a" },
     headstone_vines: { src: P5(12), foot: [30, 12, 2] },
     celtic_cross: { src: P5(13), foot: [26, 12, 2] },
     obelisk: { src: P5(14), foot: [20, 12, 2] },
@@ -1893,6 +1912,7 @@
   function getAvailableUpgrades() {
     const full = syncSlots().length >= MAX_SLOTS;
     return UPGRADES.filter((u) => {
+      if (state.banished?.includes(u.id)) return false;
       if (STAT_IDS.includes(u.id)) return (state.statPicks?.[u.id] || 0) < STAT_MAX;
       const w = state.weapons[u.id];
       if (!w || w.level >= WMAX) return false;
@@ -1992,11 +2012,15 @@
         w.tick = (w.tick || 0) - dt;
         if (w.tick <= 0) {
           w.tick = 0.2;
-          const n = 2 + Math.floor((L - 1) / 2),
+          // the water comes out of the hat on Hog's head, so the spray zone is centred up there, not on his body
+          const [nx, ny] = hatNozzle(),
+            ox = p.x + nx,
+            oy = p.y + ny,
+            n = 2 + Math.floor((L - 1) / 2),
             range = 80 + 16 * L,
             a0 = state.t * 2.1;
-          for (const e of enemiesIn(p.x, p.y, range)) {
-            const ea = Math.atan2(e.y - p.y, e.x - p.x);
+          for (const e of enemiesIn(ox, oy, range)) {
+            const ea = Math.atan2(e.y - oy, e.x - ox);
             for (let k = 0; k < n; k++) {
               const a = a0 + (k * TAU) / n,
                 d = Math.atan2(Math.sin(ea - a), Math.cos(ea - a));
@@ -2430,6 +2454,8 @@
     g.globalAlpha = 1;
   }
   function drawWeapons2(camX, camY, hx, hy) {
+    const hxBody = hx,
+      hyBody = hy;
     const T = state.t,
       p = state.player,
       W = state.weapons;
@@ -2557,7 +2583,10 @@
     if (W.gsprinkler.level) {
       const L = W.gsprinkler.level,
         n = 2 + Math.floor((L - 1) / 2),
-        range = 80 + 16 * L;
+        range = 80 + 16 * L,
+        [nzx, nzy] = hatNozzle(),
+        hx = Math.round(hxBody + nzx), // streams start at the hat's spinning pipe head
+        hy = Math.round(hyBody + nzy);
       // v16: water pulses out along each rotating stream in spurts of droplets (no sprinkler head at Hog's feet).
       // Droplets stay inside the damage band: same range, at most 0.12 rad behind the stream angle (band = +-0.22).
       state.sprinklerDrops = 0;
@@ -2914,11 +2943,13 @@
     state.edgeDrawn = drawn;
   }
   function weaponIcon(id, x, y, size) {
+    if (id === "gsprinkler" && ready(IMAGES.hatIcon)) return ctx.drawImage(IMAGES.hatIcon, x, y, size, size);
     // HUD slot icon: original five from the v5 icon strip, new ones from the v14 sheet
     if (id in OLD_ICON) {
       if (ready(weaponIcons)) ctx.drawImage(weaponIcons, OLD_ICON[id] * 32, 0, 32, 32, x, y, size, size);
     } else if (ready(IMAGES.wpn2)) ctx.drawImage(IMAGES.wpn2, NW_IDS.indexOf(id) * 64, 0, 64, 64, x, y, size, size);
   }
+  let levelUpKeys = null; // keyboard/gamepad shortcuts for the open level-up card (R reroll, B banish, 1-3 pick)
   function showLevelUp() {
     if (!state || !pendingLevelUps) return;
     if (mode !== "levelup") sfx("level_up");
@@ -2936,13 +2967,45 @@
             isNew = w && !w.level;
           return `<button class="choice${isNew ? " is-new" : ""}" data-choice="${i}" data-id="${u.id}"><span class="choice-tag">${upgradeLabel(u)}</span><b>${u.title}</b>${w && w.level && u.up ? u.up : u.desc}</button>`;
         })
-        .join("")}</div>`,
+        .join("")}</div>${
+        fallback
+          ? ""
+          : `<div class="button-row lu-tools"><button class="game-btn" data-reroll${state.rerolls > 0 && available.length > choices.length ? "" : " disabled"}>⟳ REROLL (${state.rerolls})</button><button class="game-btn danger" data-banish${state.banishes > 0 ? "" : " disabled"}>✖ BANISH (${state.banishes})</button></div><p class="muted lu-hint">Reroll draws three new cards. Banish removes one card for the rest of this shift.</p>`
+      }`,
     );
+    const card = panel.firstElementChild;
+    let banishing = false;
+    const rerollBtn = card.querySelector("[data-reroll]"),
+      banishBtn = card.querySelector("[data-banish]");
+    const doReroll = () => {
+      if (!rerollBtn || rerollBtn.disabled || state.rerolls <= 0) return;
+      state.rerolls--;
+      sfx("ui_click", 0.9, () => audioBeep(420, 0.08, "square", 0.02));
+      showLevelUp();
+    };
+    const toggleBanish = () => {
+      if (!banishBtn || banishBtn.disabled || state.banishes <= 0) return;
+      banishing = !banishing;
+      card.classList.toggle("banishing", banishing);
+      banishBtn.textContent = banishing ? "CANCEL BANISH" : `✖ BANISH (${state.banishes})`;
+      card.querySelector(".lu-hint").textContent = banishing ? "Pick the card to banish. It won't show up again this shift." : "Reroll draws three new cards. Banish removes one card for the rest of this shift.";
+    };
+    if (rerollBtn) rerollBtn.onclick = doReroll;
+    if (banishBtn) banishBtn.onclick = toggleBanish;
+    levelUpKeys = { reroll: doReroll, banish: toggleBanish, choose: (i) => card.querySelectorAll("[data-choice]")[i]?.click() };
     panel.querySelectorAll("[data-choice]").forEach(
       (b, i) =>
         (b.onclick = () => {
           const selected = choices[i];
           if (!selected) return;
+          if (banishing) {
+            state.banished.push(selected.id);
+            state.banishes--;
+            sfx("ui_click", 0.7, () => audioBeep(200, 0.15, "sawtooth", 0.03));
+            toastMsg(`${selected.title} banished for this shift.`);
+            showLevelUp();
+            return;
+          }
           if (!fallback && !getAvailableUpgrades().some((u) => u.id === selected.id)) return;
           selected.apply(state);
           if (STAT_IDS.includes(selected.id)) state.statPicks[selected.id] = (state.statPicks[selected.id] || 0) + 1;
@@ -2953,6 +3016,7 @@
           if (pendingLevelUps) showLevelUp();
           else {
             mode = "playing";
+            levelUpKeys = null;
             panelHide();
           }
         }),
@@ -3690,7 +3754,7 @@
     const mins = Math.floor((hour % 1) * 60),
       whole = Math.floor(hour),
       h = whole % 12 || 12;
-    return `${h}:${String(mins).padStart(2, "0")} ${whole >= 6 ? "AM" : "AM"}`;
+    return `${h}:${String(mins).padStart(2, "0")} AM`;
   }
   function showPause() {
     if (!state) return showTitle();
@@ -3701,10 +3765,59 @@
     );
     addButtons(panel.firstElementChild, [
       ["BACK TO IT", resumeGame, "primary"],
+      ["STATS", showStats],
       ["OPTIONS", () => showOptions("pause")],
       ["MAINTENANCE OFFICE", () => showOffice("pause")],
       ["QUIT SHIFT", () => finishRun(false), "danger"],
     ]);
+  }
+  // Stats screen (pause menu): every stat with its sources. Gold = permanent (Maintenance Office),
+  // teal = this shift only (level-up picks, treasure, fountain blessing). Totals are read from Hog's real stats,
+  // so anything that changes a stat shows up here even if it isn't listed as a source.
+  function showStats() {
+    if (!state) return showTitle();
+    mode = "stats";
+    menuBack = "pause";
+    const p = state.player,
+      P = save.perks,
+      B = state.bonus || {},
+      pc = (v) => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`,
+      cell = (v, cls) => (v ? `<td class="${cls}">${v}</td>` : `<td class="none">—</td>`),
+      nz = (v, f) => (Math.abs(v) > 0.004 ? f(v) : ""),
+      rows = [],
+      // percent stats: TOTAL is the real multiplier; SHIFT is whatever's left after base + office, so each row adds up
+      pctRow = (name, offFrac, totalFrac) => {
+        const tot = Math.round(totalFrac * 100),
+          off = Math.round(offFrac * 100),
+          tmp = tot - 100 - off;
+        add(name, "100%", off ? `+${off}%` : "", tmp ? `${tmp > 0 ? "+" : ""}${tmp}%` : "", `${tot}%`);
+      };
+    const add = (name, base, perm, temp, total) => rows.push(`<tr><th>${name}</th><td class="base">${base}</td>${cell(perm, "perm")}${cell(temp, "temp")}<td class="total">${total}</td></tr>`);
+    const offHp = P.health * 10,
+      tmpHp = Math.round(p.maxHp - p.baseMaxHp);
+    add("Max health", "100", offHp ? `+${offHp}` : "", tmpHp ? `${tmpHp > 0 ? "+" : ""}${tmpHp}` : "", Math.round(p.maxHp));
+    add("Regen", "0/s", "", p.regen > 0.004 ? `+${p.regen.toFixed(2)}/s` : "", `${p.regen.toFixed(2)}/s`);
+    const offDmg = P.damage * 0.05;
+    pctRow("Damage", offDmg, p.damage);
+    const offSpd = P.speed * 0.04;
+    pctRow("Move speed", offSpd, p.speed / 152);
+    const wSpd = BONUS_STEP * (B.weapon || 0);
+    pctRow("Weapon speed", 0, 1 + wSpd);
+    pctRow("XP gain", P.xp * 0.05, 1 + P.xp * 0.05);
+    const offMag = P.magnet * 0.08;
+    pctRow("Pickup radius", offMag, p.magnet / 78);
+    const rr = Math.min(PERK_MAX.reroll, P.reroll || 0),
+      bb = Math.min(PERK_MAX.banish, P.banish || 0);
+    add("Rerolls", String(BASE_REROLLS), rr ? `+${rr}` : "", "", `${state.rerolls} left of ${BASE_REROLLS + rr}`);
+    add("Banishes", String(BASE_BANISHES), bb ? `+${bb}` : "", "", `${state.banishes} left of ${BASE_BANISHES + bb}`);
+    const notes = [];
+    if (p.blessT > 0) notes.push(`Fountain blessing: +35% damage for ${Math.ceil(p.blessT)}s more (included above).`);
+    const tr = Object.values(B).reduce((a, v) => a + (v || 0), 0);
+    if (tr) notes.push(`Treasure found this shift: ${tr}.`);
+    panelShow(
+      `<div class="eyebrow">TIME CARD</div><h2>GRAVE HOG'S STATS</h2><p class="stats-legend"><span class="perm">■ PERMANENT</span><span class="lg-d"> Maintenance Office</span> &nbsp; <span class="temp">■ THIS SHIFT</span><span class="lg-d"> level-ups, treasure, blessings</span></p><table class="stats-table"><thead><tr><th></th><th>BASE</th><th class="perm">OFFICE</th><th class="temp">SHIFT</th><th>TOTAL</th></tr></thead><tbody>${rows.join("")}</tbody></table>${notes.length ? `<p class="muted">${notes.join(" ")}</p>` : ""}<p class="muted">Shift bonuses reset when the next shift starts. Office perks are yours to keep.</p>`,
+    );
+    addButtons(panel.firstElementChild, [["BACK", showPause, "primary"]]);
   }
   function resumeGame() {
     if (!state) return;
@@ -3715,7 +3828,7 @@
   function pauseGame() {
     if (mode === "playing") showPause();
     else if (mode === "paused") resumeGame();
-    else if ((mode === "office" || mode === "options") && menuBack === "pause" && state) showPause(); // ESC = back
+    else if ((mode === "office" || mode === "options" || mode === "stats") && menuBack === "pause" && state) showPause(); // ESC = back
   }
   // =====================================================================================
   //  v10 STAGE 2: MEGA MART — regular enemy behaviours, bosses, gas clouds, projectiles
@@ -4308,6 +4421,37 @@
     if (p.dir === "down") return { row: 0, frame: Math.floor(it / IDLE_FRAME) % 4, flip: false, label: "idle-front" };
     return { row: DIRS[p.dir], frame: 1, flip: false, label: "idle-" + p.dir };
   }
+  // Graveyard Sprinkler hat. HAT_ANCHOR[row][frame] = [x, y] in the 64px Hog frame: x = centre of the mohawk,
+  // y = where the cap's brim sits (measured from the sheet, one per frame so the hat rides every animation).
+  // Rows whose art faces right get a mirrored hat so the brim always points the way Hog looks.
+  const HAT_ANCHOR = [[[31, 22], [30, 21], [30, 21], [31, 20]], [[33, 25], [31, 22], [30, 22], [32, 22]], [[32, 22], [31, 22], [31, 23], [31, 23]], [[28, 21], [27, 20], [26, 19], [28, 20]], [[35, 21], [36, 20], [37, 19], [35, 20]], [[26, 23], [29, 25], [34, 20], [37, 17]], [[28, 19], [26, 21], [27, 23], [28, 21]], [[33, 17], [30, 17], [28, 19], [35, 17]], [[19, 20], [27, 16], [22, 14], [28, 13]], [[23, 43], [26, 40], [29, 47], [29, 47]], [[32, 20], [32, 18], [34, 19], [31, 22]], [[31, 22], [35, 20], [32, 22], [30, 21]]],
+    HAT_W = 31,
+    HAT_H = 30,
+    HAT_AX = 16, // hat art: pipe hub x
+    HAT_AY = 29, // hat art: brim bottom
+    HAT_NOZZLE_Y = 5, // hat art: where the water comes out (pipe hub)
+    HAT_RIGHT_ROWS = [4, 5, 6, 7];
+  function hatPose(a) {
+    const [bx, by] = HAT_ANCHOR[a.row]?.[a.frame] || [32, 21],
+      mirror = HAT_RIGHT_ROWS.includes(a.row) !== !!a.flip,
+      x = a.flip ? 63 - bx : bx;
+    return { x, y: by, mirror };
+  }
+  // world-space offset of the hat's nozzle from Hog's collision centre (water + damage come from here)
+  function hatNozzle() {
+    if (!state?.player) return [0, -46];
+    const h = hatPose(hogAnimState());
+    return [h.x - 32, h.y - 48 - HAT_AY + HAT_NOZZLE_Y];
+  }
+  function drawHat(dx, dy, a, flash = 0) {
+    if (!ready(IMAGES.hat)) return;
+    const h = hatPose(a),
+      fr = Math.floor(performance.now() / 110) % 2, // the pipe head spins
+      ax = h.mirror ? HAT_W - 1 - HAT_AX : HAT_AX;
+    const args = [IMAGES.hat, fr * HAT_W, 0, HAT_W, HAT_H, dx + h.x - ax, dy + h.y - HAT_AY, HAT_W, HAT_H, h.mirror];
+    if (flash > 0) drawTinted(...args, flash); // flashes with Hog when he's hit
+    else blit(...args);
+  }
   function drawHog(sx, sy) {
     const a = hogAnimState(),
       p = state?.player,
@@ -4323,6 +4467,7 @@
     g.fill();
     if (flash > 0) drawTinted(hogSheet, a.frame * 64, a.row * 64, 64, 64, dx, dy, 64, 64, a.flip, flash);
     else blit(hogSheet, a.frame * 64, a.row * 64, 64, 64, dx, dy, 64, 64, a.flip);
+    if (p && state.weapons.gsprinkler?.level) drawHat(dx, dy, a, flash);
     hogDebug.drawn = true;
     // Shovel sweep: appears on the strike frame (when the damage is applied) and fades over the follow-through.
     if (p && p.pose?.type === "shovel" && p.pose.t >= SWING_HIT && ready(weaponFx)) {
@@ -4964,7 +5109,10 @@
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.restore();
   }
-  const TREASURE_PX = 60; // v8: 50% larger than v7's 40px
+  const TREASURE_PX = 60; // v8: 50% larger than v7's 40px (kept for QA; the chest art below sets the drawn size)
+  const CHEST_W = 44,
+    CHEST_H = 49,
+    CHEST_FRAMES = 4;
   function drawReward(rw, sx, sy) {
     if (rw.restoredAt !== undefined && state.t - rw.restoredAt < 2) {
       const k = (state.t - rw.restoredAt) / 2;
@@ -4977,30 +5125,19 @@
       g.globalAlpha = 1;
     }
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 220 + rw.phase);
-    g.globalAlpha = 0.22 + pulse * 0.2;
-    g.fillStyle = rw.kind === "blessing" ? "#8fe8ff" : "#ffe08a";
+    // ground glow (green, matches the chest's ghost-light)
+    g.globalAlpha = 0.2 + pulse * 0.18;
+    g.fillStyle = "#7dff5a";
     g.beginPath();
-    g.ellipse(sx, sy, 24, 12, 0, 0, TAU);
+    g.ellipse(sx, sy, 20, 8, 0, 0, TAU);
     g.fill();
     g.globalAlpha = 1;
-    const src =
-      rw.kind === "supply"
-        ? KINDS.crates.src
-        : rw.kind === "cache"
-          ? KINDS.coffin.src
-          : rw.kind === "heal"
-            ? KINDS.ghost_candles.src
-            : null;
-    if (src && ready(IMAGES[src[0]])) g.drawImage(IMAGES[src[0]], src[1], src[2], 64, 64, sx - TREASURE_PX / 2, sy - TREASURE_PX * 0.9, TREASURE_PX, TREASURE_PX);
-    if (rw.kind === "blessing") {
-      g.fillStyle = "#c8f6ff";
-      g.fillRect(sx - 2, sy - 24 - Math.round(pulse * 6), 4, 15);
-      g.fillRect(sx - 6, sy - 20 - Math.round(pulse * 6), 13, 4);
-    }
-    // bonus tag: coloured gem over the treasure so its bonus type reads at a glance
+    // every treasure is the same animated chest; the coloured gem above it says which bonus it gives
+    const fr = Math.floor(performance.now() / 150 + rw.phase * 4) % CHEST_FRAMES;
+    if (ready(IMAGES.chest)) g.drawImage(IMAGES.chest, fr * CHEST_W, 0, CHEST_W, CHEST_H, Math.round(sx - CHEST_W / 2), Math.round(sy - CHEST_H + 4), CHEST_W, CHEST_H);
     const tb = TREASURE_BONUS[rw.kind];
     if (tb) {
-      const gy = sy - TREASURE_PX * 0.9 - 8 - Math.round(pulse * 3);
+      const gy = sy - CHEST_H - Math.round(pulse * 3);
       g.fillStyle = "#120c08";
       g.fillRect(sx - 4, gy - 4, 9, 9);
       g.fillStyle = tb.color;
@@ -5008,8 +5145,6 @@
       g.fillStyle = "#ffffff";
       g.fillRect(sx - 2, gy - 2, 2, 2);
     }
-    g.fillStyle = "#fff6c8";
-    g.fillRect(sx + 14, sy - 45 - Math.round(pulse * 3), 3, 3);
   }
   function drawDebugWorld(camX, camY, hx, hy) {
     g.save();
@@ -5124,6 +5259,7 @@
     xpTrack: [154, 64, 248, 20],
     minimap: [W - 158, 60],
     mapInner: [W - 140, 103, 117, 105],
+    clockmap: [W - 180, 2], // the clock/minimap device (176x272), top-right
     slots: [8, H - 62, 62],
     coins: [W - 158, H - 56],
     banner: [445, 4],
@@ -5140,6 +5276,7 @@
     ctx.fillText(text, x, y);
     ctx.textAlign = "left";
   }
+  const CLOCKMAP_WIN = [34, 54, 137, 211]; // window inside hud/clockmap.png (x0, y0, x1, y1), just inside the bevel
   function hudImg(key, x, y) {
     const im = IMAGES[key];
     if (ready(im)) ctx.drawImage(im, Math.round(x), Math.round(y));
@@ -5175,24 +5312,41 @@
     hudText(`LV ${p.level}`, xx + xw - 6, xy + xh - 5, "#bff6ff", "bold 14px monospace", "right");
     // portrait on top of the bar frame's left end, like the mockup
     hudImg("hud_portrait", L.portrait[0], L.portrait[1]);
-    // clock + shift progress, top right
-    if (!state.clockBoom) hudText(clockText, W - 14, 38, "#fff0c8", "bold 30px monospace", "right");
-    else drawClockWreck(state.clockBoom);
-    const overtime = state.t >= SHIFT_SECONDS && !state.bossesDead[finalBossId()];
-    hudText(
-      state.sunrise ? "SHIFT 100% · SUNRISE" : overtime ? `OVERTIME: BEAT ${STAGE === 2 ? "THE MEAT MANAGER" : "THE KING"}` : `SHIFT ${Math.min(99, Math.floor((state.t / SHIFT_SECONDS) * 100))}%`,
-      W - 16,
-      57,
-      overtime ? (Math.floor(performance.now() / 400) % 2 ? "#ff8a6a" : "#ffd0b0") : "#d8d2c0",
-      "bold 15px monospace",
-      "right",
-    );
-    // minimap inside its frame
-    if (hudImg("hud_minimap", L.minimap[0], L.minimap[1])) {
-      const [ix, iy, iw, ih] = L.mapInner,
-        side = Math.min(iw, ih),
-        mx = ix + Math.floor((iw - side) / 2),
-        my = iy,
+    // clock + minimap device, top right: one in-world gadget (the user's frame art) with the clock readout at the top
+    // of its window and the minimap below. After the 6 AM explosion it swaps to the busted version of the same frame.
+    {
+      const [FX, FY] = L.clockmap,
+        wx = FX + CLOCKMAP_WIN[0],
+        wy = FY + CLOCKMAP_WIN[1],
+        ww = CLOCKMAP_WIN[2] - CLOCKMAP_WIN[0],
+        wh = CLOCKMAP_WIN[3] - CLOCKMAP_WIN[1],
+        ccx = wx + ww / 2;
+      // frame first (its window is solid black in the art); the clock, % and minimap are drawn over it.
+      // It swaps to the busted version once the clock has blown (after the white flash).
+      const broken = state.clockBoom && state.t - state.clockBoom.at > 0.1;
+      hudImg(broken ? "hud_clockmap_broken" : "hud_clockmap", FX, FY);
+      // screen glow behind the readout
+      const sg = ctx.createLinearGradient(0, wy, 0, wy + 44);
+      sg.addColorStop(0, state.clockBoom ? "#2a0d0a" : "#122318");
+      sg.addColorStop(1, "#07090c");
+      ctx.fillStyle = sg;
+      ctx.fillRect(wx, wy, ww, 44);
+      const overtime = state.t >= SHIFT_SECONDS && !state.bossesDead[finalBossId()],
+        blink = Math.floor(performance.now() / 400) % 2;
+      if (!state.clockBoom) hudText(clockText, ccx, wy + 23, "#d8ffc8", "bold 19px monospace", "center");
+      else drawClockWreck(state.clockBoom);
+      hudText(
+        state.sunrise ? "SUNRISE" : overtime ? "OVERTIME!" : `SHIFT ${Math.min(99, Math.floor((state.t / SHIFT_SECONDS) * 100))}%`,
+        ccx,
+        wy + 37,
+        overtime ? (blink ? "#ff8a6a" : "#ffd0b0") : "#a9c8a0",
+        "bold 11px monospace",
+        "center",
+      );
+      // minimap
+      const side = Math.min(ww - 6, wh - 62),
+        mx = Math.round(ccx - side / 2),
+        my = wy + 44,
         s = side / MW;
       ctx.imageSmoothingEnabled = STAGE === 2;
       ctx.drawImage(minimap, mx, my, side, side);
@@ -5205,7 +5359,7 @@
       for (const rw of state.rewards)
         if (!rw.taken) {
           const [rx, ry] = toMM(rw.x, rw.y);
-          ctx.fillStyle = "#ffd76a";
+          ctx.fillStyle = "#9dff5a";
           ctx.fillRect(Math.round(rx) - 1, Math.round(ry) - 1, 3, 3);
         }
       if (STAGE === 1 && WORLD.testBox && !state.testBoxUsed) {
@@ -5216,7 +5370,7 @@
       const boss = state.enemies.find((e) => e.boss);
       if (boss) {
         const [bx, by] = toMM(boss.x, boss.y);
-        ctx.fillStyle = Math.floor(performance.now() / 300) % 2 ? "#ff5a4a" : "#ffb0a0";
+        ctx.fillStyle = blink ? "#ff5a4a" : "#ffb0a0";
         ctx.fillRect(Math.round(bx) - 2, Math.round(by) - 2, 5, 5);
       }
       const [px, py] = toMM(p.x, p.y);
@@ -5224,11 +5378,18 @@
       ctx.fillRect(Math.round(px) - 2, Math.round(py) - 2, 5, 5);
       ctx.fillStyle = "#7ff0ff";
       ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3);
-      hudText("M: MAP", L.minimap[0] + 75, L.minimap[1] + 180, "#cdbf9c", "bold 11px monospace", "center");
+      hudText(
+        overtime ? (STAGE === 2 ? "BEAT MEAT MANAGER" : "BEAT THE KING") : "M: MAP",
+        ccx,
+        my + side + 13,
+        overtime ? (blink ? "#ff8a6a" : "#ffd0b0") : "#8f9a86",
+        overtime ? "bold 9px monospace" : "bold 10px monospace",
+        "center",
+      );
     }
     // bonus readouts (v9 totals from every source), as small framed chips under the portrait
     {
-      const chips = hudStatChips();
+      const chips = []; // stat totals moved to the pause menu's STATS screen; only timed buffs stay on the HUD
       if (p.blessT > 0) chips.unshift({ color: "#8fe8ff", text: `BLESSED ${Math.ceil(p.blessT)}s` });
       let bx = 10,
         by = L.chipsY;
@@ -5287,21 +5448,30 @@
     }
   }
   // The HUD clock at 6:00 AM: white flash, fireball, flying shards, then a smoking, cracked "--:--".
+  function clockCentre() {
+    const [fx, fy] = HUD_LAYOUT.clockmap;
+    return [fx + (CLOCKMAP_WIN[0] + CLOCKMAP_WIN[2]) / 2, fy + CLOCKMAP_WIN[1] + 16];
+  }
   function drawClockWreck(b) {
     const k = state.t - b.at,
-      cx = W - 90,
-      cy = 30;
+      [cx, cy] = clockCentre();
     ctx.save();
     if (k > 0.25) {
-      ctx.fillStyle = Math.floor(performance.now() / 250) % 2 ? "#8a3a2a" : "#5a2a22";
-      ctx.fillText("--:--", W - 22, 38);
-      ctx.strokeStyle = "#1a1012";
-      ctx.lineWidth = 2;
+      ctx.fillStyle = Math.floor(performance.now() / 250) % 2 ? "#ff6a4a" : "#b8442e";
+      ctx.font = "bold 18px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("ERROR", cx, cy + 7);
+      ctx.textAlign = "left";
+      // cracked screen
+      ctx.strokeStyle = "#d8d0c088";
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(cx - 40, cy - 12);
-      ctx.lineTo(cx - 10, cy + 2);
-      ctx.lineTo(cx + 6, cy - 8);
-      ctx.lineTo(cx + 40, cy + 10);
+      ctx.moveTo(cx - 48, cy - 10);
+      ctx.lineTo(cx - 14, cy + 3);
+      ctx.lineTo(cx + 4, cy - 7);
+      ctx.lineTo(cx + 48, cy + 12);
+      ctx.moveTo(cx - 14, cy + 3);
+      ctx.lineTo(cx - 22, cy + 18);
       ctx.stroke();
       // smoke wisps keep rising from the wreck
       for (let i = 0; i < 4; i++) {
@@ -5309,7 +5479,7 @@
         ctx.globalAlpha = (1 - ph) * 0.35;
         ctx.fillStyle = "#9a9298";
         ctx.beginPath();
-        ctx.arc(cx - 20 + i * 14 + Math.sin(k * 2 + i) * 4, cy - 6 - ph * 34, 4 + ph * 8, 0, TAU);
+        ctx.arc(cx - 20 + i * 14 + Math.sin(k * 2 + i) * 4, cy - 30 - ph * 40, 4 + ph * 8, 0, TAU);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -5318,8 +5488,7 @@
   }
   function drawClockBoom(b) {
     const k = state.t - b.at,
-      cx = W - 90,
-      cy = 30;
+      [cx, cy] = clockCentre();
     ctx.save();
     if (k < 3) {
       // its own headline (the King's arrival announcement shares this moment)
@@ -5338,7 +5507,7 @@
       if (k < 0.12) {
         ctx.globalAlpha = 1 - k / 0.12;
         ctx.fillStyle = "#fff6d8";
-        ctx.fillRect(W - 260, 0, 260, 110);
+        ctx.fillRect(HUD_LAYOUT.clockmap[0] - 40, 0, W - HUD_LAYOUT.clockmap[0] + 40, 290);
         ctx.globalAlpha = 1;
       }
       const r = 14 + Math.min(1, k / 0.35) * 86;
@@ -5554,7 +5723,10 @@
     fps = fps * 0.95 + (dt > 0 ? 1 / dt : 60) * 0.05;
     if (state && (mode === "gameover" || mode === "victory")) state.endT = (state.endT || 0) + dt;
     musicTick(dt);
-    update(dt);
+    if (!photoFreeze) {
+      pollPad(dt);
+      update(dt);
+    }
     draw(dt);
     requestAnimationFrame(frame);
   }
@@ -5580,6 +5752,18 @@
       }
       return;
     }
+    if (mode === "levelup" && levelUpKeys && !e.repeat) {
+      if (k === "r") return levelUpKeys.reroll();
+      if (k === "b") return levelUpKeys.banish();
+      if (k === "1" || k === "2" || k === "3") return levelUpKeys.choose(Number(k) - 1);
+    }
+    if (k === "p" && !e.repeat && (mode === "playing" || photoFreeze)) {
+      photoFreeze = !photoFreeze;
+      keys.clear();
+      document.getElementById("save-status").textContent = photoFreeze ? "PHOTO FREEZE · P TO RESUME" : "LOCAL SAVE";
+      return;
+    }
+    if (photoFreeze && k === "escape") photoFreeze = false; // ESC still opens the normal pause menu
     if (k === "m") showBigMap = true;
     keys.add(k);
     if (k === "escape") {
@@ -5592,10 +5776,126 @@
     if (k === "m") showBigMap = false;
     keys.delete(k);
   });
-  window.addEventListener("blur", () => {
+  // Auto-pause: alt-tab, switching apps, a phone call or a hidden tab pauses the shift instead of leaving Hog to die.
+  function autoPause() {
+    if (photoFreeze) return; // a screenshot tool grabbing focus must not pop the pause menu over the shot
     keys.clear();
     touchVec.x = touchVec.y = touchVec.m = 0;
-  });
+    if (mode === "playing" && state) showPause();
+  }
+  window.addEventListener("blur", autoPause);
+  document.addEventListener("visibilitychange", () => document.hidden && autoPause());
+  // ---------------------------------------------------------------------------------
+  //  Controller (Gamepad API, standard mapping: Xbox / PlayStation / Switch Pro / Steam Deck)
+  //  Left stick or D-pad move · Start = pause · Back/Select = map · in menus: D-pad/stick move the cursor,
+  //  A = choose, B = back · level-up: X = reroll, Y = banish.
+  // ---------------------------------------------------------------------------------
+  const PAD = { prev: [], driving: false, navDir: "", navT: 0, seen: false };
+  const PAD_DEAD = 0.22;
+  function padButtons() {
+    return [...panel.querySelectorAll("button")].filter((b) => !b.disabled && b.offsetParent !== null);
+  }
+  function padFocus(dir) {
+    const list = padButtons();
+    if (!list.length) return;
+    const cur = list.includes(document.activeElement) ? document.activeElement : null;
+    if (!cur) return (list.find((b) => b.classList.contains("primary") || b.classList.contains("choice")) || list[0]).focus();
+    const r0 = cur.getBoundingClientRect(),
+      cx = r0.left + r0.width / 2,
+      cy = r0.top + r0.height / 2;
+    const [vx, vy] = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }[dir];
+    let best = null,
+      bestScore = Infinity;
+    for (const b of list) {
+      if (b === cur) continue;
+      const r = b.getBoundingClientRect(),
+        dx = r.left + r.width / 2 - cx,
+        dy = r.top + r.height / 2 - cy,
+        along = dx * vx + dy * vy;
+      if (along <= 4) continue;
+      const score = along + Math.abs(dx * vy + dy * vx) * 2.5;
+      if (score < bestScore) (bestScore = score), (best = b);
+    }
+    if (best) {
+      best.focus();
+      best.scrollIntoView?.({ block: "nearest" });
+    }
+  }
+  function padBack() {
+    if (mode === "paused") return resumeGame();
+    if ((mode === "office" || mode === "options" || mode === "stats") && menuBack === "pause" && state) return showPause();
+    const back = padButtons().find((b) => /^(BACK|KEEP MY PERKS)/.test(b.textContent.trim()));
+    if (back) back.click();
+  }
+  function pollPad(dt) {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let gp = null;
+    for (const p of pads) if (p && p.connected && p.buttons.length) { gp = p; break; }
+    if (!gp) {
+      if (PAD.driving) (touchVec.x = touchVec.y = touchVec.m = 0), (PAD.driving = false);
+      return;
+    }
+    if (!PAD.seen) (PAD.seen = true), toastMsg("Controller connected. Start = pause, Back = map.");
+    const held = (i) => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
+    const tap = (i) => held(i) && !PAD.prev[i];
+    let x = gp.axes[0] || 0,
+      y = gp.axes[1] || 0;
+    if (held(14)) x = -1;
+    if (held(15)) x = 1;
+    if (held(12)) y = -1;
+    if (held(13)) y = 1;
+    const m = Math.min(1, Math.hypot(x, y));
+    if (tap(9)) {
+      unlockAudio();
+      if (mode === "playing" || mode === "paused" || mode === "office" || mode === "options" || mode === "stats") pauseGame();
+      else if (mode !== "slides" && mode !== "levelup" && panel.classList.contains("visible")) {
+        const list = padButtons(); // Start on title / results screens = press the highlighted (or main) button
+        (list.includes(document.activeElement) ? document.activeElement : list.find((b) => b.classList.contains("primary")) || list[0])?.click();
+      }
+    }
+    if (mode === "playing") {
+      if (m > PAD_DEAD) {
+        touchVec.x = x / (m || 1);
+        touchVec.y = y / (m || 1);
+        touchVec.m = Math.min(1, ((m - PAD_DEAD) / (1 - PAD_DEAD)) * 1.2);
+        PAD.driving = true;
+      } else if (PAD.driving) {
+        touchVec.x = touchVec.y = touchVec.m = 0;
+        PAD.driving = false;
+      }
+      if (tap(8)) showBigMap = !showBigMap;
+    } else {
+      if (PAD.driving) (touchVec.x = touchVec.y = touchVec.m = 0), (PAD.driving = false);
+      if (mode !== "playing" && showBigMap && !held(8)) showBigMap = false;
+      if (mode === "slides") {
+        if (tap(0) || tap(9)) nextSlide();
+      } else if (panel.classList.contains("visible")) {
+        // controller in use and nothing highlighted yet (a menu just opened): put the cursor on the main button
+        const list = padButtons();
+        if (list.length && !list.includes(document.activeElement)) (list.find((b) => b.classList.contains("choice") || b.classList.contains("primary")) || list[0]).focus({ preventScroll: true });
+        // menu cursor: edge-triggered with auto-repeat while held
+        const dir = m < 0.5 ? "" : Math.abs(x) > Math.abs(y) ? (x < 0 ? "left" : "right") : y < 0 ? "up" : "down";
+        if (dir && (dir !== PAD.navDir || (PAD.navT -= dt) <= 0)) {
+          padFocus(dir);
+          PAD.navT = dir !== PAD.navDir ? 0.38 : 0.14;
+        }
+        PAD.navDir = dir;
+        if (tap(0)) {
+          unlockAudio();
+          const list = padButtons();
+          if (list.includes(document.activeElement)) document.activeElement.click();
+          else padFocus("down");
+        }
+        if (tap(1)) padBack();
+        if (mode === "levelup" && levelUpKeys) {
+          if (tap(2)) levelUpKeys.reroll();
+          if (tap(3)) levelUpKeys.banish();
+        }
+      }
+    }
+    PAD.prev = gp.buttons.map((b) => b.pressed || b.value > 0.5);
+  }
+  window.addEventListener("gamepadconnected", () => unlockAudio());
   // Mobile hooks used by mobile.js (touch joystick + on-screen buttons).
   window.GS_MOBILE = {
     setMove(x, y, m) {
@@ -5647,6 +5947,7 @@
       v15: () => ({ SPLAT_SCALE, CLEAVER_SIZE, CLEAVER_HIT_R, COFFIN_HIT_T, COFFIN_LIFE, coffinR: [1, 2, 3, 4, 5].map(coffinRadius), FOG_OVER, STORE_RECT, MM_DECOR, EDGE_FOG_D }),
       v16: () => ({ MUSIC_FILES, musicWant, musicOn, musicDuck, musicStats, music: Object.fromEntries(Object.entries(musicEls).map(([n, a]) => [n, { vol: a.volume, paused: a.paused, t: a.currentTime, ready: a.readyState, err: !!a.error }])), SFX_VAR, sfxAll: Object.keys(SFX_ALL), sfxVol: Object.fromEntries(Object.entries(SFX_ALL).map(([n, d]) => [n, d.vol])), FOG_OVER, perkRefund: perkRefund(), menuBack, gemTier: [1, 3, 4, 6, 7, 9].map(gemTier) }),
       musicTick,
+      awardXP,
       playMusic,
       showOptions,
       showPause,

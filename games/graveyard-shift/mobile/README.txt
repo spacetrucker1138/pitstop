@@ -1,4 +1,4 @@
-GRAVEYARD SHIFT - by The Jurn
+GRAVE HOG'S GRAVEYARD SHIFT - by The Jurn
 
 HOW TO PLAY
 Windows: double-click PLAY-GRAVEYARD-SHIFT.bat, or just open index.html in Chrome, Edge or Firefox.
@@ -6,6 +6,11 @@ Windows: double-click PLAY-GRAVEYARD-SHIFT.bat, or just open index.html in Chrom
 
 CONTROLS: WASD/arrows move, mouse wheel zoom, M map, ESC pause, Enter/Space/Right arrow = next panel.
 Weapons fire automatically.
+Level-up: R = reroll, B = banish (then pick the card), 1/2/3 = pick a card. Extra rerolls/banishes: Maintenance Office.
+Controller: left stick/D-pad move, Start pause, Back/Select map, A pick, B back, X reroll, Y banish.
+The game pauses itself if you switch windows or apps.
+P = photo freeze (stops the action with no menu, for screenshots; P again resumes).
+Pause > STATS shows every stat: gold = permanent office perks, teal = this shift's bonuses.
 Stage 1: survive the night and beat the Cemetery King. Win it to move on to Stage 2.
 Stage 2 (Mega Mart, final stage): beat Produce Horror, Cart Beast and the Meat Manager.
 Progress and office upgrades are saved in your browser.
