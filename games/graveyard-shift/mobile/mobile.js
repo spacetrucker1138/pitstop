@@ -1,7 +1,8 @@
 /* GRAVEYARD SHIFT — mobile layer.
  * Only switches on for touch screens; desktop is untouched.
  *  - Floating joystick: put a thumb down anywhere (on the game, or below it in portrait) and drag to steer.
- *  - ❚❚ pause and MAP toggle buttons along the top edge, plus fullscreen where the browser allows it.
+ *  - ❚❚ pause, MAP and ZOOM buttons along the top edge, plus fullscreen where the browser allows it.
+ *  - Pinch with two fingers to zoom in/out.
  *  - Adds body classes so style.css can fit the game to the phone screen. */
 (() => {
   "use strict";
@@ -32,6 +33,7 @@
   };
   const pauseBtn = mkBtn("❚❚", "Pause", () => G.pause());
   const mapBtn = mkBtn("MAP", "Toggle map", (b) => b.classList.toggle("on", G.toggleMap()));
+  mkBtn("ZOOM", "Zoom out / in", () => G.zoomCycle && G.zoomCycle());
   const root = document.documentElement;
   const fsReq = root.requestFullscreen || root.webkitRequestFullscreen;
   if (fsReq) {
@@ -56,6 +58,47 @@
   body.appendChild(stick);
   const knob = stick.firstElementChild;
   let active = null; // { id, x0, y0 }
+  // two-finger pinch zoom: fingers together = zoom out (see more), apart = zoom in
+  const pts = new Map();
+  let pinch = null; // { a, b, d0 }
+  const pdist = () => {
+    const [p1, p2] = [pts.get(pinch.a), pts.get(pinch.b)];
+    return p1 && p2 ? Math.hypot(p1.x - p2.x, p1.y - p2.y) : 0;
+  };
+  document.addEventListener("pointerdown", (e) => e.pointerType !== "mouse" && pts.set(e.pointerId, { x: e.clientX, y: e.clientY }), { capture: true });
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.pointerType === "mouse" || G.mode !== "playing" || pinch || pts.size < 2) return;
+      const ids = [...pts.keys()].slice(-2);
+      pinch = { a: ids[0], b: ids[1], d0: 0 };
+      pinch.d0 = pdist();
+      if (active) release(); // a second finger means pinch, not steering
+      e.preventDefault();
+    },
+    { capture: true, passive: false },
+  );
+  document.addEventListener(
+    "pointermove",
+    (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (!pinch || (e.pointerId !== pinch.a && e.pointerId !== pinch.b)) return;
+      e.preventDefault();
+      const d = pdist();
+      if (pinch.d0 > 0 && d > 0) {
+        if (d / pinch.d0 < 0.8) (G.zoomStep(1), (pinch.d0 = d));
+        else if (d / pinch.d0 > 1.25) (G.zoomStep(-1), (pinch.d0 = d));
+      }
+    },
+    { capture: true, passive: false },
+  );
+  const ptEnd = (e) => {
+    pts.delete(e.pointerId);
+    if (pinch && (e.pointerId === pinch.a || e.pointerId === pinch.b)) pinch = null;
+  };
+  document.addEventListener("pointerup", ptEnd, { capture: true });
+  document.addEventListener("pointercancel", ptEnd, { capture: true });
 
   function release() {
     active = null;
@@ -65,7 +108,7 @@
   document.addEventListener(
     "pointerdown",
     (e) => {
-      if (active || G.mode !== "playing" || e.pointerType === "mouse") return;
+      if (active || pinch || G.mode !== "playing" || e.pointerType === "mouse") return;
       if (e.target.closest(".touch-btn, button, input, a, .panel.visible")) return;
       e.preventDefault();
       active = { id: e.pointerId, x0: e.clientX, y0: e.clientY };

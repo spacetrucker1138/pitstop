@@ -15,7 +15,7 @@
     BASE_VIEW_W = Math.round(W / WORLD_ZOOM),
     BASE_VIEW_H = Math.round(H / WORLD_ZOOM),
     // Mouse-wheel zoom-out steps (visible-world width as a multiple of the default view). 100% is the max zoom-in.
-    ZOOM_STEPS = [1, 1.2, 1.35, 1.5, 1.6],
+    ZOOM_STEPS = [1, 1.2, 1.35, 1.5, 1.65, 1.8, 2],
     SHIFT_SECONDS = 720,
     REAL_SECONDS_PER_HOUR = 120;
   const rand = (a, b) => a + Math.random() * (b - a),
@@ -25,7 +25,7 @@
   const saveKey = "graveyard-shift-save-v1";
   const freshSave = () => ({
     wages: 0,
-    perks: { health: 0, damage: 0, speed: 0, xp: 0, magnet: 0, reroll: 0, banish: 0 },
+    perks: { health: 0, damage: 0, speed: 0, xp: 0, magnet: 0, reroll: 0, banish: 0, cheese: 0 },
     bestKills: 0,
     bestLevel: 1,
     shifts: 0,
@@ -57,7 +57,7 @@
   // Current visible world size in buffer pixels (changes with the mouse-wheel zoom; default = BASE_VIEW_*).
   let VIEW_W = BASE_VIEW_W,
     VIEW_H = BASE_VIEW_H,
-    zoomIndex = 0,
+    zoomIndex = Math.max(0, Math.min(ZOOM_STEPS.length - 1, save.zoomIndex | 0)),
     zoomCur = 1;
   let mode = "title",
     keys = new Set(),
@@ -198,6 +198,7 @@
     standees: "assets/props/jurn-standees.png", // the user's JURN band standees (Electronics decoration, no collision)
     coffinDrop: "assets/fx/coffin-drop.png", // 84px coffin; v16: re-baked at 2x2-pixel blocks so the pixels show
     // v16 (the user's sheets, white removed, 4 frames each)
+    dig: "assets/fx/chest-dig.webp", // loot machine: Grave Hog digging through the chest, 22 frames of 220x170
     hat: "assets/fx/sprinkler-hat.png", // Graveyard Sprinkler hat worn by Hog: 2 frames of 31x30 (spinning pipe head)
     hatIcon: "assets/fx/sprinkler-hat-icon.png", // hat frame 1 as the weapon icon (64x64)
     chest: "assets/fx/chest.png", // treasure chest, 4 frames of 44x49 (green ghost-glow loop)
@@ -275,14 +276,14 @@
     forklift_zombie: { name: "Forklift Zombie", hp: 115, speed: 32, xp: 9, color: "#d08a2a", r: 20, damage: 12, size: 96 },
   };
   for (const d of Object.values(TYPES2)) ((d.s2 = true), (d.size = d.size || 64), (d.anchor = d.size === 96 ? [48, 92] : [32, 61]));
-  const BOSS_HP_MULT = 3; // v6: every boss has 3x its v5 health. Applied once, here, never per spawn.
+  const BOSS_HP_MULT = 3 * 1.05; // v6: every boss has 3x its v5 health; v17: +5%. Applied once, here, never per spawn.
   const BOSS = {
     digger: { name: "THE GRAVE DIGGER", hp: 680 * BOSS_HP_MULT, color: "#b68452", r: 31, taunt: "That shovel ain’t OSHA approved!" },
     widow: { name: "THE WIDOW", hp: 850 * BOSS_HP_MULT, color: "#a084bd", r: 31, taunt: "Lady, I am on my break!" },
     king: { name: "THE CEMETERY KING", hp: 1250 * BOSS_HP_MULT, color: "#d4cda7", r: 33, taunt: "Six o’clock. I’m OUT." },
     // v10 Stage 2 (order from the pack's README: 1 Produce Horror, 2 Cart Beast, 3 Meat Manager = final boss)
     produce_horror: { name: "THE PRODUCE HORROR", hp: 900 * BOSS_HP_MULT, color: "#8fbf4a", r: 33, taunt: "Fresh today. Rotten forever.", s2: true, idx: 0, speed: 40, damage: 15 },
-    cart_beast: { name: "THE CART BEAST", hp: 1050 * BOSS_HP_MULT, color: "#c45a3a", r: 33, taunt: "3 FOR 1. YOU'RE THE 1.", s2: true, idx: 1, speed: 52, damage: 16 },
+    cart_beast: { name: "THE CART BEAST", hp: 1050 * BOSS_HP_MULT, color: "#c45a3a", r: 36, scale: 1.1, taunt: "3 FOR 1. YOU'RE THE 1.", s2: true, idx: 1, speed: 52, damage: 16 },
     meat_manager: { name: "THE MEAT MANAGER", hp: 1400 * BOSS_HP_MULT, color: "#e0d0c8", r: 34, taunt: "Clean up on aisle YOU.", s2: true, idx: 2, speed: 46, damage: 20 },
   };
   const BOSS_TIMES = {
@@ -308,12 +309,10 @@
     {
       id: "nail",
       title: "Nail Gun",
-      desc: "Faster, harder nails and an extra shot every other level",
+      desc: "One more nail per shot each level (each nail a bit weaker) and a quicker reload",
       apply: (s) => {
         s.weapons.nail.level++;
-        s.weapons.nail.cooldown = Math.max(0.22, s.weapons.nail.cooldown * 0.82);
         s.weapons.nail.speed += 35;
-        s.weapons.nail.damage *= 1.12;
       },
     },
     {
@@ -427,7 +426,7 @@
         a.addEventListener("error", () => (sfxBad[n] = true));
         return a;
       });
-  function sfx(name, vol = 1, fallback) {
+  function sfx(name, vol = 1, fallback, rate) {
     if (save.sfx === 0) return;
     const def = SFX_ALL[name],
       pool = sfxPool[name];
@@ -450,7 +449,9 @@
     }
     sfxLast[name] = now;
     a.volume = Math.max(0, Math.min(1, def.vol * vol * save.sfx));
-    if (def.rate !== 1) a.playbackRate = def.rate;
+    const r = rate ?? def.rate;
+    if (rate != null) a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = false; // let the rate shift the pitch
+    if (r !== 1 || a.playbackRate !== 1) a.playbackRate = r;
     try {
       a.currentTime = 0;
     } catch {}
@@ -587,7 +588,7 @@
   function showControls() {
     mode = "title";
     panelShow(
-      `<div class="eyebrow">THE RULES</div><h2>HOW TO SURVIVE THE SHIFT</h2><p><b>WASD or Arrow Keys</b> move (on a phone: drag your thumb anywhere to steer). Grave Hog attacks nearby monsters automatically. Walk over the glowing drops to collect them: <b>gems</b> are experience, <b>gold coins</b> are Cemetery Wages, pizza heals.</p><p>XP fills the bar; every level pauses the shift and offers three upgrades. Don't like them? <b>Reroll</b> (R) draws three new ones, <b>Banish</b> (B) removes one for the rest of the shift. Buy extra rerolls and banishes in the office. <b>ESC</b> pauses (or the ❚❚ button on touch screens). The run lasts from midnight to 6 AM (about 12 minutes).</p><p><b>Controller:</b> left stick or D-pad moves, Start pauses, Back/Select shows the map, A picks, B goes back, X rerolls, Y banishes.</p><p>Shovel, nail gun, holy water, chainsaw and haunted lanterns can all stack. The maintenance office buys permanent upgrades with Cemetery Wages.</p>`,
+      `<div class="eyebrow">THE RULES</div><h2>HOW TO SURVIVE THE SHIFT</h2><p><b>WASD or Arrow Keys</b> move (on a phone: drag your thumb anywhere to steer). Grave Hog attacks nearby monsters automatically. Walk over the glowing drops to collect them: <b>gems</b> are experience, <b>gold coins</b> are Cemetery Wages, pizza heals.</p><p>XP fills the bar; every level pauses the shift and offers three upgrades. Don't like them? <b>Reroll</b> (R) draws three new ones, <b>Banish</b> (B) removes one for the rest of the shift. Buy extra rerolls and banishes in the office. <b>ESC</b> pauses (or the ❚❚ button on touch screens). <b>Mouse wheel</b> or <b>Z</b> zooms out to see more (pinch or the ZOOM button on touch screens). The run lasts from midnight to 6 AM (about 12 minutes).</p><p><b>Controller:</b> left stick or D-pad moves, Start pauses, Back/Select shows the map, bumpers zoom, A picks, B goes back, X rerolls, Y banishes.</p><p>Shovel, nail gun, holy water, chainsaw and haunted lanterns can all stack. The maintenance office buys permanent upgrades with Cemetery Wages.</p>`,
     );
     addButtons(panel.firstElementChild, [
       ["BACK", showTitle, "primary"],
@@ -605,11 +606,12 @@
     ["magnet", "Long-Handled Grabber", "+8% pickup radius / level"],
     ["reroll", "Second Opinion", "+1 level-up reroll per shift"],
     ["banish", "Write 'Em Up", "+1 level-up banish per shift"],
+    ["cheese", "Extra Cheese", "+3 health from every pizza"],
   ];
   // Rerolls / banishes: every shift starts with BASE_*; the office adds up to PERK_MAX more (and costs a step more).
   const BASE_REROLLS = 2,
     BASE_BANISHES = 1,
-    PERK_MAX = { reroll: 3, banish: 2 };
+    PERK_MAX = { reroll: 3, banish: 2, cheese: 5 };
   const perkCost = (lvl) => Math.floor(12 + 12 * lvl * lvl + lvl * 8);
   const perkCostFor = (id, lvl) => (PERK_MAX[id] ? perkCost(lvl + 1) : perkCost(lvl));
   function perkRefund() {
@@ -617,7 +619,9 @@
     for (const id of Object.keys(save.perks)) for (let l = 0; l < save.perks[id]; l++) t += perkCostFor(id, l);
     return t;
   }
+  let resultsView = null; // reopens the end-of-shift results card (set by finishRun)
   function menuBackBtn() {
+    if (menuBack === "results" && resultsView) return ["BACK TO RESULTS", resultsView, "primary"];
     return menuBack === "pause" && state ? ["BACK TO SHIFT", showPause, "primary"] : ["BACK TO TITLE", showTitle, "primary"];
   }
   function showOffice(back) {
@@ -743,7 +747,17 @@
     g.globalAlpha = 1;
     g.drawImage(im, fr * TQ_W, 0, TQ_W, TQ_H, Math.round(sx - TQ_W / 2), Math.round(sy - TQ_H + 3), TQ_W, TQ_H);
   }
+  function zoomHint() {
+    if (save.zoomHint) return;
+    setTimeout(() => {
+      if (mode !== "playing" || save.zoomHint) return;
+      save.zoomHint = true;
+      saveGame();
+      toastMsg(document.body.classList.contains("touch") ? "TIP: pinch or tap ZOOM to see more of the map." : "TIP: mouse wheel (or Z) zooms out to see more of the map.");
+    }, 7000);
+  }
   function startRun(stageArg) {
+    zoomHint();
     const stage = stageArg === 2 ? 2 : 1; // also used directly as a click handler (event arg -> Stage 1)
     if (!assetsReady) {
       toastMsg("Still loading the cemetery art…");
@@ -848,7 +862,7 @@
   }
   function toastMsg(s) {
     toast = s;
-    toastUntil = performance.now() + 2400;
+    toastUntil = performance.now() + 2400 + Math.max(0, s.length - 50) * 35; // long messages stay up longer
   }
   // =====================================================================================
   //  FINITE CEMETERY WORLD  (data: map-data.js)
@@ -1027,8 +1041,7 @@
     MAP = stage === 2 ? MAP2 : MAP1;
     setDims();
     buildWorld();
-    chunkCache.clear();
-    zoomIndex = 0;
+    chunkCache.clear(); // zoom is the player's choice and carries over between stages (saved)
   }
   function allocWorld() {
     if (WORLD.solid.length !== CW * CHH) {
@@ -1452,34 +1465,153 @@
     }
     state.floaters.push({ x: p.x, y: p.y - 70, text: `+2% ${b.label}`, color: b.color, t: 0 });
   }
+  // Chests: opening one pauses the shift and runs the LOOT MACHINE: three reels spin through icons of the weapons and
+  // passives Grave Hog already has, stop one by one on the winner, and that weapon/passive gets +1 level.
+  // Everything maxed (or nothing owned yet beyond maxed) -> full heal + wages instead.
   function collectReward(rw) {
-    const p = state.player;
     if (rw.taken) return; // one collection per placement
     rw.taken = true;
     rw.collects = (rw.collects || 0) + 1;
-    grantTreasureBonus(rw);
-    if (rw.kind === "supply") {
-      p.hp = Math.min(p.maxHp, p.hp + 35);
-      awardXP(12);
-      toastMsg("SUPPLY CRATE: bandages and a thermos. +35 health, +XP.");
-    } else if (rw.kind === "cache") {
-      const v = 8 + Math.floor(Math.random() * 9);
-      save.wages += v;
-      state.earned += v;
-      saveGame();
-      toastMsg(`HIDDEN WAGE CACHE: +${v} wages. Somebody's tip jar.`);
-    } else if (rw.kind === "heal") {
-      p.hp = Math.min(p.maxHp, p.hp + 45);
-      toastMsg("OLD GRAVE OFFERING: cold pizza. Still counts. +45 health.");
-    } else if (rw.kind === "blessing") {
-      if (p.blessT <= 0) p.damage *= 1.35;
-      p.blessT = 30;
-      toastMsg("BLESSED FOUNTAIN: weapons +35% damage for 30 seconds!");
-    }
-    const tb = TREASURE_BONUS[rw.kind];
-    if (tb) toast += `  BONUS: +2% ${tb.label} until the shift ends.`;
-    addParticle(rw.x, rw.y, "#ffe08a", 18, 1);
+    state.chests = (state.chests || 0) + 1;
+    addParticle(rw.x, rw.y, "#9dff5a", 18, 1);
     sfx("pickup", 1.3, () => audioBeep(760, 0.18, "triangle", 0.04));
+    try {
+      showLootMachine();
+    } catch (err) {
+      // never leave the game stuck behind a chest: give the reward without the show and carry on
+      console.warn("Loot machine failed; granting the reward directly.", err);
+      lootSpin = null;
+      const c = lootCandidates();
+      if (c.length) {
+        const w = pick(c);
+        w.apply(state);
+        if (STAT_IDS.includes(w.id)) state.statPicks[w.id] = (state.statPicks[w.id] || 0) + 1;
+        syncSlots();
+        toastMsg(`CHEST: ${w.title} upgraded!`);
+      } else ((state.player.hp = state.player.maxHp), toastMsg("CHEST: full heal!"));
+      mode = "playing";
+      panelHide();
+    }
+  }
+  function lootCandidates() {
+    return UPGRADES.filter((u) => {
+      const w = state.weapons[u.id];
+      if (w) return w.level > 0 && w.level < WMAX;
+      if (STAT_IDS.includes(u.id)) return (state.statPicks?.[u.id] || 0) > 0 && state.statPicks[u.id] < STAT_MAX;
+      return false;
+    });
+  }
+  const STAT_GLYPH = { damage: ["✊", "#c8452e"], speed: ["»", "#3f8f5a"], maxhp: ["♥", "#b02a3a"], regen: ["✚", "#2f7f6a"], magnet: ["◎", "#5a4aa8"] };
+  // Draws an upgrade's icon into a 48x48 canvas. (Never exported with toDataURL: browsers block that when the
+  // game is opened from a local file, which used to crash the loot machine and freeze the game.)
+  function drawUpgradeIcon(c, id) {
+    const x = c.getContext("2d");
+    x.clearRect(0, 0, 48, 48);
+    x.imageSmoothingEnabled = false;
+    if (STAT_GLYPH[id] || id === "jackpot") {
+      const [gl, col] = STAT_GLYPH[id] || ["$", "#a8862a"];
+      x.fillStyle = col;
+      x.fillRect(4, 4, 40, 40);
+      x.strokeStyle = "#000";
+      x.lineWidth = 2;
+      x.strokeRect(5, 5, 38, 38);
+      x.fillStyle = "#fff4d8";
+      x.font = "bold 26px monospace";
+      x.textAlign = "center";
+      x.textBaseline = "middle";
+      x.fillText(gl, 24, 26);
+    } else if (id === "gsprinkler" && ready(IMAGES.hatIcon)) x.drawImage(IMAGES.hatIcon, 0, 0, 48, 48);
+    else if (id in OLD_ICON) ready(weaponIcons) && x.drawImage(weaponIcons, OLD_ICON[id] * 32, 0, 32, 32, 0, 0, 48, 48);
+    else if (ready(IMAGES.wpn2)) x.drawImage(IMAGES.wpn2, NW_IDS.indexOf(id) * 64, 0, 64, 64, 0, 0, 48, 48);
+  }
+  // Loot machine animation: the user's chest-digging sheet. [frame, ms] steps; "reveal" marks where the prize pops up.
+  const DIG_W = 220,
+    DIG_H = 170,
+    DIG_SEQ = [
+      [0, 260], [1, 130], [2, 130], [3, 130], [4, 160], [5, 260], // wrestle the lid open
+      [6, 220], [7, 130], [8, 130], [9, 160], // dive in head first
+      [10, 140], [11, 140], [10, 140], [11, 140], // dig dig dig
+      [12, 330], [13, 330], [14, 330], [18, 330], [15, 380], // ...junk. junk. junk. junk. JUNK.
+      [10, 140], [11, 140], [16, 260], // one more dig, a sniff...
+      [19, 520, "reveal"], [20, 300], [21, 0], // THE GOODS (holds on the last frame)
+    ];
+  let lootSpin = null;
+  function showLootMachine() {
+    mode = "loot";
+    keys.clear();
+    const cands = lootCandidates(),
+      jackpot = !cands.length,
+      win = jackpot ? null : pick(cands),
+      winLabel = win ? `${win.title} — ${upgradeLabel(win).replace("PERK", "PERK LV")}` : "";
+    panelShow(
+      `<div class="eyebrow">YOU CRACKED OPEN A CHEST</div><h2>LOOT MACHINE</h2><div class="loot-stage"><canvas class="loot-dig" width="${DIG_W}" height="${DIG_H}"></canvas><div class="loot-prize"><canvas class="loot-icon" width="48" height="48"></canvas></div></div><p class="loot-result status-line">Grave Hog is digging…</p>`,
+    );
+    const card = panel.firstElementChild,
+      cv = card.querySelector(".loot-dig"),
+      cx = cv.getContext("2d"),
+      prize = card.querySelector(".loot-prize"),
+      _icon = drawUpgradeIcon(card.querySelector(".loot-icon"), win ? win.id : "jackpot"),
+      result = card.querySelector(".loot-result");
+    let step = 0,
+      stepAt = performance.now(),
+      revealed = false;
+    const drawFrame = (f) => {
+      cx.fillStyle = "#000";
+      cx.fillRect(0, 0, DIG_W, DIG_H);
+      if (ready(IMAGES.dig)) cx.drawImage(IMAGES.dig, f * DIG_W, 0, DIG_W, DIG_H, 0, 0, DIG_W, DIG_H);
+    };
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      prize.classList.add("shown");
+      if (win) {
+        win.apply(state);
+        if (STAT_IDS.includes(win.id)) state.statPicks[win.id] = (state.statPicks[win.id] || 0) + 1;
+        if (state.weapons[win.id]) state.lastUpgrade = win.id;
+        syncSlots();
+        result.innerHTML = `UPGRADED: <b>${winLabel}</b>`;
+      } else {
+        state.player.hp = state.player.maxHp;
+        save.wages += 25;
+        state.earned += 25;
+        saveGame();
+        result.innerHTML = "ALL MAXED OUT: <b>full heal + 25 wages</b>";
+      }
+      sfx("level_up", 1, () => audioBeep(990, 0.25, "triangle", 0.05));
+    };
+    const finish = () => {
+      if (!lootSpin) return;
+      cancelAnimationFrame(lootSpin.raf);
+      lootSpin = null;
+      drawFrame(DIG_SEQ[DIG_SEQ.length - 1][0]);
+      reveal();
+      addButtons(card, [["BACK TO WORK ▶", closeLootMachine, "primary"]]);
+      card.querySelector(".game-btn.primary")?.focus({ preventScroll: true });
+    };
+    const tick = (now) => {
+      let [f, ms, tag] = DIG_SEQ[step];
+      while (ms && now - stepAt >= ms && step < DIG_SEQ.length - 1) {
+        stepAt += ms;
+        step++;
+        [f, ms, tag] = DIG_SEQ[step];
+        if (f >= 12 && f <= 15 || f === 18) audioBeep(240 + Math.random() * 60, 0.05, "square", 0.02); // junk thunk
+        if (tag === "reveal") reveal();
+      }
+      drawFrame(f);
+      if (step >= DIG_SEQ.length - 1) return finish();
+      lootSpin.raf = requestAnimationFrame(tick);
+    };
+    drawFrame(0);
+    lootSpin = { raf: requestAnimationFrame(tick), finish };
+    if (!ready(IMAGES.dig)) finish(); // art missing: straight to the result
+    // tap / click / Enter / A during the animation skips straight to the result
+    card.addEventListener("click", () => lootSpin && finish(), { once: true });
+  }
+  function closeLootMachine() {
+    if (lootSpin) return lootSpin.finish();
+    if (pendingLevelUps) return showLevelUp();
+    mode = "playing";
+    panelHide();
   }
   // ---- Minimap (one pixel per tile) ----
   const minimap = document.createElement("canvas");
@@ -1523,12 +1655,29 @@
     m.fillRect(0, 0, 2, MH);
     m.fillRect(MW - 2, 0, 2, MH);
   }
+  // ---- Keep the action on screen ----
+  // Player weapons only target / damage monsters inside REACH (the default screen around Hog plus a small margin).
+  // It's fixed to the default zoom so zooming out never adds damage. Enemies only start ranged attacks or charges
+  // when they're inside the CURRENT view (no more sniping from off-screen).
+  const REACH_X = 172,
+    REACH_Y = 112;
+  function inReach(e) {
+    const p = state.player,
+      m = (e.r || 10) * 0.6;
+    return Math.abs(e.x - p.x) <= REACH_X + m && Math.abs(e.y - p.y) <= REACH_Y + m;
+  }
+  function onScreen(e, inset = 12) {
+    const c = lastCam;
+    if (!c) return true;
+    return e.x > c.x + inset && e.x < c.x + VIEW_W - inset && e.y > c.y + inset && e.y < c.y + VIEW_H - inset;
+  }
   function nearestEnemy(max = Infinity) {
     if (!state) return null;
     const p = state.player;
     let best = null,
       dmax = max;
     for (const e of state.enemies) {
+      if (!inReach(e)) continue;
       const d = dist(p, e);
       if (d < dmax) {
         best = e;
@@ -1543,6 +1692,7 @@
   }
   function damageEnemy(e, amount, knock = true) {
     if (!state.enemies.includes(e)) return;
+    if (!inReach(e)) return; // off-screen monsters can't be hurt (projectiles that fly off just miss)
     e.hp -= amount;
     // Hit flash is throttled so sustained damage (lanterns, chainsaw) doesn't leave a monster permanently white.
     if (!e.flashAt || state.t - e.flashAt > 0.28) {
@@ -1559,6 +1709,7 @@
     spawnSplat(e); // v14: tinted hit splatter (throttled per monster + global cap)
     if (e.hp <= 0) killEnemy(e);
   }
+  const BOSS_CORPSE_HOLD = 2; // Grave Digger / Widow bodies stay down this many extra seconds before fading
   function killEnemy(e) {
     const i = state.enemies.indexOf(e);
     if (i < 0) return;
@@ -1575,6 +1726,7 @@
         : ({ zombie: 0, skeleton: 1, hand: 2, ghost: 3, worm: 4, keeper: 5 }[e.type] ?? 0),
       s2: !!e.s2,
       type: e.type,
+      hold: e.boss && (e.bossId === "digger" || e.bossId === "widow") ? BOSS_CORPSE_HOLD : 0, // lingers before fading
       exploded: !!e.exploded,
       boss: !!e.boss,
       bossId: e.bossId || null,
@@ -1598,8 +1750,11 @@
       // Rare Vacuum: ~1 in 280 regular kills, and never more than one lying on the ground at a time.
       if (Math.random() < VACUUM_CHANCE && !state.drops.some((d) => d.type === "vacuum"))
         drop(e.x + rand(-6, 6), e.y + rand(-6, 6), "vacuum", 0);
-      if (Math.random() < 0.14)
-        drop(e.x + rand(-8, 8), e.y + rand(-8, 8), Math.random() < 0.55 ? "wage" : "pizza", Math.random() < 0.55 ? 2 : 20);
+      if (Math.random() < 0.14) {
+        // wages and pizza each get their own value (they used to share one roll, so pizza sometimes healed 2)
+        if (Math.random() < 0.55) drop(e.x + rand(-8, 8), e.y + rand(-8, 8), "wage", Math.random() < 0.55 ? 2 : 20);
+        else drop(e.x + rand(-8, 8), e.y + rand(-8, 8), "pizza", pizzaHeal());
+      }
       sfx("mob_death", 1, () => audioBeep(115 + Math.random() * 90, 0.055, "triangle", 0.02));
     }
   }
@@ -1682,6 +1837,12 @@
       return i <= 3 || (j <= 2 && i < 7) ? "#ff6a5a" : "#d22a2a";
     }),
   };
+  // Pizza: a flat 5 HP, plus 3 per level of the office's Extra Cheese perk
+  const PIZZA_BASE = 5,
+    PIZZA_PER_CHEESE = 3;
+  function pizzaHeal() {
+    return PIZZA_BASE + PIZZA_PER_CHEESE * Math.min(PERK_MAX.cheese, save.perks.cheese || 0);
+  }
   function drop(x, y, type, value) {
     state.drops.push({ x, y, type, value, r: type === "xp" ? 5 : type === "vacuum" ? 10 : 8, phase: Math.random() * TAU });
   }
@@ -1713,8 +1874,9 @@
       saveGame();
     } else if (d.type === "vacuum") triggerVacuum(d.x, d.y);
     else {
-      p.hp = Math.min(p.maxHp, p.hp + d.value);
-      toastMsg("PIZZA TIME. +20 health.");
+      const heal = pizzaHeal(); // read at pickup so an office upgrade bought mid-shift counts right away
+      p.hp = Math.min(p.maxHp, p.hp + heal);
+      toastMsg(`PIZZA TIME. +${heal} health.`);
     }
     state.collected = state.collected || { xp: 0, wage: 0, pizza: 0, vacuum: 0 };
     state.collected[d.type] = (state.collected[d.type] || 0) + 1;
@@ -1750,7 +1912,7 @@
   function updateParticles(dt) {
     for (const d of [...state.deaths]) {
       d.age += dt;
-      if (d.age > (d.burn ? 0.7 : d.boss ? 1.4 : d.s2 ? 1.1 : 0.48)) state.deaths.splice(state.deaths.indexOf(d), 1);
+      if (d.age > (d.burn ? 0.7 : d.boss ? 1.4 + (d.hold || 0) : d.s2 ? 1.1 : 0.48)) state.deaths.splice(state.deaths.indexOf(d), 1);
     }
     for (const part of [...state.particles]) {
       part.x += part.vx * dt;
@@ -1760,6 +1922,7 @@
       if (part.life <= 0) state.particles.splice(state.particles.indexOf(part), 1);
     }
   }
+  const STAGE1_HP_RAMP = 220; // seconds per +100% enemy health on Stage 1 (lower = tougher monsters later in the shift)
   function addEnemy(type, bossId = null) {
     const p = state.player;
     if (bossId) {
@@ -1797,7 +1960,9 @@
       return;
     }
     const def = typesFor()[type];
-    const scale = 1 + state.t / 520;
+    // Health ramps over the shift. Stage 1 ramps much harder (testers could stand still and win): ~2.6x at 3 AM,
+    // ~3.7x at 5 AM, ~4.3x at 6 AM. Stage 2 keeps its original curve (~2.4x by 6 AM).
+    const scale = 1 + state.t / (STAGE === 1 ? STAGE1_HP_RAMP : 520);
     const spot = findSpawnPoint();
     if (!spot) return; // no valid reachable cell this tick — skip rather than spawn inside scenery
     state.enemies.push({
@@ -1861,7 +2026,7 @@
     cleaver: ["Haunted Meat Cleaver", "Spinning cleavers fly at the nearest monsters.", "More cleavers, then they pierce"],
     gsprinkler: ["Graveyard Sprinkler", "Rotating streams of corrosive water sweep all around Grave Hog.", "More streams, longer range"],
     witchjar: ["Witch's Jar", "Smashes into a cloud of poison bugs that hunts monsters.", "Bigger cloud, lasts longer"],
-    bell: ["Funeral Bell", "A ghostly bell tolls and hurts every monster in a wide radius.", "Wider radius, faster tolls"],
+    bell: ["Funeral Bell", "A ghostly bell tolls, hurts every monster in a wide radius and sends them fleeing in terror (bosses don't scare).", "Wider radius, faster tolls, 1s more terror"],
     dust: ["Grave Dust", "A spreading dust cloud that slows and wears monsters down.", "Wider cloud, lasts longer"],
     lastnail: ["The Last Nail", "Fires a huge spectral railroad spike through a whole line of monsters.", "More spikes, pierces more"],
   };
@@ -1941,19 +2106,19 @@
   // ---------- helpers ----------
   function enemiesIn(x, y, r) {
     const out = [];
-    for (const e of state.enemies) if (Math.hypot(e.x - x, e.y - y) < r + e.r) out.push(e);
+    for (const e of state.enemies) if (Math.hypot(e.x - x, e.y - y) < r + e.r && inReach(e)) out.push(e);
     return out;
   }
   function randomEnemyNear(r) {
     const p = state.player,
       c = [];
-    for (const e of state.enemies) if (Math.abs(e.x - p.x) < r && Math.abs(e.y - p.y) < r && dist(p, e) < r) c.push(e);
+    for (const e of state.enemies) if (Math.abs(e.x - p.x) < r && Math.abs(e.y - p.y) < r && dist(p, e) < r && inReach(e)) c.push(e);
     return c.length ? pick(c) : null;
   }
   function densestNear(r, rad = 70) {
     const p = state.player,
       c = [];
-    for (const e of state.enemies) if (dist(p, e) < r) c.push(e);
+    for (const e of state.enemies) if (dist(p, e) < r && inReach(e)) c.push(e);
     if (!c.length) return null;
     let best = c[0],
       bn = -1;
@@ -2181,7 +2346,15 @@
       } else if (id === "bell") {
         const R = 130 + 26 * L;
         if (!nearestEnemy(R)) continue;
-        aoe(p.x, p.y, R, wdmg(16 + 6 * L), 60);
+        aoe(p.x, p.y, R, wdmg(16 + 6 * L), 0);
+        // v17: no knockback; every regular monster in range flees in terror for 1s per bell level (bosses don't scare)
+        for (const e of enemiesIn(p.x, p.y, R)) {
+          if (e.boss) continue;
+          e.fearT = Math.max(e.fearT || 0, L);
+          e.charge = null; // drop whatever they were winding up
+          e.throwAt = 0;
+          e.prime = 0;
+        }
         fx({ k: "toll", x: p.x, y: p.y, t: 0, life: 0.8, R });
         w.cd = 4.6 - 0.45 * L;
         sfx("bell_toll", 1, () => audioBeep(196, 0.6, "sine", 0.035));
@@ -2456,6 +2629,17 @@
   function drawWeapons2(camX, camY, hx, hy) {
     const hxBody = hx,
       hyBody = hy;
+    // Funeral Bell terror: a shaking "!" over every fleeing monster
+    for (const e of state.enemies)
+      if (e.fearT > 0) {
+        const x = Math.round(e.x - camX + Math.sin(state.t * 40 + e.phase) * 1.5),
+          y = Math.round(e.y - camY - (e.s2 ? 56 : 46));
+        g.fillStyle = "#120c08";
+        g.fillRect(x - 2, y - 1, 6, 12);
+        g.fillStyle = "#fff4d8";
+        g.fillRect(x - 1, y, 4, 6);
+        g.fillRect(x - 1, y + 8, 4, 2);
+      }
     const T = state.t,
       p = state.player,
       W = state.weapons;
@@ -3077,10 +3261,15 @@
     }
 
     if (weapons.nail.level) {
+      const NAIL_BASE = 20,
+        NAIL_VOLLEY = [1, 1.5, 1.9, 2.3, 2.7]; // total damage of one volley at each level, split across its nails
       weapons.nail.cooldown -= wdt;
       if (nearest && weapons.nail.cooldown <= 0) {
-        weapons.nail.cooldown = Math.max(0.2, 0.9 - weapons.nail.level * 0.13);
-        const count = 1 + Math.floor((weapons.nail.level - 1) / 2),
+        // v17 rebalance: +1 nail per level, the volley's total damage grows modestly (x1 -> x2.7) and is split across
+        // the nails, reload 0.73s -> 0.45s. Level 5 vs level 1 on one target: ~4.5x (was ~22x).
+        const NL = Math.min(weapons.nail.level, NAIL_VOLLEY.length);
+        weapons.nail.cooldown = Math.max(0.4, 0.8 - NL * 0.07);
+        const count = NL,
           base = Math.atan2(nearest.y - p.y, nearest.x - p.x);
         p.aim = base;
         setPose("nail", base);
@@ -3096,12 +3285,14 @@
             vx: Math.cos(a) * weapons.nail.speed,
             vy: Math.sin(a) * weapons.nail.speed,
             life: 1.2,
-            damage: weapons.nail.damage * (1 + weapons.nail.level * 0.16),
+            damage: (NAIL_BASE * NAIL_VOLLEY[NL - 1]) / count,
             r: 3,
             weapon: "nail",
           });
         }
-        sfx("nailgun_shot", 1, () => audioBeep(400, 0.04, "square", 0.018));
+        // random pitch + slight volume wobble per shot so rapid fire doesn't sound like a metronome
+        const pr = rand(0.82, 1.2);
+        sfx("nailgun_shot", rand(0.8, 1.05), () => audioBeep(400 * pr, 0.04, "square", 0.018), pr);
       }
     }
     if (weapons.sprinkler.level) {
@@ -3332,7 +3523,12 @@
       const flow = e.type === "ghost" || e.fly ? null : flowDir(e);
       const dirX = flow ? flow.x : (p.x - e.x) / d,
         dirY = flow ? flow.y : (p.y - e.y) / d;
-      if (e.boss) {
+      if (!e.boss && e.fearT > 0) {
+        // terrified by the Funeral Bell: run straight away from Hog, no attacks, no contact damage
+        e.fearT -= dt;
+        e.vx += ((e.x - p.x) / d) * e.speed * dt * 3;
+        e.vy += ((e.y - p.y) / d) * e.speed * dt * 3;
+      } else if (e.boss) {
         e.phase += dt;
         const arena = WORLD.arenas[e.bossId];
         if (!e.engaged) {
@@ -3421,7 +3617,7 @@
           e.stuckT = 0;
         }
       }
-      if (d < e.r + p.r && p.invuln <= 0) {
+      if (d < e.r + p.r && p.invuln <= 0 && !(e.fearT > 0)) {
         if (hitPlayer(e.damage, 0.55, 6)) return;
       }
     }
@@ -3438,7 +3634,8 @@
             cur = Math.atan2(q.vy, q.vx),
             sp = Math.hypot(q.vx, q.vy);
           let da = ((want - cur + Math.PI * 3) % TAU) - Math.PI;
-          da = clamp(da, -1.5 * dt, 1.5 * dt);
+          const tr = q.turn || 1.5;
+          da = clamp(da, -tr * dt, tr * dt);
           q.vx = Math.cos(cur + da) * sp;
           q.vy = Math.sin(cur + da) * sp;
         }
@@ -3634,7 +3831,7 @@
     const p = state.player,
       c = e.cast;
     c.t += dt;
-    if (c.t < c.dur * 0.8) c.a = Math.atan2(p.y - (e.y + CAST_HAND_Y), p.x - e.x); // aim locks for the last 20%
+    if (c.t < c.dur * (e.bossId === "king" ? 0.92 : 0.8)) c.a = Math.atan2(p.y - (e.y + CAST_HAND_Y), p.x - e.x); // aim locks for the last 20% (King: 8%)
     e.vx *= Math.pow(0.02, dt);
     e.vy *= Math.pow(0.02, dt);
     if (c.t >= c.dur) {
@@ -3643,6 +3840,7 @@
     }
   }
   function fireBossVolley(e, a) {
+    if (!onScreen(e, -8)) return; // Widow / King never fire from off-screen
     const king = e.bossId === "king",
       ox = e.x + Math.cos(a) * 26,
       oy = e.y + CAST_HAND_Y + Math.sin(a) * 14,
@@ -3662,7 +3860,8 @@
         enemy: true,
         src: e.bossId,
         fire: king ? "skull" : "blue",
-        home: king ? 1.1 : 0, // skulls steer toward Hog for their first second, gently
+        home: king ? 1.8 : 0, // King's skulls chase Hog for 1.8s
+        turn: king ? 2.5 : 0, // ...turning up to 2.5 rad/s (was 1.5 for 1.1s)
         spin: Math.random() * TAU,
         color: king ? "#5dff7a" : "#5fa8ff",
       });
@@ -3687,7 +3886,7 @@
     if (b.t < BONE.scoop) b.a = Math.atan2(p.y - e.y, p.x - e.x); // keeps tracking Hog until the scoop, then commits
     if (!b.thrown && b.t >= BONE.throwAt) {
       b.thrown = true;
-      const n = e.hp < e.maxHp * 0.5 ? 4 : 3; // angrier in his second half
+      const n = !onScreen(e, -8) ? 0 : e.hp < e.maxHp * 0.5 ? 4 : 3; // angrier in his second half; never off-screen
       for (let j = 0; j < n; j++) {
         const aa = b.a + (j - (n - 1) / 2) * 0.24;
         state.projectiles.push({ x: e.x + Math.cos(aa) * 20, y: e.y - 10, vx: Math.cos(aa) * 170, vy: Math.sin(aa) * 170, life: 2.6, damage: 11, r: 6, enemy: true, bone: true, spin: Math.random() * TAU, color: "#e8dcc0" });
@@ -3730,7 +3929,12 @@
     save.bestLevel = Math.max(save.bestLevel, state.player.level);
     saveGame();
     const p = state.player,
-      headline = win ? (STAGE === 2 ? "MEGA MART CLEARED!" : "SHIFT COMPLETE!") : "YOU GOT CLOCKED";
+      headline = win ? (STAGE === 2 ? "MEGA MART CLEARED!" : "SHIFT COMPLETE!") : "YOU GOT CLOCKED",
+      endMode = mode;
+    // the results card can be reopened (BACK from the office), so the run is never lost by visiting the office
+    resultsView = () => {
+    mode = endMode;
+    menuBack = "results";
     panelShow(
       `<div class="eyebrow">${win ? "SUNRISE, FINALLY" : "THE NIGHT GOT YOU"}</div><h2>${headline}</h2><p>${win ? (STAGE === 2 ? "The store lights flicker off. The aisles are quiet. Grave Hog has earned a nap." : "Grave Hog punches the timecard. The monsters burn off in the morning light.") : "Management has been notified. Management does not care."}</p><p class="status-line">${win ? "6:00 AM" : formatClock(state.clock)} · ${state.kills} KILLS · LEVEL ${p.level}<br>${state.bosses} BOSSES · ${state.earned} WAGES EARNED · ${Math.round(state.damageTaken)} DAMAGE TAKEN</p>`,
     );
@@ -3740,15 +3944,17 @@
       panel.firstElementChild,
       win
         ? [
-            ["CONTINUE ▶", () => (stageNow === 1 ? showSlides(1, () => startRun(2)) : showSlides(2, showEnding)), "primary"],
-            ["MAINTENANCE OFFICE", () => showOffice("title")],
+            [stageNow === 1 ? "CONTINUE TO STAGE 2 ▶" : "CONTINUE ▶", () => ((resultsView = null), stageNow === 1 ? showSlides(1, () => startRun(2)) : showSlides(2, showEnding)), "primary"],
+            ["MAINTENANCE OFFICE", () => showOffice("results")],
           ]
         : [
-            [stageNow === 2 ? "TRY THE MEGA MART AGAIN" : "ANOTHER SHIFT", () => startRun(stageNow), "primary"],
-            ["MAINTENANCE OFFICE", () => showOffice("title")],
-            ["TITLE", showTitle],
+            [stageNow === 2 ? "TRY THE MEGA MART AGAIN" : "ANOTHER SHIFT", () => ((resultsView = null), startRun(stageNow)), "primary"],
+            ["MAINTENANCE OFFICE", () => showOffice("results")],
+            ["TITLE", () => ((resultsView = null), showTitle())],
           ],
     );
+    };
+    resultsView();
   }
   function formatClock(hour) {
     const mins = Math.floor((hour % 1) * 60),
@@ -3806,14 +4012,15 @@
     pctRow("XP gain", P.xp * 0.05, 1 + P.xp * 0.05);
     const offMag = P.magnet * 0.08;
     pctRow("Pickup radius", offMag, p.magnet / 78);
+    const ch = Math.min(PERK_MAX.cheese, P.cheese || 0);
+    add("Pizza heal", String(PIZZA_BASE), ch ? `+${ch * PIZZA_PER_CHEESE}` : "", "", String(pizzaHeal()));
     const rr = Math.min(PERK_MAX.reroll, P.reroll || 0),
       bb = Math.min(PERK_MAX.banish, P.banish || 0);
     add("Rerolls", String(BASE_REROLLS), rr ? `+${rr}` : "", "", `${state.rerolls} left of ${BASE_REROLLS + rr}`);
     add("Banishes", String(BASE_BANISHES), bb ? `+${bb}` : "", "", `${state.banishes} left of ${BASE_BANISHES + bb}`);
     const notes = [];
     if (p.blessT > 0) notes.push(`Fountain blessing: +35% damage for ${Math.ceil(p.blessT)}s more (included above).`);
-    const tr = Object.values(B).reduce((a, v) => a + (v || 0), 0);
-    if (tr) notes.push(`Treasure found this shift: ${tr}.`);
+    if (state.chests) notes.push(`Chests opened this shift: ${state.chests}.`);
     panelShow(
       `<div class="eyebrow">TIME CARD</div><h2>GRAVE HOG'S STATS</h2><p class="stats-legend"><span class="perm">■ PERMANENT</span><span class="lg-d"> Maintenance Office</span> &nbsp; <span class="temp">■ THIS SHIFT</span><span class="lg-d"> level-ups, treasure, blessings</span></p><table class="stats-table"><thead><tr><th></th><th>BASE</th><th class="perm">OFFICE</th><th class="temp">SHIFT</th><th>TOTAL</th></tr></thead><tbody>${rows.join("")}</tbody></table>${notes.length ? `<p class="muted">${notes.join(" ")}</p>` : ""}<p class="muted">Shift bonuses reset when the next shift starts. Office perks are yours to keep.</p>`,
     );
@@ -3841,11 +4048,14 @@
     const early = ["shopper_zombie", "shopper_zombie", "rat_swarm"],
       mid = [...early, "cashier_corpse", "stock_clerk", "mutated_produce"],
       late = [...mid, "cleaning_bot", "security_drone", "shopper_zombie"];
-    if (any) return [...late, "forklift_zombie"];
+    // forklifts: never more than FORKLIFT_MAX alive at once (testers found big packs of them unfun)
+    const forkOk = state.enemies.filter((e) => e.type === "forklift_zombie").length < FORKLIFT_MAX;
+    if (any) return forkOk ? [...late, "forklift_zombie"] : late;
     if (state.t < 60) return early;
     if (state.t < 180) return mid;
-    return state.t > 240 && Math.random() < 0.12 ? ["forklift_zombie"] : late;
+    return forkOk && state.t > 240 && Math.random() < 0.12 ? ["forklift_zombie"] : late;
   }
+  const FORKLIFT_MAX = 2;
   function triggerTestBox() {
     state.testBoxUsed = true;
     state.endedByTestBox = true;
@@ -3856,6 +4066,7 @@
     showSlides(1, () => startRun(2));
   }
   function enemyShot(e, kind, speed, damage, r, spread = 0, n = 1, color) {
+    if (!onScreen(e, -8)) return; // never fire from off-screen
     const p = state.player,
       a0 = Math.atan2(p.y - (e.y - 10), p.x - e.x);
     for (let j = 0; j < n; j++) {
@@ -3917,7 +4128,7 @@
           if (e.type === "cashier_corpse") enemyShot(e, "scanner", 190, 8, 6);
           else enemyShot(e, "box", 150, 11, 8);
         }
-        if (e.attack <= 0 && d < 270) {
+        if (e.attack <= 0 && d < 270 && onScreen(e)) {
           e.attack = e.type === "cashier_corpse" ? 2.4 : 3.0;
           e.animT = 0.4;
           e.throwAt = 0.2;
@@ -3963,7 +4174,7 @@
           k = d > want ? 1 : -1.2;
         e.vx += (dirX * k * 1.4 - dirY * 0.6) * e.speed * dt;
         e.vy += (dirY * k * 1.4 + dirX * 0.6) * e.speed * dt;
-        if (e.attack <= 0 && d < 250) {
+        if (e.attack <= 0 && d < 250 && onScreen(e)) {
           e.attack = 2.4;
           e.animT = 0.4;
           e.shots = (e.shots || 0) + 1;
@@ -3997,7 +4208,7 @@
           }
         } else {
           chase(1.5);
-          if (e.attack <= 0 && d < 290) ((e.charge = { t: 0, a: Math.atan2(p.y - e.y, p.x - e.x) }), (state.forkCharges = (state.forkCharges || 0) + 1));
+          if (e.attack <= 0 && d < 290 && onScreen(e)) ((e.charge = { t: 0, a: Math.atan2(p.y - e.y, p.x - e.x) }), (state.forkCharges = (state.forkCharges || 0) + 1));
         }
         break;
     }
@@ -4525,21 +4736,23 @@
       const sheet = e.s2 ? IMAGES.mmBoss : e.bossId === "digger" ? diggerSheet : bossSheet;
       if (!ready(sheet)) return;
       const [row, frame] = bossFrame(e),
-        dx = sx - BOSS_CELL / 2,
-        dy = sy + BOSS_DY,
-        S = BOSS_CELL;
+        bsc = BOSS[e.bossId]?.scale || 1, // per-boss draw scale (Cart Beast is 10% bigger); feet stay on the baseline
+        S = BOSS_CELL,
+        D = Math.round(S * bsc),
+        dx = sx - D / 2,
+        dy = Math.round(sy + 25 - BOSS_BASE * bsc);
       if (e.burnT > 0) {
         const k = Math.min(1, e.burnT / e.burnDur);
         g.globalAlpha = 1 - k * 0.7;
-        drawTinted(sheet, frame * S, row * S, S, S, dx, dy, S, S, flip, Math.min(0.85, 0.35 + k * 0.5), k < 0.5 ? "#ff8a3d" : "#2b2630");
+        drawTinted(sheet, frame * S, row * S, S, S, dx, dy, D, D, flip, Math.min(0.85, 0.35 + k * 0.5), k < 0.5 ? "#ff8a3d" : "#2b2630");
         g.globalAlpha = 1;
       } else {
         g.fillStyle = "rgba(0,0,0,0.35)";
         g.beginPath();
-        g.ellipse(sx, sy + 26, 34, 9, 0, 0, TAU);
+        g.ellipse(sx, sy + 26, 34 * bsc, 9 * bsc, 0, 0, TAU);
         g.fill();
-        if (e.flash > 0) drawTinted(sheet, frame * S, row * S, S, S, dx, dy, S, S, flip, 0.45);
-        else blit(sheet, frame * S, row * S, S, S, dx, dy, S, S, flip);
+        if (e.flash > 0) drawTinted(sheet, frame * S, row * S, S, S, dx, dy, D, D, flip, 0.45);
+        else blit(sheet, frame * S, row * S, S, S, dx, dy, D, D, flip);
       }
       if (e.s2) drawBoss2Telegraph(e, sx, sy);
       if (e.bone) drawBoneDig(e, e.bone);
@@ -4768,8 +4981,10 @@
       if (d.boss) {
         // Digger: his own 4-frame collapse (row 3). Widow / King: sink and fade out. Stage 2 bosses: their death row.
         const S = BOSS_CELL;
-        g.globalAlpha = clamp((1.4 - d.age) / 0.4, 0, 1);
-        if (d.s2 && ready(IMAGES.mmBoss)) blit(IMAGES.mmBoss, Math.min(3, Math.floor(d.age * 8)) * S, (BOSS[d.bossId].idx * 3 + 2) * S, S, S, sx - S / 2, sy + BOSS_DY, S, S, d.faceLeft);
+        g.globalAlpha = clamp((1.4 + (d.hold || 0) - d.age) / 0.4, 0, 1);
+        const dsc = BOSS[d.bossId]?.scale || 1,
+          DD = Math.round(S * dsc);
+        if (d.s2 && ready(IMAGES.mmBoss)) blit(IMAGES.mmBoss, Math.min(3, Math.floor(d.age * 8)) * S, (BOSS[d.bossId].idx * 3 + 2) * S, S, S, sx - DD / 2, Math.round(sy + 25 - BOSS_BASE * dsc), DD, DD, d.faceLeft);
         else if (d.bossId === "digger" && ready(diggerSheet)) blit(diggerSheet, Math.min(3, Math.floor(d.age * 4)) * S, 3 * S, S, S, sx - S / 2, sy + BOSS_DY, S, S, d.faceLeft);
         else if (ready(bossSheet)) {
           const sink = Math.round(Math.min(1, d.age / 1.2) * 40);
@@ -5135,16 +5350,6 @@
     // every treasure is the same animated chest; the coloured gem above it says which bonus it gives
     const fr = Math.floor(performance.now() / 150 + rw.phase * 4) % CHEST_FRAMES;
     if (ready(IMAGES.chest)) g.drawImage(IMAGES.chest, fr * CHEST_W, 0, CHEST_W, CHEST_H, Math.round(sx - CHEST_W / 2), Math.round(sy - CHEST_H + 4), CHEST_W, CHEST_H);
-    const tb = TREASURE_BONUS[rw.kind];
-    if (tb) {
-      const gy = sy - CHEST_H - Math.round(pulse * 3);
-      g.fillStyle = "#120c08";
-      g.fillRect(sx - 4, gy - 4, 9, 9);
-      g.fillStyle = tb.color;
-      g.fillRect(sx - 3, gy - 3, 7, 7);
-      g.fillStyle = "#ffffff";
-      g.fillRect(sx - 2, gy - 2, 2, 2);
-    }
   }
   function drawDebugWorld(camX, camY, hx, hy) {
     g.save();
@@ -5707,13 +5912,26 @@
       ctx.textAlign = "left";
     }
     if (toastUntil > performance.now()) {
+      // word-wrapped (long treasure messages used to run off the screen); grows upward from the bottom
       ctx.textAlign = "center";
       ctx.font = "16px monospace";
-      const tw = ctx.measureText(toast).width;
+      const maxW = 600,
+        lines = [];
+      let cur = "";
+      for (const word of toast.split(" ")) {
+        const t = cur ? cur + " " + word : word;
+        if (ctx.measureText(t).width > maxW && cur) (lines.push(cur), (cur = word));
+        else cur = t;
+      }
+      if (cur) lines.push(cur);
+      const tw = Math.max(...lines.map((l) => ctx.measureText(l).width)),
+        lh = 21,
+        boxH = lines.length * lh + 8,
+        top = H - 76 - boxH;
       ctx.fillStyle = "#0c1019cc";
-      ctx.fillRect(W / 2 - tw / 2 - 10, H - 104, tw + 20, 28);
+      ctx.fillRect(W / 2 - tw / 2 - 10, top, tw + 20, boxH);
       ctx.fillStyle = "#ffdd8b";
-      ctx.fillText(toast, W / 2, H - 84);
+      lines.forEach((l, i) => ctx.fillText(l, W / 2, top + 20 + i * lh));
       ctx.textAlign = "left";
     }
   }
@@ -5752,6 +5970,10 @@
       }
       return;
     }
+    if (mode === "loot" && !e.repeat && (k === "enter" || k === " ")) {
+      e.preventDefault();
+      return closeLootMachine();
+    }
     if (mode === "levelup" && levelUpKeys && !e.repeat) {
       if (k === "r") return levelUpKeys.reroll();
       if (k === "b") return levelUpKeys.banish();
@@ -5764,6 +5986,11 @@
       return;
     }
     if (photoFreeze && k === "escape") photoFreeze = false; // ESC still opens the normal pause menu
+    if (!e.repeat && mode === "playing") {
+      if (k === "z") return zoomCycle();
+      if (k === "-" || k === "_") return zoomStep(1);
+      if (k === "=" || k === "+") return zoomStep(-1);
+    }
     if (k === "m") showBigMap = true;
     keys.add(k);
     if (k === "escape") {
@@ -5864,6 +6091,8 @@
         PAD.driving = false;
       }
       if (tap(8)) showBigMap = !showBigMap;
+      if (tap(4)) zoomStep(-1); // LB: zoom in
+      if (tap(5)) zoomStep(1); // RB: zoom out
     } else {
       if (PAD.driving) (touchVec.x = touchVec.y = touchVec.m = 0), (PAD.driving = false);
       if (mode !== "playing" && showBigMap && !held(8)) showBigMap = false;
@@ -5911,6 +6140,8 @@
       showBigMap = !showBigMap;
       return showBigMap;
     },
+    zoomStep: (d) => zoomStep(d), // wrappers: the zoom helpers are defined further down
+    zoomCycle: () => zoomCycle(),
     get mode() {
       return mode;
     },
@@ -5920,13 +6151,29 @@
   // Mouse wheel: down = zoom out (up to 160% of the default visible world), up = back toward 100%. Never zooms in past 100%.
   let wheelAcc = 0,
     wheelAt = 0;
+  // Zoom: mouse wheel, Z (cycle), - / = keys, controller bumpers, pinch or the ZOOM button on touch screens.
+  // The chosen level is saved, so it carries across stages and sessions.
+  function zoomAllowed() {
+    return !(mode === "title" || mode === "office" || mode === "options");
+  }
+  function setZoom(i) {
+    const n = clamp(i, 0, ZOOM_STEPS.length - 1);
+    if (n === zoomIndex) return;
+    zoomIndex = n;
+    save.zoomIndex = n;
+    try {
+      localStorage.setItem(saveKey, JSON.stringify(save));
+    } catch (e) {}
+  }
+  const zoomStep = (d) => zoomAllowed() && setZoom(zoomIndex + d);
+  const zoomCycle = () => zoomAllowed() && setZoom(zoomIndex >= ZOOM_STEPS.length - 1 ? 0 : zoomIndex + 1);
   function onWheel(e) {
     e.preventDefault(); // the page must not scroll while the wheel is used over the game
     if (mode === "title" || mode === "office" || mode === "options") return;
     wheelAcc += e.deltaY;
     const now = performance.now();
     if (Math.abs(wheelAcc) < 40 && now - wheelAt < 400 && Math.abs(e.deltaY) < 40) return;
-    zoomIndex = clamp(zoomIndex + (wheelAcc > 0 ? 1 : -1), 0, ZOOM_STEPS.length - 1);
+    setZoom(zoomIndex + (wheelAcc > 0 ? 1 : -1));
     wheelAcc = 0;
     wheelAt = now;
   }
@@ -5948,6 +6195,7 @@
       v16: () => ({ MUSIC_FILES, musicWant, musicOn, musicDuck, musicStats, music: Object.fromEntries(Object.entries(musicEls).map(([n, a]) => [n, { vol: a.volume, paused: a.paused, t: a.currentTime, ready: a.readyState, err: !!a.error }])), SFX_VAR, sfxAll: Object.keys(SFX_ALL), sfxVol: Object.fromEntries(Object.entries(SFX_ALL).map(([n, d]) => [n, d.vol])), FOG_OVER, perkRefund: perkRefund(), menuBack, gemTier: [1, 3, 4, 6, 7, 9].map(gemTier) }),
       musicTick,
       awardXP,
+      finishRun,
       playMusic,
       showOptions,
       showPause,
