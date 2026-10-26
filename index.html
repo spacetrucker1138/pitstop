@@ -227,7 +227,7 @@
     .jurn-edition-copy h3 { color:var(--bone-white); font-family:'Creepster',cursive; font-size:clamp(1.3rem,2.5vw,2rem); line-height:1.05; }
     .jurn-edition-copy p { color:var(--text-body); font-size:.82rem; line-height:1.5; margin:0; }
     .jurn-edition-copy .buy { color:var(--neon-green); font: .68rem/1.2 'Courier New',monospace; letter-spacing:1.5px; text-transform:uppercase; margin-top:.25rem; }
-    @media (max-width:700px) { .jurn-release-head { display:block; } .jurn-release-head p { margin-top:.5rem; } .jurn-release-grid { grid-template-columns:1fr; } .jurn-edition { grid-template-columns:120px 1fr; } .jurn-edition-cover { min-height:190px; } .jurn-edition-copy { padding:1rem; } }
+    @media (max-width:700px) { .jurn-release-head { display:block; } .jurn-release-head p { margin-top:.5rem; } .jurn-release-grid { grid-template-columns:1fr; } .jurn-edition { grid-template-columns:120px 1fr !important; } .jurn-edition-copy { min-width:0; overflow-wrap:anywhere; } .jurn-edition-cover { min-height:190px; } .jurn-edition-copy { padding:1rem; } }
     @media (prefers-reduced-motion:reduce) { .jurn-edition { transition:none; } }
 
   </style>
@@ -241,22 +241,29 @@
 
 <nav>
   <div class="nav-inner">
-    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <a href="/" class="logo">Spacetrucker's Pit Stop</a>
+    <ul class="nav-links">
+      <li><a href="/" class="active" aria-current="page">Home</a></li>
+      <li><a href="/graveyard-dimension/">Graveyard Dimension</a></li>
+      <li><a href="/music.html">Music</a></li>
+      <li><a href="/games.html">Games</a></li>
+      <li><a href="/wall/" class="nav-wall-glitch">The Wall</a></li>
+      <li class="nav-more"><button type="button" aria-haspopup="true" onclick="this.parentNode.classList.toggle('open');this.setAttribute('aria-expanded',this.parentNode.classList.contains('open'))">More &#9662;</button>
+        <ul class="nav-dd">
+          <li><a href="/library.html">The Library</a></li>
+          <li><a href="/about.html">About</a></li>
+          <li><a href="/publishing/">Publishing</a></li>
+          <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
+          <li><a href="/ghoulbox/">Ghoul Box</a></li>
+          <li><a href="/fiends.html">Fiends</a></li>
+          <li><a href="/links.html">Links</a></li>
+        </ul>
+      </li>
+    </ul>
+    <a href="https://ko-fi.com/spacetrucker" class="nav-join" target="_blank" rel="noopener">Join the Crew</a>
     <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
-    <ul class="nav-links">
-      <li><a href="index.html" class="active">Home</a></li>
-      <li><a href="music.html">Music</a></li>
-      <li><a href="library.html">The Library</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="games.html">Games</a></li><li><a href="/publishing/">Publishing</a></li>
-      <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
-      <li><a href="/ghoulbox/">Ghoul Box</a></li>
-      <li><a href="wall/" class="nav-wall-glitch">The Wall</a></li>
-      <li><a href="fiends.html">Fiends</a></li>
-<li><a href="links.html">Links</a></li>
-    </ul>
   </div>
 </nav>
 
@@ -309,7 +316,7 @@
 <div class="v6-main-wrap">
 
   <div class="merch-section fade-in" style="padding:0;">
-    <a href="https://graveyard.thejurn.com" target="_blank" rel="noopener"
+    <a href="/graveyard-dimension/"
        style="display:block;border-radius:10px;overflow:hidden;box-shadow:0 0 50px rgba(191,0,255,0.18);line-height:0;">
       <img src="https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/images/graveyard-banner.jpg"
            alt="The Graveyard Dimension — Enter if you dare" loading="lazy"

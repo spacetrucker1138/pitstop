@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Graveyard Dimension &mdash; Spacetrucker's Pit Stop</title>
+  <meta name="description" content="Welcome to the Graveyard Dimension, home of The JURN. Tour the lore, tune in to Double Future Radio, play Grave Hog's Graveyard Shift, and join the Graveyard Crew.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://thejurn.com/graveyard-dimension/">
+  <meta property="og:title" content="The Graveyard Dimension &mdash; The JURN">
+  <meta property="og:description" content="Somewhere past the last exit, the dead keep the radio on. Pick a grave. Start digging.">
+  <meta property="og:image" content="https://thejurn.com/images/graveyard-banner.jpg">
+  <link rel="canonical" href="https://thejurn.com/graveyard-dimension/">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .gd-hero{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;background:linear-gradient(rgba(5,5,12,.55),#05050c),url(/images/graveyard-banner.jpg) center/cover}
+    .gd-hero .gd-logo{width:170px;max-width:50vw;height:auto}
+    .gd-rec{color:#ff3b3b;font-size:.8rem;letter-spacing:2px;margin-top:10px}
+    .gd-hero h1{font-family:'Creepster',cursive;font-weight:400;letter-spacing:2px;font-size:clamp(40px,8vw,84px);line-height:1.05;margin:12px 0;color:var(--neon-green);text-shadow:0 0 18px var(--neon-green),0 0 40px #9b30ff}
+    .gd-hero p{color:#ccc;max-width:560px}
+    .gd-btn{display:inline-block;padding:14px 26px;border:2px solid var(--neon-green);color:var(--neon-green);text-decoration:none;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;border-radius:3px;box-shadow:0 0 14px var(--neon-green) inset,0 0 14px var(--neon-green);margin-top:18px;transition:background .3s}
+    .gd-btn:hover{background:rgba(57,255,20,.12)}
+    .gd-btn.p{border-color:#b04cff;color:#d9a6ff;box-shadow:0 0 14px #9b30ff}
+    .gd-btn.p:hover{background:rgba(155,48,255,.15)}
+    .gd-section{max-width:1100px;margin:0 auto;padding:50px 20px}
+    .gd-h2{font-family:'Creepster',cursive;font-weight:400;letter-spacing:2px;text-align:center;font-size:44px;color:#c77dff;text-shadow:0 0 14px #9b30ff;margin:0 0 24px}
+    .gd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+    .gd-tile{display:block;text-decoration:none;color:#ddd;border:1px solid #2d1a40;border-radius:8px;background:linear-gradient(160deg,#0d0614,#050a05);padding:20px;box-shadow:0 0 12px rgba(155,48,255,.25);transition:border-color .3s,transform .3s}
+    .gd-tile:hover{border-color:var(--neon-green);transform:translateY(-3px)}
+    .gd-art{height:150px;border-radius:5px;overflow:hidden;margin-bottom:14px;background:#08080c}
+    .gd-art img{width:100%;height:100%;object-fit:cover;display:block}
+    .gd-art-dark{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#1c0b2b,#06060a 70%);border:1px solid #1d1028}
+    .gd-art-dark span{font-family:'Creepster',cursive;font-size:56px;color:#9b30ff;text-shadow:0 0 18px #9b30ff;opacity:.8}
+    .gd-tile h3{font-family:'Creepster',cursive;font-weight:400;letter-spacing:1.5px;margin:0 0 6px;font-size:28px;color:var(--neon-green)}
+    .gd-tile p{margin:0 0 12px;font-size:.92rem;color:#bbb}
+    .gd-link{color:var(--neon-green);font-size:.85rem}
+    .gd-tune{background:#0a0410;border-top:1px solid #9b30ff;border-bottom:1px solid #9b30ff;text-align:center;padding:40px 20px}
+    .gd-live{color:#ff3b3b;animation:gdBlink 1s steps(2) infinite}@keyframes gdBlink{50%{opacity:0}}
+    .gd-foot{text-align:center;padding:50px 20px 70px}
+    .gd-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+    .gd-foot .gd-h2,.gd-foot .gd-copy{flex-basis:100%}
+    .gd-foot .gd-btn{margin:8px}
+    .gd-copy{font-size:.75rem;color:#555;margin-top:30px}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">Spacetrucker's Pit Stop</a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/graveyard-dimension/" class="active" aria-current="page">Graveyard Dimension</a></li>
+      <li><a href="/music.html">Music</a></li>
+      <li><a href="/games.html">Games</a></li>
+      <li><a href="/wall/">The Wall</a></li>
+      <li class="nav-more"><button type="button" aria-haspopup="true" onclick="this.parentNode.classList.toggle('open');this.setAttribute('aria-expanded',this.parentNode.classList.contains('open'))">More &#9662;</button>
+        <ul class="nav-dd">
+          <li><a href="/library.html">The Library</a></li>
+          <li><a href="/about.html">About</a></li>
+          <li><a href="/publishing/">Publishing</a></li>
+          <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
+          <li><a href="/ghoulbox/">Ghoul Box</a></li>
+          <li><a href="/fiends.html">Fiends</a></li>
+          <li><a href="/links.html">Links</a></li>
+        </ul>
+      </li>
+    </ul>
+    <a href="https://ko-fi.com/spacetrucker" class="nav-join" target="_blank" rel="noopener">Join the Crew</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<main style="padding-top:60px">
+  <section class="gd-hero">
+    <img class="gd-logo" src="/images/jurn-logo.png" alt="The JURN">
+    <div class="gd-rec">&#9679; REC &nbsp; CH-13 &nbsp; SIGNAL UNSTABLE</div>
+    <h1>Welcome to the Graveyard Dimension</h1>
+    <p>Somewhere past the last exit, the dead keep the radio on.<br>Pick a grave. Start digging.</p>
+    <a class="gd-btn" href="https://graveyard.thejurn.com">Enter the Graveyard Dimension</a>
+  </section>
+
+  <section class="gd-section">
+    <h2 class="gd-h2">Start Your Tour</h2>
+    <div class="gd-grid">
+      <a class="gd-tile" href="https://thejurn.fandom.com/wiki/Double_Future_Radio" target="_blank" rel="noopener">
+        <div class="gd-art gd-art-dark"><span>DFR</span></div>
+        <h3>Double Future Radio</h3>
+        <p>A pirate broadcast leaking in from two tomorrows at once.</p>
+        <span class="gd-link">Read on the wiki &rarr;</span>
+      </a>
+      <a class="gd-tile" href="https://thejurn.fandom.com/wiki/The_Boxcar_Prophecy" target="_blank" rel="noopener">
+        <div class="gd-art gd-art-dark"><span>&#9760;</span></div>
+        <h3>The Boxcar Prophecy</h3>
+        <p>Scrawled in a freight car. Every word came true. Almost.</p>
+        <span class="gd-link">Read on the wiki &rarr;</span>
+      </a>
+      <a class="gd-tile" href="https://thejurn.fandom.com/wiki/The_First_Encore" target="_blank" rel="noopener">
+        <div class="gd-art gd-art-dark"><span>&#9733;</span></div>
+        <h3>The First Encore</h3>
+        <p>The show that ended everything &mdash; then played one more song.</p>
+        <span class="gd-link">Read on the wiki &rarr;</span>
+      </a>
+      <a class="gd-tile" href="https://thejurn.fandom.com/wiki/V1SION" target="_blank" rel="noopener">
+        <div class="gd-art gd-art-dark"><span>V1</span></div>
+        <h3>V1SION</h3>
+        <p>NeuraNest's compliance band. Smile. Sing along. Obey.</p>
+        <span class="gd-link">Read on the wiki &rarr;</span>
+      </a>
+      <a class="gd-tile" href="https://thejurn.fandom.com/wiki/Discography_of_The_JURN" target="_blank" rel="noopener">
+        <div class="gd-art"><img src="/images/jurn-logo-green.png" alt="The Transmissions" loading="lazy"></div>
+        <h3>The Transmissions</h3>
+        <p>The JURN &middot; Second Dose &middot; Third Strike &middot; Four Score &middot; Fear the Fifth.</p>
+        <span class="gd-link">Watch / Listen &rarr;</span>
+      </a>
+      <a class="gd-tile" href="/games/graveyard-shift/">
+        <div class="gd-art"><img src="/games/graveyard-shift/graveyard-shift-thumb.jpg" alt="Grave Hog's Graveyard Shift" loading="lazy"></div>
+        <h3>Grave Hog's Graveyard Shift</h3>
+        <p>Clock in. Don't let them climb out. Early access.</p>
+        <span class="gd-link">Play &rarr;</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="gd-tune">
+    <h2 class="gd-h2" style="margin-bottom:8px">Tune In</h2>
+    <p><span class="gd-live">&#9679; LIVE</span> Double Future Radio is broadcasting. Static included.</p>
+    <a class="gd-btn p" href="https://youtube.com/@Spacetrucker138/live" target="_blank" rel="noopener">Tune in to DFR</a>
+  </section>
+
+  <section class="gd-foot">
+    <h2 class="gd-h2">Join the Crew</h2>
+    <a class="gd-btn" href="https://ko-fi.com/spacetrucker" target="_blank" rel="noopener">Join the Graveyard Crew</a>
+    <a class="gd-btn p" href="https://app.amazecommerce.com/shop/spacetruckers-pitstop" target="_blank" rel="noopener">Merch</a>
+    <a class="gd-btn" href="https://youtube.com/@Spacetrucker138" target="_blank" rel="noopener">YouTube</a>
+    <p class="gd-copy">&copy; The JURN &middot; transmitted from the Graveyard Dimension</p>
+  </section>
+</main>
+</body>
+</html>

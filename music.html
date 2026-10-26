@@ -72,6 +72,13 @@
       -webkit-appearance: none; width: 10px; height: 10px;
       border-radius: 50%; background: #ff3c3c; cursor: pointer;
     }
+    @media (max-width: 480px) {
+      .player-controls { flex-wrap: wrap; gap: 0.5rem; }
+      .progress-wrap { flex: 1 1 100%; order: 5; min-width: 0; }
+      .time-label { min-width: 2.6rem; }
+      .volume-wrap { margin-left: auto; }
+      .volume-slider { width: 60px; }
+    }
     .track-list { list-style: none; padding: 0; margin: 0; }
     .track-item {
       display: grid; grid-template-columns: 1.6rem 1fr auto;
@@ -104,23 +111,29 @@
 <body>
 <nav>
   <div class="nav-inner">
-    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <a href="/" class="logo">Spacetrucker's Pit Stop</a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/graveyard-dimension/">Graveyard Dimension</a></li>
+      <li><a href="/music.html" class="active" aria-current="page">Music</a></li>
+      <li><a href="/games.html">Games</a></li>
+      <li><a href="/wall/">The Wall</a></li>
+      <li class="nav-more"><button type="button" aria-haspopup="true" onclick="this.parentNode.classList.toggle('open');this.setAttribute('aria-expanded',this.parentNode.classList.contains('open'))">More &#9662;</button>
+        <ul class="nav-dd">
+          <li><a href="/library.html">The Library</a></li>
+          <li><a href="/about.html">About</a></li>
+          <li><a href="/publishing/">Publishing</a></li>
+          <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
+          <li><a href="/ghoulbox/">Ghoul Box</a></li>
+          <li><a href="/fiends.html">Fiends</a></li>
+          <li><a href="/links.html">Links</a></li>
+        </ul>
+      </li>
+    </ul>
+    <a href="https://ko-fi.com/spacetrucker" class="nav-join" target="_blank" rel="noopener">Join the Crew</a>
     <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
-    <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
-<li><a href="music.html" class="active">Music</a></li>
-<li><a href="library.html">The Library</a></li>
-<li><a href="about.html">About</a></li>
-<li><a href="games.html">Games</a></li><li><a href="/publishing/">Publishing</a></li>
-<li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
-<li><a href="/ghoulbox/">Ghoul Box</a></li>
-<li><a href="wall/">The Wall</a></li>
-<li><a href="fiends.html">Fiends</a></li>
-<li><a href="links.html">Links</a></li>
-
-    </ul>
   </div>
 </nav>
 <main>

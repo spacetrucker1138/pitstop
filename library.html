@@ -270,22 +270,29 @@
 <body>
 <nav>
   <div class="nav-inner">
-    <a href="index.html" class="logo">Spacetrucker's Pit Stop</a>
+    <a href="/" class="logo">Spacetrucker's Pit Stop</a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/graveyard-dimension/">Graveyard Dimension</a></li>
+      <li><a href="/music.html">Music</a></li>
+      <li><a href="/games.html">Games</a></li>
+      <li><a href="/wall/">The Wall</a></li>
+      <li class="nav-more has-active"><button type="button" aria-haspopup="true" onclick="this.parentNode.classList.toggle('open');this.setAttribute('aria-expanded',this.parentNode.classList.contains('open'))">More &#9662;</button>
+        <ul class="nav-dd">
+          <li><a href="/library.html" class="active" aria-current="page">The Library</a></li>
+          <li><a href="/about.html">About</a></li>
+          <li><a href="/publishing/">Publishing</a></li>
+          <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
+          <li><a href="/ghoulbox/">Ghoul Box</a></li>
+          <li><a href="/fiends.html">Fiends</a></li>
+          <li><a href="/links.html">Links</a></li>
+        </ul>
+      </li>
+    </ul>
+    <a href="https://ko-fi.com/spacetrucker" class="nav-join" target="_blank" rel="noopener">Join the Crew</a>
     <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
-    <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="music.html">Music</a></li>
-      <li><a href="library.html" class="active">The Library</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="games.html">Games</a></li><li><a href="/publishing/">Publishing</a></li>
-      <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
-      <li><a href="/ghoulbox/">Ghoul Box</a></li>
-      <li><a href="wall/">The Wall</a></li>
-      <li><a href="fiends.html">Fiends</a></li>
-<li><a href="links.html">Links</a></li>
-    </ul>
   </div>
 </nav>
 

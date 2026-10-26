@@ -1044,3 +1044,56 @@ footer .footer-contact {
   margin: 0 0 0.6rem;
   font-size: 0.75rem;
 }
+
+/* ==========================================
+   NAV v2: More dropdown + Join the Crew (gd-hub-nav)
+   ========================================== */
+nav .nav-links { align-items: center; margin: 0 0 0 auto; padding: 0; }
+nav .nav-more { position: relative; }
+nav .nav-more > button {
+  background: none; border: 0; cursor: pointer; padding: 0;
+  color: var(--text-dim); font: inherit; font-size: 0.78rem;
+  text-transform: uppercase; letter-spacing: 1.5px; white-space: nowrap;
+  transition: color 0.3s, text-shadow 0.3s;
+}
+nav .nav-more > button:hover, nav .nav-more.has-active > button, nav .nav-more.open > button {
+  color: var(--neon-green); text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+nav .nav-dd {
+  display: none; position: absolute; right: 0; top: 100%; margin-top: 14px;
+  list-style: none; padding: 0.5rem 0; min-width: 180px;
+  background: rgba(8, 8, 14, 0.97); border: 1px solid var(--neon-green);
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.3); border-radius: 4px;
+}
+nav .nav-more.open .nav-dd { display: block; }
+nav .nav-dd a { display: block; padding: 0.5rem 1rem; }
+nav .nav-dd a::after { display: none; }
+nav .nav-join {
+  margin-left: 1.35rem; white-space: nowrap; text-decoration: none;
+  color: var(--neon-green); border: 2px solid var(--neon-green); border-radius: 3px;
+  padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.6), inset 0 0 8px rgba(57, 255, 20, 0.35);
+  animation: navJoinGlow 2.4s ease-in-out infinite;
+}
+nav .nav-join:hover { background: rgba(57, 255, 20, 0.12); }
+@keyframes navJoinGlow {
+  50% { box-shadow: 0 0 22px rgba(57, 255, 20, 0.9), inset 0 0 12px rgba(57, 255, 20, 0.5); }
+}
+@media (max-width: 1100px) and (min-width: 769px) {
+  nav .nav-inner { padding: 0.8rem 1rem; }
+  nav .nav-links { gap: 1rem; }
+  nav .nav-join { margin-left: 1rem; }
+}
+@media (max-width: 768px) {
+  nav .nav-inner { padding: 0.7rem 1rem; gap: 0.6rem; }
+  nav .logo { font-size: 1rem; white-space: nowrap; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+  nav .hamburger { flex-shrink: 0; }
+  nav .nav-join { flex-shrink: 0; }
+  nav .nav-join { margin-left: auto; padding: 0.3rem 0.6rem; font-size: 0.68rem; }
+  nav .nav-links { align-items: flex-start; margin: 0; padding: 1rem 2rem 2rem; }
+  nav .nav-more > button { display: none; }
+  nav .nav-dd { display: block; position: static; border: 0; box-shadow: none; background: none; margin: 0; padding: 0 0 0 1rem; }
+  nav .nav-dd li + li { margin-top: 1rem; }
+  nav .nav-dd a { padding: 0; }
+}
