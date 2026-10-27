@@ -22,10 +22,11 @@
     clamp = (v, a, b) => Math.max(a, Math.min(b, v)),
     dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y),
     pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const GAME_VERSION = "v0.9.2 (Early Access)"; // shown on the title screen and the pause menu
   const saveKey = "graveyard-shift-save-v1";
   const freshSave = () => ({
     wages: 0,
-    perks: { health: 0, damage: 0, speed: 0, xp: 0, magnet: 0, reroll: 0, banish: 0, cheese: 0 },
+    perks: { health: 0, damage: 0, speed: 0, xp: 0, magnet: 0, reroll: 0, banish: 0, cheese: 0, limit: 0 },
     bestKills: 0,
     bestLevel: 1,
     shifts: 0,
@@ -33,6 +34,7 @@
     sfx: 0.65,
     stage2Unlocked: false, // v10: set the first time Grave Hog reaches the Mega Mart (Stage 2 can then be started from the title)
     megaMartClears: 0,
+    dex: { w: {}, e: {}, b: {} }, // compendium: weapons owned, monster kills, boss kills (0 = met, not beaten yet)
   });
   let save = freshSave();
   try {
@@ -514,6 +516,7 @@
     // sits in a dark strip along the bottom where it can't cover Hog or the logo.
     panelShow(`<p class="title-sub">SIX HOURS TILL HE CLOCKS OUT</p>`);
     panel.classList.add("title-mode");
+    panel.insertAdjacentHTML("beforeend", `<span class="version-tag">${GAME_VERSION}</span>`);
     panel.style.backgroundImage = `url(${IMAGE_FILES.title})`;
     const c = panel.firstElementChild;
     c.className = "card title-card";
@@ -521,6 +524,7 @@
       ["START SHIFT", () => startRun(1), "primary"],
       ["MAINTENANCE OFFICE", () => showOffice("title")],
       ["OPTIONS", () => showOptions("title")],
+      ["COMPENDIUM", () => showCompendium("w")],
       ["CONTROLS", showControls],
     ]);
     if (save.shifts > 0) {
@@ -588,12 +592,94 @@
   function showControls() {
     mode = "title";
     panelShow(
-      `<div class="eyebrow">THE RULES</div><h2>HOW TO SURVIVE THE SHIFT</h2><p><b>WASD or Arrow Keys</b> move (on a phone: drag your thumb anywhere to steer). Grave Hog attacks nearby monsters automatically. Walk over the glowing drops to collect them: <b>gems</b> are experience, <b>gold coins</b> are Cemetery Wages, pizza heals.</p><p>XP fills the bar; every level pauses the shift and offers three upgrades. Don't like them? <b>Reroll</b> (R) draws three new ones, <b>Banish</b> (B) removes one for the rest of the shift. Buy extra rerolls and banishes in the office. <b>ESC</b> pauses (or the ❚❚ button on touch screens). <b>Mouse wheel</b> or <b>Z</b> zooms out to see more (pinch or the ZOOM button on touch screens). The run lasts from midnight to 6 AM (about 12 minutes).</p><p><b>Controller:</b> left stick or D-pad moves, Start pauses, Back/Select shows the map, bumpers zoom, A picks, B goes back, X rerolls, Y banishes.</p><p>Shovel, nail gun, holy water, chainsaw and haunted lanterns can all stack. The maintenance office buys permanent upgrades with Cemetery Wages.</p>`,
+      `<div class="eyebrow">THE RULES</div><h2>HOW TO SURVIVE THE SHIFT</h2><p><b>WASD or Arrow Keys</b> move (on a phone: drag your thumb anywhere to steer). Grave Hog attacks nearby monsters automatically. Walk over the glowing drops to collect them: <b>gems</b> are experience, <b>gold coins</b> are Cemetery Wages, pizza heals.</p><p>XP fills the bar; every level pauses the shift and offers three upgrades. Don't like them? <b>Reroll</b> (R) draws three new ones, <b>Banish</b> (B) removes one for the rest of the shift. Buy extra rerolls and banishes in the office. <b>ESC</b> pauses (or the ❚❚ button on touch screens). <b>F</b> toggles fullscreen. <b>P</b> freezes the action with no menu over it, for clean screenshots. <b>Mouse wheel</b> or <b>Z</b> zooms out to see more (pinch or the ZOOM button on touch screens). The run lasts from midnight to 6 AM (about 12 minutes).</p><p><b>Controller:</b> left stick or D-pad moves, Start pauses, Back/Select shows the map, bumpers zoom, A picks, B goes back, X rerolls, Y banishes.</p><p>Shovel, nail gun, holy water, chainsaw and haunted lanterns can all stack. The maintenance office buys permanent upgrades with Cemetery Wages.</p>`,
     );
     addButtons(panel.firstElementChild, [
       ["BACK", showTitle, "primary"],
       ["START SHIFT", startRun],
     ]);
+  }
+  // ---- Compendium: every weapon, monster and boss you've found (saved forever). Unknown ones are silhouettes. ----
+  const DEX_LORE = {
+    zombie: "Clocked out years ago. Never got the memo.",
+    skeleton: "All bone, no brains. Fast, though.",
+    hand: "Somebody lost a hand. It found its way back. Angry.",
+    ghost: "Flickers in and out. Mostly in when you're not looking.",
+    worm: "Lunges out of the dirt. Grave Hog hates these.",
+    keeper: "The old groundskeeper. Possessed, slow and very, very tough.",
+    shopper_zombie: "Still looking for the coupon aisle.",
+    cashier_corpse: "Scans you from across the store. Unexpected item in bagging area: you.",
+    stock_clerk: "Throws boxes. It's the only part of the job he ever liked.",
+    cleaning_bot: "Cleans up messes. You are a mess.",
+    mutated_produce: "Fresh produce. Too fresh. It has teeth.",
+    rat_swarm: "Small, fast, everywhere. The health inspector never came back.",
+    security_drone: "Hovers, zaps, and calls for backup.",
+    forklift_zombie: "OSHA violation on wheels. Do not stand in front of it.",
+  };
+  const DEX_ENEMY_ROW = { zombie: 0, skeleton: 1, hand: 2, ghost: 3, worm: 4, keeper: 5 };
+  function drawDexArt(c, kind, id, known) {
+    const x = c.getContext("2d");
+    x.clearRect(0, 0, c.width, c.height);
+    x.imageSmoothingEnabled = false;
+    const W2 = c.width;
+    if (kind === "w") drawUpgradeIcon(c, id);
+    else if (kind === "e") {
+      if (DEX_ENEMY_ROW[id] !== undefined) ready(enemySheet) && x.drawImage(enemySheet, 0, DEX_ENEMY_ROW[id] * 64, 64, 64, 0, 0, W2, W2);
+      else {
+        const im = IMAGES["mm_" + id],
+          fs = TYPES2[id].size;
+        ready(im) && x.drawImage(im, 0, 0, fs, fs, 0, 0, W2, W2);
+      }
+    } else {
+      const S = BOSS_CELL,
+        d = BOSS[id];
+      if (d.s2) ready(IMAGES.mmBoss) && x.drawImage(IMAGES.mmBoss, 0, d.idx * 3 * S, S, S, 0, 0, W2, W2);
+      else if (id === "digger") ready(diggerSheet) && x.drawImage(diggerSheet, 0, 0, S, S, 0, 0, W2, W2);
+      else ready(bossSheet) && x.drawImage(bossSheet, 0, (id === "widow" ? 0 : 1) * S, S, S, 0, 0, W2, W2);
+    }
+    if (!known) {
+      // silhouette: keep the shape, paint it black
+      x.globalCompositeOperation = "source-in";
+      x.fillStyle = "#06070a";
+      x.fillRect(0, 0, W2, W2);
+      x.globalCompositeOperation = "source-over";
+    }
+  }
+  let dexBack = "title";
+  function showCompendium(tab = "w", back) {
+    if (typeof back === "string") dexBack = back;
+    mode = "compendium";
+    const dx = dexBook(),
+      lists = {
+        w: ALL_WEAPONS().map((id) => ({ id, known: !!dx.w[id], name: weaponName(id), line: UPGRADES.find((u) => u.id === id)?.desc || "", stat: "" })),
+        e: [...Object.keys(TYPES), ...Object.keys(TYPES2)].map((id) => ({ id, known: dx.e[id] !== undefined, name: (TYPES[id] || TYPES2[id]).name, line: DEX_LORE[id] || "", stat: `Killed: ${dx.e[id] || 0}`, stage: TYPES[id] ? 1 : 2 })),
+        b: Object.keys(BOSS).map((id) => ({ id, known: dx.b[id] !== undefined, name: BOSS[id].name, line: `“${BOSS[id].taunt}”`, stat: dx.b[id] ? `Defeated: ${dx.b[id]}` : "Not defeated yet", stage: BOSS[id].s2 ? 2 : 1 })),
+      },
+      list = lists[tab],
+      found = list.filter((r) => r.known).length,
+      label = { w: "WEAPONS", e: "MONSTERS", b: "BOSSES" };
+    panelShow(
+      `<div class="eyebrow">THE GRAVEYARD SHIFT</div><h2>COMPENDIUM</h2><div class="dex-tabs">${["w", "e", "b"]
+        .map((k) => `<button class="game-btn${k === tab ? " primary" : ""}" data-tab="${k}">${label[k]} ${lists[k].filter((r) => r.known).length}/${lists[k].length}</button>`)
+        .join("")}</div><div class="dex-grid">${list
+        .map(
+          (r, i) =>
+            `<div class="dex-card${r.known ? "" : " unknown"}"><canvas width="48" height="48" data-i="${i}"></canvas><div><b>${r.known ? r.name : "???"}</b><p>${r.known ? r.line : r.stage === 2 ? "Haunts the Mega Mart." : tab === "w" ? "Pick it up on a shift to learn more." : "Lurks somewhere in the cemetery."}</p>${r.known && r.stat ? `<span class="dex-stat">${r.stat}</span>` : ""}</div></div>`,
+        )
+        .join("")}</div><p class="muted">${found} of ${list.length} ${label[tab].toLowerCase()} found.</p>`,
+    );
+    const card = panel.firstElementChild;
+    card.querySelectorAll(".dex-grid canvas").forEach((c) => {
+      const r = list[+c.dataset.i];
+      drawDexArt(c, tab, r.id, r.known);
+    });
+    card.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => showCompendium(b.dataset.tab)));
+    // BACK sits in the tab row so it's always visible, even when the list scrolls
+    const backBtn = document.createElement("button");
+    backBtn.className = "game-btn dex-back";
+    backBtn.textContent = dexBack === "pause" && state ? "◀ BACK TO SHIFT" : "◀ BACK";
+    backBtn.onclick = () => (dexBack === "pause" && state ? showPause() : showTitle());
+    card.querySelector(".dex-tabs").prepend(backBtn);
   }
   // v16: the office and the new Options screen remember where they were opened from: the title, or the pause menu
   // mid-shift (BACK then returns to the paused shift instead of the title screen).
@@ -607,13 +693,16 @@
     ["reroll", "Second Opinion", "+1 level-up reroll per shift"],
     ["banish", "Write 'Em Up", "+1 level-up banish per shift"],
     ["cheese", "Extra Cheese", "+3 health from every pizza"],
+    ["limit", "Limit Break", "+1 max level for every weapon (normally 5)"],
   ];
   // Rerolls / banishes: every shift starts with BASE_*; the office adds up to PERK_MAX more (and costs a step more).
   const BASE_REROLLS = 2,
     BASE_BANISHES = 1,
-    PERK_MAX = { reroll: 3, banish: 2, cheese: 5 };
+    PERK_MAX = { reroll: 3, banish: 2, cheese: 5, limit: 3 },
+    LIMIT_COSTS = [400, 800, 1400]; // Limit Break is the big wage sink
   const perkCost = (lvl) => Math.floor(12 + 12 * lvl * lvl + lvl * 8);
-  const perkCostFor = (id, lvl) => (PERK_MAX[id] ? perkCost(lvl + 1) : perkCost(lvl));
+  const perkCostFor = (id, lvl) => (id === "limit" ? LIMIT_COSTS[Math.min(lvl, LIMIT_COSTS.length - 1)] : PERK_MAX[id] ? perkCost(lvl + 1) : perkCost(lvl));
+  const wmax = () => WMAX_BASE + Math.min(PERK_MAX.limit, save.perks.limit || 0); // current weapon max level
   function perkRefund() {
     let t = 0;
     for (const id of Object.keys(save.perks)) for (let l = 0; l < save.perks[id]; l++) t += perkCostFor(id, l);
@@ -857,7 +946,13 @@
     state.cameo = stage === 1 ? placeCameo() : null;
     mode = "playing";
     panelHide();
-    toastMsg(stage === 2 ? "MEGA MART, MIDNIGHT. Prices are to die for. The Meat Manager runs this place." : "MIDNIGHT. Clock in at the MAIN ENTRANCE.");
+    toastMsg(
+      stage === 2
+        ? "MEGA MART, MIDNIGHT. Prices are to die for. The Meat Manager runs this place."
+        : save.shifts
+          ? "MIDNIGHT. Clock in at the MAIN ENTRANCE."
+          : "MIDNIGHT. Your weapons swing on their own: just move, grab the glowing gems and survive till 6 AM.",
+    );
     sfx("ui_click", 1.3, () => audioBeep(260, 0.12));
   }
   function toastMsg(s) {
@@ -1339,8 +1434,9 @@
     }
     return null;
   }
+  const CHEST_SKIP = ["monument-blessing"]; // v17: Stage 1 keeps 3 chests (the fountain landmark still blesses)
   function makeRewards() {
-    return MAP.rewards.map((rw) => {
+    return MAP.rewards.filter((rw) => !CHEST_SKIP.includes(rw.id)).map((rw) => {
       const at = rw.candidates ? pick(rw.candidates) : rw.at;
       return {
         id: rw.id,
@@ -1358,11 +1454,8 @@
     const defs = [
       ["supply", "SUPPLY CRATE"],
       ["cache", "HIDDEN WAGE CACHE"],
-      ["blessing", "BLESSED FOUNTAIN"],
       ["heal", "OLD OFFERING"],
-      ["supply", "SUPPLY CRATE"],
-      ["cache", "HIDDEN WAGE CACHE"],
-    ];
+    ]; // v17: 3 chests per stage (each is a guaranteed +1 level, so 6 was a lot of free power)
     state.rewards = [];
     defs.forEach(([kind, label], i) => {
       const rw = { id: "mm" + i, kind, label, x: WORLD.startX, y: WORLD.startY, taken: false, phase: Math.random() * TAU };
@@ -1496,7 +1589,7 @@
   function lootCandidates() {
     return UPGRADES.filter((u) => {
       const w = state.weapons[u.id];
-      if (w) return w.level > 0 && w.level < WMAX;
+      if (w) return w.level > 0 && w.level < wmax();
       if (STAT_IDS.includes(u.id)) return (state.statPicks?.[u.id] || 0) > 0 && state.statPicks[u.id] < STAT_MAX;
       return false;
     });
@@ -1671,6 +1764,7 @@
     if (!c) return true;
     return e.x > c.x + inset && e.x < c.x + VIEW_W - inset && e.y > c.y + inset && e.y < c.y + VIEW_H - inset;
   }
+  let dmgSrc = "other"; // which weapon is dealing damage right now (set by each weapon before it hits)
   function nearestEnemy(max = Infinity) {
     if (!state) return null;
     const p = state.player;
@@ -1693,8 +1787,13 @@
   function damageEnemy(e, amount, knock = true) {
     if (!state.enemies.includes(e)) return;
     if (!inReach(e)) return; // off-screen monsters can't be hurt (projectiles that fly off just miss)
+    // damage breakdown: credit what was actually dealt (overkill doesn't count) to the weapon doing it
+    const dealt = Math.max(0, Math.min(amount, e.hp));
+    state.dmgBy = state.dmgBy || {};
+    const src = dmgSrc || "other";
+    state.dmgBy[src] = (state.dmgBy[src] || 0) + dealt;
     e.hp -= amount;
-    // Hit flash is throttled so sustained damage (lanterns, chainsaw) doesn't leave a monster permanently white.
+    if (e.type === "ghost" && !e.enraged && e.hp > 0) ((e.enraged = true), (e.speed *= 1.6)); // v17: hit a ghost and it comes for you is throttled so sustained damage (lanterns, chainsaw) doesn't leave a monster permanently white.
     if (!e.flashAt || state.t - e.flashAt > 0.28) {
       e.flash = 0.1;
       e.flashAt = state.t;
@@ -1710,9 +1809,20 @@
     if (e.hp <= 0) killEnemy(e);
   }
   const BOSS_CORPSE_HOLD = 2; // Grave Digger / Widow bodies stay down this many extra seconds before fading
+  function dexBook() {
+    save.dex = save.dex || {};
+    for (const k of ["w", "e", "b"]) save.dex[k] = save.dex[k] || {};
+    return save.dex;
+  }
   function killEnemy(e) {
     const i = state.enemies.indexOf(e);
     if (i < 0) return;
+    {
+      const dx = dexBook(),
+        key = e.boss ? e.bossId : e.type,
+        book = e.boss ? dx.b : dx.e;
+      book[key] = (book[key] || 0) + 1;
+    }
     state.enemies.splice(i, 1);
     state.deaths.push({
       x: e.x,
@@ -1740,10 +1850,11 @@
       state.bossesDead[e.bossId] = true;
       state.lastBoss = e.bossId;
       drop(e.x, e.y, "wage", 12);
-      state.eventText = e.bossId === finalBossId() ? "TIME TO CLOCK OUT!" : "BOSS CLOCKED OUT";
+      if (state.limitless) state.limitless.bosses++;
+      state.eventText = state.limitless ? "BOSS CLOCKED OUT" : e.bossId === finalBossId() ? "TIME TO CLOCK OUT!" : "BOSS CLOCKED OUT";
       state.eventUntil = state.t + 3;
       const restored = restoreTreasures();
-      if (restored && e.bossId !== finalBossId()) toastMsg(`${restored} ${STAGE === 2 ? "store" : "cemetery"} treasure${restored > 1 ? "s" : ""} reappeared. Go take another look around.`);
+      if (restored && (e.bossId !== finalBossId() || state.limitless)) toastMsg(`${restored} ${STAGE === 2 ? "store" : "cemetery"} treasure${restored > 1 ? "s" : ""} reappeared. Go take another look around.`);
       sfx(BOSS_DEATH_SFX[e.bossId] || "boss_death_groan", 1, () => audioBeep(120, 0.5, "sawtooth", 0.06));
     } else if (!e.exploded) {
       drop(e.x, e.y, "xp", e.xp);
@@ -1753,7 +1864,8 @@
       if (Math.random() < 0.14) {
         // wages and pizza each get their own value (they used to share one roll, so pizza sometimes healed 2)
         if (Math.random() < 0.55) drop(e.x + rand(-8, 8), e.y + rand(-8, 8), "wage", Math.random() < 0.55 ? 2 : 20);
-        else drop(e.x + rand(-8, 8), e.y + rand(-8, 8), "pizza", pizzaHeal());
+        // v17: during the final-boss fight the screen is packed with mobs, so 75% of pizza drops are skipped
+        else if (!state.enemies.some((b) => b.bossId === finalBossId()) || Math.random() < 0.25) drop(e.x + rand(-8, 8), e.y + rand(-8, 8), "pizza", pizzaHeal());
       }
       sfx("mob_death", 1, () => audioBeep(115 + Math.random() * 90, 0.055, "triangle", 0.02));
     }
@@ -1955,6 +2067,7 @@
       state.lastBoss = bossId;
       state.eventText = def.name;
       state.eventUntil = state.t + 5;
+      { const db = dexBook().b; if (db[bossId] === undefined) db[bossId] = 0; } // compendium: met this boss
       toastMsg(`${def.name} is waiting at the ${arena.label}! — ${def.taunt}`);
       sfx(BOSS_ENTRY_SFX[bossId] || "boss_roar_entrance", 1, () => audioBeep(82, 0.45, "sawtooth", 0.06));
       return;
@@ -1965,6 +2078,7 @@
     const scale = 1 + state.t / (STAGE === 1 ? STAGE1_HP_RAMP : 520);
     const spot = findSpawnPoint();
     if (!spot) return; // no valid reachable cell this tick — skip rather than spawn inside scenery
+    { const de = dexBook().e; if (de[type] === undefined) de[type] = 0; } // compendium: met this monster
     state.enemies.push({
       x: spot.x,
       y: spot.y,
@@ -1991,7 +2105,7 @@
   }
   function awardXP(amount) {
     const p = state.player;
-    p.xp += amount * (1 + save.perks.xp * 0.05);
+    p.xp += amount * (1 + save.perks.xp * 0.05) * (state.limitless ? LIMITLESS_XP : 1);
     while (p.xp >= p.nextXp) {
       p.xp -= p.nextXp;
       p.level++;
@@ -2005,7 +2119,7 @@
   //  v14: 19 new weapons (random pool, 5-slot cap), hit splatters, Stage 2 cold fog + map edge shade
   // =====================================================================================
   const MAX_SLOTS = 5,
-    WMAX = 5,
+    WMAX_BASE = 5, // weapon max level before Limit Break (office perk adds up to +3)
     STAT_IDS = ["maxhp", "regen", "damage", "speed", "magnet"],
     STAT_MAX = 6;
   const NW_IDS = ["molotov", "deadanomicon", "beartrap", "boomerang", "coffin", "chains", "rockets", "flyswatter", "flies", "tombstone", "gnome", "soda", "whistle", "cleaver", "gsprinkler", "witchjar", "bell", "dust", "lastnail"];
@@ -2031,7 +2145,7 @@
     lastnail: ["The Last Nail", "Fires a huge spectral railroad spike through a whole line of monsters.", "More spikes, pierces more"],
   };
   for (const id of NW_IDS)
-    UPGRADES.push({ id, title: NW[id][0], desc: NW[id][1], up: NW[id][2], apply: (s) => (s.weapons[id].level = Math.min(WMAX, s.weapons[id].level + 1)) });
+    UPGRADES.push({ id, title: NW[id][0], desc: NW[id][1], up: NW[id][2], apply: (s) => (s.weapons[id].level = Math.min(wmax(), s.weapons[id].level + 1)) });
   const OLD_ICON = { shovel: 0, nail: 1, sprinkler: 2, chainsaw: 3, lantern: 4 };
   const FALLBACK_UPS = [
     { id: "fb_heal", title: "Overtime Snack", desc: "Every weapon and perk is maxed. Heal 40% of your health.", apply: (s) => (s.player.hp = Math.min(s.player.maxHp, s.player.hp + s.player.maxHp * 0.4)) },
@@ -2072,6 +2186,8 @@
   function syncSlots() {
     if (!state.slots) initWeapons2(state);
     for (const id of ALL_WEAPONS()) if (state.weapons[id]?.level > 0 && !state.slots.includes(id)) state.slots.push(id);
+    const dw = dexBook().w;
+    for (const id of state.slots) dw[id] = 1; // compendium: weapons you've used
     return state.slots;
   }
   function getAvailableUpgrades() {
@@ -2080,7 +2196,7 @@
       if (state.banished?.includes(u.id)) return false;
       if (STAT_IDS.includes(u.id)) return (state.statPicks?.[u.id] || 0) < STAT_MAX;
       const w = state.weapons[u.id];
-      if (!w || w.level >= WMAX) return false;
+      if (!w || w.level >= wmax()) return false;
       return w.level > 0 || !full;
     });
   }
@@ -2101,7 +2217,7 @@
   function upgradeLabel(u) {
     const w = state.weapons[u.id];
     if (!w) return u.id.startsWith("fb_") ? "BONUS" : `PERK ${(state.statPicks?.[u.id] || 0) + 1}/${STAT_MAX}`;
-    return w.level ? `LV ${w.level} → ${w.level + 1}${w.level + 1 === WMAX ? " (MAX)" : ""}` : "NEW WEAPON";
+    return w.level ? `LV ${w.level} → ${w.level + 1}${w.level + 1 === wmax() ? " (MAX)" : ""}` : "NEW WEAPON";
   }
   // ---------- helpers ----------
   function enemiesIn(x, y, r) {
@@ -2154,7 +2270,7 @@
     }
     return n;
   }
-  const fx = (o) => (state.wfx.length < 260 ? (state.wfx.push(o), o) : null);
+  const fx = (o) => (state.wfx.length < 260 ? ((o.src = o.src || dmgSrc), state.wfx.push(o), o) : null); // remembers its weapon for the damage breakdown
   // ---------- per-frame weapon logic ----------
   function doAttack2(dt, wdt) {
     const p = state.player,
@@ -2164,6 +2280,7 @@
       const w = W[id],
         L = w.level;
       if (!L) continue;
+      dmgSrc = id;
       w.cd -= wdt;
       if (id === "flies") {
         w.tick = (w.tick || 0) - dt;
@@ -2199,7 +2316,7 @@
         continue;
       }
       if (id === "gnome") {
-        const want = Math.ceil(L / 2) + (L === WMAX ? 1 : 0);
+        const want = Math.ceil(L / 2) + (L >= WMAX_BASE ? 1 : 0);
         while (state.gnomes.length < want) state.gnomes.push({ x: p.x + rand(-20, 20), y: p.y + rand(-20, 20), cd: 0, stab: 0, face: 1, hits: 0 });
         continue;
       }
@@ -2415,6 +2532,7 @@
     const keep = [];
     for (const f of state.wfx) {
       f.t += dt;
+      dmgSrc = f.src || "other";
       const k = f.k,
         L = f.L;
       if (k === "bottle" || k === "can" || k === "jar") {
@@ -3237,6 +3355,7 @@
         p.swing.hit = true;
         const a = p.swing.a;
         let hits = 0;
+        dmgSrc = "shovel";
         for (const e of [...state.enemies]) {
           const ea = Math.atan2(e.y - p.y, e.x - p.x),
             delta = Math.atan2(Math.sin(ea - a), Math.cos(ea - a));
@@ -3262,7 +3381,7 @@
 
     if (weapons.nail.level) {
       const NAIL_BASE = 20,
-        NAIL_VOLLEY = [1, 1.5, 1.9, 2.3, 2.7]; // total damage of one volley at each level, split across its nails
+        NAIL_VOLLEY = [1, 1.5, 1.9, 2.3, 2.7, 3.0, 3.3, 3.6]; // total damage of one volley at each level (6-8 = Limit Break), split across its nails
       weapons.nail.cooldown -= wdt;
       if (nearest && weapons.nail.cooldown <= 0) {
         // v17 rebalance: +1 nail per level, the volley's total damage grows modestly (x1 -> x2.7) and is split across
@@ -3304,6 +3423,7 @@
         p.fxWater = { t: w.duration, a };
         setPose("water", a);
         w.cooldown = Math.max(0.22, 0.46 - w.level * 0.025);
+        dmgSrc = "sprinkler";
         for (const e of [...state.enemies]) {
           const d = dist(p, e),
             ea = Math.atan2(e.y - p.y, e.x - p.x),
@@ -3337,6 +3457,7 @@
           p.fxSaw = { t: w.duration, a };
           setPose("chainsaw", a);
           w.cooldown = 0.12;
+          dmgSrc = "chainsaw";
           for (const e of [...state.enemies]) {
             const d = dist(p, e),
               ea = Math.atan2(e.y - p.y, e.x - p.x),
@@ -3352,6 +3473,7 @@
       const w = weapons.lantern;
       w.sfxCooldown = Math.max(0, (w.sfxCooldown || 0) - dt);
       let lit = false;
+      dmgSrc = "lantern";
       for (let i = 0; i < w.count; i++) {
         const a = state.t * (1.8 + i * 0.06) + (i * TAU) / w.count,
           x = p.x + Math.cos(a) * w.radius,
@@ -3497,10 +3619,11 @@
     state.spawn -= dt;
     const cap = Math.min(85, 34 + state.t / 9);
     if (state.spawn <= 0) {
-      // The entrance is a gentle start: slower spawning for the first 40 seconds.
-      state.spawn = Math.max(0.27, 1.05 - state.t / 1000) * (state.t < 40 ? 1.7 : 1);
+      // v17 stream polish: a short 15s breather, then the first ~2.5 minutes run hotter (they used to feel empty)
+      state.spawn = Math.max(0.27, 1.05 - state.t / 1000) * (state.t < 15 ? 1.4 : state.t < 150 ? 0.62 : 1);
       if (state.enemies.length < cap) {
         addEnemy(pick(spawnTypes()));
+        if (state.t > 25 && state.t < 150 && Math.random() < 0.3) addEnemy(pick(spawnTypes())); // early packs
         if (state.t > 130 && Math.random() < 0.16) addEnemy(pick(spawnTypes(true)));
       }
     }
@@ -3511,7 +3634,8 @@
     }
     updateClouds(dt);
     if (mode !== "playing") return;
-    for (const [id, hour] of bossTimes) if (state.clock >= hour && !state.bossesSpawned[id] && !state.bossesDead[id]) addEnemy(null, id);
+    if (state.limitless) updateLimitless();
+    else for (const [id, hour] of bossTimes) if (state.clock >= hour && !state.bossesSpawned[id] && !state.bossesDead[id]) addEnemy(null, id);
     for (const rw of state.rewards) if (!rw.taken && Math.hypot(rw.x - p.x, rw.y - p.y) < 30) collectReward(rw);
     doAttack(dt);
     if (mode !== "playing") return;
@@ -3577,13 +3701,34 @@
       } else if (e.s2) {
         if (updateEnemy2(e, d, dirX, dirY, dt)) return;
         if (!state.enemies.includes(e)) continue; // exploded
+      } else if (e.type === "ghost" && e.enraged) {
+        // v17: a ghost that's been hit gets angry and rushes Hog down (fast, straight, no drifting)
+        e.vx += dirX * e.speed * dt * 5.5;
+        e.vy += dirY * e.speed * dt * 5.5;
       } else if (e.type === "ghost" && Math.sin(state.t * 2 + e.phase) > -0.25) {
         e.vx += dirX * e.speed * dt * 0.35;
         e.vy += dirY * e.speed * dt * 0.35;
-      } else if (e.type === "worm" && e.attack <= 0 && d < 260) {
-        e.attack = 2.7;
-        e.vx += dirX * 220;
-        e.vy += dirY * 220;
+      } else if (e.type === "worm" && d < 300) {
+        // v17: worms circle round to get BEHIND Hog (opposite the way he's facing), then lunge at his back
+        const bx = p.x - Math.cos(p.face || 0) * 70,
+          by = p.y - Math.sin(p.face || 0) * 70,
+          bd = Math.hypot(bx - e.x, by - e.y) || 1,
+          ex = e.x - p.x,
+          ey = e.y - p.y,
+          behind = (ex * Math.cos(p.face || 0) + ey * Math.sin(p.face || 0)) / d < -0.35; // in Hog's back arc
+        if (e.attack <= 0 && behind && d < 200) {
+          e.attack = 2.7;
+          e.vx += dirX * 240;
+          e.vy += dirY * 240;
+        } else if (e.attack <= 1.6) {
+          // swing wide around his side rather than through his front
+          const side = ex * -Math.sin(p.face || 0) + ey * Math.cos(p.face || 0) >= 0 ? 1 : -1,
+            tx = (bx - e.x) / bd - Math.sin(p.face || 0) * side * (behind ? 0 : 0.7),
+            ty = (by - e.y) / bd + Math.cos(p.face || 0) * side * (behind ? 0 : 0.7),
+            tl = Math.hypot(tx, ty) || 1;
+          e.vx += (tx / tl) * e.speed * dt * 2.4;
+          e.vy += (ty / tl) * e.speed * dt * 2.4;
+        }
       } else {
         e.vx += dirX * e.speed * dt * 2;
         e.vy += dirY * e.speed * dt * 2;
@@ -3663,7 +3808,8 @@
       } else {
         for (const e of [...state.enemies])
           if (Math.hypot(q.x - e.x, q.y - e.y) < e.r + q.r) {
-            damageEnemy(e, q.damage, true);
+            dmgSrc = q.weapon || "nail";
+            damageEnemy(e, q.damage, q.weapon !== "nail"); // v17: nails no longer push monsters back
             q.life = 0;
             break;
           }
@@ -3675,7 +3821,7 @@
     updateParticles(dt);
     if (state.impacts) for (const im of [...state.impacts]) if ((im.t += dt) > 0.3) state.impacts.splice(state.impacts.indexOf(im), 1);
     // v7: the clock never brings the day (at 6:00 it explodes). Only beating the Cemetery King does.
-    if (state.bossesDead[finalBossId()] === true && !state.sunrise) startSunrise();
+    if (state.bossesDead[finalBossId()] === true && !state.sunrise && !state.limitless) startSunrise();
   }
   // =====================================================================================
   //  SUNRISE (end-of-shift sequence, in the world)
@@ -3928,23 +4074,40 @@
     save.bestKills = Math.max(save.bestKills, state.kills);
     save.bestLevel = Math.max(save.bestLevel, state.player.level);
     saveGame();
+    const LM = state.limitless;
+    if (LM) {
+      const secs = Math.floor(state.t - LM.t0);
+      save.bestLimitless = save.bestLimitless || {};
+      LM.best = Math.max(save.bestLimitless[STAGE] || 0, secs);
+      LM.newBest = secs > (save.bestLimitless[STAGE] || 0);
+      save.bestLimitless[STAGE] = LM.best;
+      saveGame();
+    }
     const p = state.player,
-      headline = win ? (STAGE === 2 ? "MEGA MART CLEARED!" : "SHIFT COMPLETE!") : "YOU GOT CLOCKED",
+      headline = LM ? `LIMITLESS: SURVIVED ${fmtMMSS(state.t - LM.t0)}` : win ? (STAGE === 2 ? "MEGA MART CLEARED!" : "SHIFT COMPLETE!") : "YOU GOT CLOCKED",
       endMode = mode;
     // the results card can be reopened (BACK from the office), so the run is never lost by visiting the office
     resultsView = () => {
     mode = endMode;
     menuBack = "results";
     panelShow(
-      `<div class="eyebrow">${win ? "SUNRISE, FINALLY" : "THE NIGHT GOT YOU"}</div><h2>${headline}</h2><p>${win ? (STAGE === 2 ? "The store lights flicker off. The aisles are quiet. Grave Hog has earned a nap." : "Grave Hog punches the timecard. The monsters burn off in the morning light.") : "Management has been notified. Management does not care."}</p><p class="status-line">${win ? "6:00 AM" : formatClock(state.clock)} · ${state.kills} KILLS · LEVEL ${p.level}<br>${state.bosses} BOSSES · ${state.earned} WAGES EARNED · ${Math.round(state.damageTaken)} DAMAGE TAKEN</p>`,
+      `<div class="eyebrow">${LM ? "THE NIGHT NEVER ENDS" : win ? "SUNRISE, FINALLY" : "THE NIGHT GOT YOU"}</div><h2>${headline}</h2>${LM ? `<p class="status-line">${LM.bosses} BOSSES BEATEN · ${LM.paid} LIMITLESS WAGES · BEST ${fmtMMSS(LM.best)}${LM.newBest ? " — NEW BEST!" : ""}</p>` : ""}<p>${LM ? "Grave Hog finally drops. Somebody else can cover the rest of this shift." : win ? (STAGE === 2 ? "The store lights flicker off. The aisles are quiet. Grave Hog has earned a nap." : "Grave Hog punches the timecard. The monsters burn off in the morning light.") : "Management has been notified. Management does not care."}</p><p class="status-line">${win ? "6:00 AM" : formatClock(state.clock)} · ${state.kills} KILLS · LEVEL ${p.level}<br>${state.bosses} BOSSES · ${state.earned} WAGES EARNED · ${Math.round(state.damageTaken)} DAMAGE TAKEN</p>${damageBreakdownHTML()}`,
     );
     const stageNow = STAGE;
     // v10 order: sunrise -> countdown -> results card -> CONTINUE -> outro panels -> next stage / ending screen.
     addButtons(
       panel.firstElementChild,
-      win
+      LM
+        ? [
+            // Limitless only starts after a stage win, so the next stage (or the ending) is still earned
+            [stageNow === 1 ? "CONTINUE TO STAGE 2 ▶" : "SEE THE ENDING ▶", () => ((resultsView = null), stageNow === 1 ? showSlides(1, () => startRun(2)) : showSlides(2, showEnding)), "primary"],
+            ["MAINTENANCE OFFICE", () => showOffice("results")],
+            ["TITLE", () => ((resultsView = null), showTitle())],
+          ]
+        : win
         ? [
             [stageNow === 1 ? "CONTINUE TO STAGE 2 ▶" : "CONTINUE ▶", () => ((resultsView = null), stageNow === 1 ? showSlides(1, () => startRun(2)) : showSlides(2, showEnding)), "primary"],
+            ["☠ LIMITLESS MODE", () => ((resultsView = null), startLimitless()), "danger"],
             ["MAINTENANCE OFFICE", () => showOffice("results")],
           ]
         : [
@@ -3955,6 +4118,82 @@
     );
     };
     resultsView();
+  }
+  // Results: damage dealt by each weapon this shift, biggest first, as little bars
+  const weaponName = (id) => (id === "shovel" ? "Shovel" : id === "other" ? "Other" : UPGRADES.find((u) => u.id === id)?.title || id);
+  function damageBreakdownHTML(max = 6) {
+    const rows = Object.entries(state.dmgBy || {})
+      .filter(([, v]) => v >= 1)
+      .sort((a, b) => b[1] - a[1]);
+    if (!rows.length) return "";
+    const total = rows.reduce((a, [, v]) => a + v, 0),
+      top = rows[0][1],
+      shown = rows.slice(0, max),
+      rest = rows.slice(max).reduce((a, [, v]) => a + v, 0);
+    if (rest > 0) shown.push(["__rest", rest]);
+    return `<div class="dmg-break"><div class="dmg-title">DAMAGE BY WEAPON · ${Math.round(total).toLocaleString()} TOTAL</div>${shown
+      .map(([id, v]) => {
+        const pct = Math.round((v / total) * 100),
+          w = Math.max(2, Math.round((v / top) * 100));
+        return `<div class="dmg-row"><span class="dmg-name">${id === "__rest" ? "Everything else" : weaponName(id)}</span><span class="dmg-bar"><i style="width:${w}%"></i></span><span class="dmg-val">${Math.round(v).toLocaleString()} <em>${pct}%</em></span></div>`;
+      })
+      .join("")}</div>`;
+  }
+  // ---- LIMITLESS MODE: after a stage win, the night keeps going. A random boss of this stage every minute,
+  // half XP, and a paycheck every minute that grows the longer Hog survives. Ends when Hog drops. ----
+  const LIMITLESS_FIRST_BOSS = 20,
+    LIMITLESS_BOSS_EVERY = 60,
+    LIMITLESS_XP = 0.5,
+    LIMITLESS_PAY_STEP = 15; // paycheck for minute n = 15 * n wages
+  const fmtMMSS = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+  function startLimitless() {
+    if (!state) return;
+    state.limitless = { t0: state.t, nextBoss: LIMITLESS_FIRST_BOSS, nextPay: 60, minute: 0, bosses: 0, paid: 0 };
+    if (state.clockBoom) state.clockBoom.at = Math.min(state.clockBoom.at, state.t - 10); // the 6 AM blast never replays
+    state.sunrise = null;
+    state.endT = 0;
+    state.enemies = [];
+    state.projectiles = [];
+    pendingLevelUps = 0;
+    try {
+      victoryTrack.pause();
+    } catch (e) {}
+    playMusic(STAGE === 2 ? "stage2" : "stage1");
+    mode = "playing";
+    panelHide();
+    state.eventText = "LIMITLESS MODE";
+    state.eventUntil = state.t + 4;
+    toastMsg("LIMITLESS: a boss every minute, half XP, and a bigger paycheck every minute you survive.");
+  }
+  function updateLimitless() {
+    const L = state.limitless,
+      el = state.t - L.t0;
+    if (el >= L.nextBoss) {
+      L.nextBoss += LIMITLESS_BOSS_EVERY;
+      const id = pick(BOSS_TIMES[STAGE].map((b) => b[0])),
+        spot = findSpawnPoint(20);
+      addEnemy(null, id);
+      const b = state.enemies[state.enemies.length - 1];
+      if (b && b.bossId === id) {
+        if (spot) ((b.x = spot.x), (b.y = spot.y));
+        b.engaged = true; // no arena waiting in Limitless: it comes straight for Hog
+        b.limitless = true;
+      }
+      toastMsg(`LIMITLESS: ${BOSS[id].name} crashes the shift!`);
+      shake = Math.max(shake, 9);
+      sfx("slam_impact", 1.2, () => audioBeep(60, 0.5, "sawtooth", 0.07));
+    }
+    if (el >= L.nextPay) {
+      L.nextPay += 60;
+      L.minute++;
+      const pay = LIMITLESS_PAY_STEP * L.minute;
+      save.wages += pay;
+      state.earned += pay;
+      L.paid += pay;
+      saveGame();
+      toastMsg(`LIMITLESS PAYCHECK: minute ${L.minute} survived, +${pay} wages.`);
+      sfx("pickup", 1.4, () => audioBeep(880, 0.15, "triangle", 0.04));
+    }
   }
   function formatClock(hour) {
     const mins = Math.floor((hour % 1) * 60),
@@ -3967,11 +4206,12 @@
     mode = "paused";
     menuBack = "pause";
     panelShow(
-      `<div class="eyebrow">UNPAID BREAK</div><h2>SHIFT PAUSED</h2><p class="status-line">${formatClock(state.clock)} · LEVEL ${state.player.level} · ${state.kills} KILLS</p>`,
+      `<div class="eyebrow">UNPAID BREAK · ${GAME_VERSION}</div><h2>SHIFT PAUSED</h2><p class="status-line">${formatClock(state.clock)} · LEVEL ${state.player.level} · ${state.kills} KILLS</p>${document.body.classList.contains("touch") ? "" : `<p class="muted">📸 Taking a screenshot? Press <b>P</b> during play instead: it freezes the action with no menu in the way.</p>`}`,
     );
     addButtons(panel.firstElementChild, [
       ["BACK TO IT", resumeGame, "primary"],
       ["STATS", showStats],
+      ["COMPENDIUM", () => showCompendium("w", "pause")],
       ["OPTIONS", () => showOptions("pause")],
       ["MAINTENANCE OFFICE", () => showOffice("pause")],
       ["QUIT SHIFT", () => finishRun(false), "danger"],
@@ -4012,6 +4252,8 @@
     pctRow("XP gain", P.xp * 0.05, 1 + P.xp * 0.05);
     const offMag = P.magnet * 0.08;
     pctRow("Pickup radius", offMag, p.magnet / 78);
+    const lb = Math.min(PERK_MAX.limit, P.limit || 0);
+    add("Max weapon lv", String(WMAX_BASE), lb ? `+${lb}` : "", "", String(wmax()));
     const ch = Math.min(PERK_MAX.cheese, P.cheese || 0);
     add("Pizza heal", String(PIZZA_BASE), ch ? `+${ch * PIZZA_PER_CHEESE}` : "", "", String(pizzaHeal()));
     const rr = Math.min(PERK_MAX.reroll, P.reroll || 0),
@@ -4036,6 +4278,7 @@
     if (mode === "playing") showPause();
     else if (mode === "paused") resumeGame();
     else if ((mode === "office" || mode === "options" || mode === "stats") && menuBack === "pause" && state) showPause(); // ESC = back
+    else if (mode === "compendium" && dexBack === "pause" && state) showPause();
   }
   // =====================================================================================
   //  v10 STAGE 2: MEGA MART — regular enemy behaviours, bosses, gas clouds, projectiles
@@ -4796,9 +5039,10 @@
       drawTinted(enemySheet, frame * 64, row * 64, 64, 64, dx + (Math.random() < 0.5 ? -1 : 1), dy, size, size, flip, 0.35 + k * 0.5, k < 0.5 ? "#ff8a3d" : "#2b2630");
       g.globalAlpha = 1;
     } else {
-      const ga = e.type === "ghost" ? ghostAlpha(e) : 1;
+      const ga = e.type === "ghost" ? (e.enraged ? 0.9 : ghostAlpha(e)) : 1;
       if (ga < 1) g.globalAlpha = ga;
-      if (e.flash > 0) drawTinted(enemySheet, frame * 64, row * 64, 64, 64, dx, dy, size, size, flip, 0.45);
+      if (e.enraged && !(e.flash > 0)) drawTinted(enemySheet, frame * 64, row * 64, 64, 64, dx, dy, size, size, flip, 0.55, "#ff2a1a");
+      else if (e.flash > 0) drawTinted(enemySheet, frame * 64, row * 64, 64, 64, dx, dy, size, size, flip, 0.45);
       else blit(enemySheet, frame * 64, row * 64, 64, 64, dx, dy, size, size, flip);
       g.globalAlpha = 1;
     }
@@ -5536,12 +5780,14 @@
       sg.addColorStop(1, "#07090c");
       ctx.fillStyle = sg;
       ctx.fillRect(wx, wy, ww, 44);
-      const overtime = state.t >= SHIFT_SECONDS && !state.bossesDead[finalBossId()],
+      const overtime = !state.limitless && state.t >= SHIFT_SECONDS && !state.bossesDead[finalBossId()],
         blink = Math.floor(performance.now() / 400) % 2;
-      if (!state.clockBoom) hudText(clockText, ccx, wy + 23, "#d8ffc8", "bold 19px monospace", "center");
+      const LM = state.limitless;
+      if (LM) hudText(`+${fmtMMSS(state.t - LM.t0)}`, ccx, wy + 23, "#ffb0a0", "bold 19px monospace", "center");
+      else if (!state.clockBoom) hudText(clockText, ccx, wy + 23, "#d8ffc8", "bold 19px monospace", "center");
       else drawClockWreck(state.clockBoom);
       hudText(
-        state.sunrise ? "SUNRISE" : overtime ? "OVERTIME!" : `SHIFT ${Math.min(99, Math.floor((state.t / SHIFT_SECONDS) * 100))}%`,
+        state.limitless ? "LIMITLESS" : state.sunrise ? "SUNRISE" : overtime ? "OVERTIME!" : `SHIFT ${Math.min(99, Math.floor((state.t / SHIFT_SECONDS) * 100))}%`,
         ccx,
         wy + 37,
         overtime ? (blink ? "#ff8a6a" : "#ffd0b0") : "#a9c8a0",
@@ -5584,10 +5830,10 @@
       ctx.fillStyle = "#7ff0ff";
       ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3);
       hudText(
-        overtime ? (STAGE === 2 ? "BEAT MEAT MANAGER" : "BEAT THE KING") : "M: MAP",
+        state.limitless ? `BOSS IN ${fmtMMSS(Math.max(0, state.limitless.nextBoss - (state.t - state.limitless.t0)))}` : overtime ? (STAGE === 2 ? "BEAT MEAT MANAGER" : "BEAT THE KING") : "M: MAP",
         ccx,
         my + side + 13,
-        overtime ? (blink ? "#ff8a6a" : "#ffd0b0") : "#8f9a86",
+        overtime || state.limitless ? (blink ? "#ff8a6a" : "#ffd0b0") : "#8f9a86",
         overtime ? "bold 9px monospace" : "bold 10px monospace",
         "center",
       );
@@ -5631,7 +5877,7 @@
         ctx.fillRect(x + 12, sy0 + 14, 34, 31);
       }
       hudText(String(i + 1), x + 9, sy0 + 20, w ? "#fff1d0" : "#7d7466", "bold 13px monospace");
-      if (w) hudText(w.level >= WMAX ? "MAX" : `L${w.level}`, x + 49, sy0 + 48, "#ffd76a", "bold 11px monospace", "right");
+      if (w) hudText(w.level >= wmax() ? "MAX" : `L${w.level}`, x + 49, sy0 + 48, "#ffd76a", "bold 11px monospace", "right");
     }
     // wages counter, bottom right
     if (hudImg("hud_coins", L.coins[0], L.coins[1])) {
@@ -5979,6 +6225,14 @@
       if (k === "b") return levelUpKeys.banish();
       if (k === "1" || k === "2" || k === "3") return levelUpKeys.choose(Number(k) - 1);
     }
+    if (k === "f" && !e.repeat && !e.ctrlKey && !e.metaKey) {
+      // F: toggle fullscreen (game only, edge to edge)
+      const d = document,
+        el = d.documentElement;
+      if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen)?.call(d);
+      else (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el)?.catch?.(() => {});
+      return;
+    }
     if (k === "p" && !e.repeat && (mode === "playing" || photoFreeze)) {
       photoFreeze = !photoFreeze;
       keys.clear();
@@ -6051,7 +6305,8 @@
   function padBack() {
     if (mode === "paused") return resumeGame();
     if ((mode === "office" || mode === "options" || mode === "stats") && menuBack === "pause" && state) return showPause();
-    const back = padButtons().find((b) => /^(BACK|KEEP MY PERKS)/.test(b.textContent.trim()));
+    if (mode === "compendium" && dexBack === "pause" && state) return showPause();
+    const back = padButtons().find((b) => /^(◀ )?(BACK|KEEP MY PERKS)/.test(b.textContent.trim()));
     if (back) back.click();
   }
   function pollPad(dt) {
@@ -6074,7 +6329,7 @@
     const m = Math.min(1, Math.hypot(x, y));
     if (tap(9)) {
       unlockAudio();
-      if (mode === "playing" || mode === "paused" || mode === "office" || mode === "options" || mode === "stats") pauseGame();
+      if (mode === "playing" || mode === "paused" || mode === "office" || mode === "options" || mode === "stats" || (mode === "compendium" && dexBack === "pause")) pauseGame();
       else if (mode !== "slides" && mode !== "levelup" && panel.classList.contains("visible")) {
         const list = padButtons(); // Start on title / results screens = press the highlighted (or main) button
         (list.includes(document.activeElement) ? document.activeElement : list.find((b) => b.classList.contains("primary")) || list[0])?.click();
@@ -6242,7 +6497,7 @@
       pauseGame,
       showOffice,
       getAvailableUpgrades,
-      v14: { NW_IDS, MAX_SLOTS, WMAX, STAT_MAX, SPLAT_TINT, splatTint, syncSlots, spawnSplat, FALLBACK_UPS, upgrades: UPGRADES },
+      v14: { NW_IDS, MAX_SLOTS, WMAX: WMAX_BASE, STAT_MAX, SPLAT_TINT, splatTint, syncSlots, spawnSplat, FALLBACK_UPS, upgrades: UPGRADES },
       draw,
       findSpawnPoint,
       computeFlowField,
@@ -6292,6 +6547,7 @@
       triggerVacuum,
       collectDrop,
       killEnemy,
+      addEnemyBoss: (id) => addEnemy(null, id),
       startSunrise,
       hogAnimState,
       explodeClock,

@@ -113,3 +113,50 @@ body.touch[data-mode="title"] .touch-bar{left:auto;right:1.5%}
 /* 4 touch buttons (pause / map / zoom / fullscreen) must clear the clock device */
 .touch-bar{left:45%;gap:4px}.touch-btn{min-width:38px;padding:0 6px;font-size:12px}
 @media (max-height:520px){.stats-table{font-size:10px}.stats-table th,.stats-table td{padding:0 6px;line-height:1.2}.card:has(.stats-table){padding-top:6px;padding-bottom:6px}}
+/* results: damage by weapon */
+.dmg-break{max-width:520px;margin:8px auto 2px;text-align:left}
+.dmg-title{font:12px ui-monospace,monospace;letter-spacing:2px;color:#aaa18e;margin-bottom:4px;text-align:center}
+.dmg-row{display:grid;grid-template-columns:150px 1fr 110px;gap:8px;align-items:center;font:13px ui-monospace,monospace;margin:2px 0}
+.dmg-name{color:#eadfc9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmg-bar{height:10px;background:#2a2430;border:1px solid #4e4852}
+.dmg-bar i{display:block;height:100%;background:linear-gradient(90deg,#b4463d,#e7bd75)}
+.dmg-val{color:#fff2d2;text-align:right}.dmg-val em{color:#8f877a;font-style:normal}
+@media (max-height:520px){.dmg-break{margin:4px auto 0}.dmg-title{font-size:10px;margin-bottom:2px}.dmg-row{grid-template-columns:110px 1fr 84px;font-size:10px;margin:0}.dmg-bar{height:7px}}
+/* compendium */
+.dex-tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.dex-tabs .game-btn{min-width:0;font-size:14px;padding:6px 12px}
+.card:has(.dex-grid){max-width:880px;width:min(100%,880px)}
+.dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin:8px auto;text-align:left}
+.dex-card{display:flex;gap:10px;align-items:flex-start;background:#242633;border:1px solid #5e564e;padding:8px}
+.dex-card canvas{width:48px;height:48px;flex:none;image-rendering:pixelated;background:radial-gradient(circle,#2e3040,#15171f 70%)}
+.dex-card b{display:block;font:15px ui-monospace,monospace;color:#eac476}
+.dex-card p{margin:3px 0!important;font-size:11px!important;line-height:1.35!important;color:#cfc4ac}
+.dex-card.unknown b{color:#6e6878}.dex-card.unknown p{color:#6e6878}
+.dex-stat{font:11px ui-monospace,monospace;color:#9fe0cc}
+@media (max-height:520px){.dex-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px}.dex-card{padding:5px;gap:6px}.dex-card canvas{width:36px;height:36px}.dex-card b{font-size:12px}.dex-tabs .game-btn{font-size:11px;padding:4px 8px}}
+.dex-back{background:#355953!important;border-color:#77b8a4!important}
+/* office: 9 perks in two rows */
+.shop-grid{grid-template-columns:repeat(5,1fr)}
+.card:has(.shop-grid){max-width:960px;width:min(100%,960px)}
+.shop-item b{font-size:15px}
+@media (max-height:520px){.shop-grid{grid-template-columns:repeat(5,1fr)}.shop-item p{font-size:9px}.shop-item b{font-size:11px}}
+/* v17 stream polish: on PC the game scales up to fill the window (it used to stop at 1120px wide) */
+body:not(.touch){padding:12px;min-height:100vh;box-sizing:border-box}
+body:not(.touch) .shell{width:min(calc(100vw - 24px), calc((100vh - 96px) * 1.6))}
+body:not(.touch) .masthead{margin-bottom:6px}
+body:not(.touch) footer{margin-top:6px}
+@media (max-height:700px){body:not(.touch) .masthead{display:none}body:not(.touch) .shell{width:min(calc(100vw - 24px), calc((100vh - 56px) * 1.6))}}
+/* F = fullscreen: just the game, edge to edge */
+html:fullscreen body{padding:0;background:#000}
+html:fullscreen .masthead,html:fullscreen footer{display:none}
+html:fullscreen .shell{width:min(100vw, calc(100vh * 1.6))!important}
+html:fullscreen .game-frame{border-width:0;box-shadow:none}
+/* version tag on the title screen: a little taped-on label, bottom-right */
+.version-tag{position:absolute;right:10px;bottom:8px;z-index:3;font:bold 11px ui-monospace,monospace;letter-spacing:1px;color:#1a1410;background:#e2d3a8;padding:3px 8px;transform:rotate(-3deg);box-shadow:0 2px 0 #000a;opacity:.92;pointer-events:none}
+@media (max-height:520px){.version-tag{font-size:9px;padding:2px 6px;right:6px;bottom:5px}}
+/* phones: the 9-perk office fits without scrolling */
+@media (max-height:520px){.card:has(.shop-grid) .eyebrow,.card:has(.shop-grid)>p:not(.status-line){display:none}.card:has(.shop-grid) h2{font-size:16px;margin:0}.card:has(.shop-grid) .status-line{font-size:11px;margin:2px auto!important}.shop-grid{gap:4px;margin:4px auto}.shop-item{padding:4px}.shop-item p{font-size:8px!important;line-height:1.2!important;margin:2px 0!important}.shop-item b{font-size:10px!important}.shop-item .game-btn{padding:2px;font-size:10px}.card:has(.shop-grid) .button-row{margin-top:4px}.card:has(.shop-grid) .button-row .game-btn{padding:3px 8px;font-size:11px}}
+.version-tag{bottom:auto;top:10px;right:12px;transform:rotate(3deg)}
+@media (max-height:520px){.version-tag{top:6px;right:6px}}
+body.touch .version-tag{top:auto;bottom:6px;right:6px;transform:rotate(-3deg)}
+@media (max-height:700px){body:not(.touch) .shell{width:min(calc(100vw - 24px), calc((100vh - 74px) * 1.6))}}
