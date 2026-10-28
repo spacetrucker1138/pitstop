@@ -1,1204 +1,740 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>JURN Minor Arcana Solitaire</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: #1a0a2e;
-      color: #f0e6c8;
-      font-family: 'Georgia', serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: #0d0520;
-      border-bottom: 2px solid #c9a227;
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    header h1 {
-      flex: 1;
-      font-size: 1.4rem;
-      color: #c9a227;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-    #timerDisplay {
-      font-size: 1.1rem;
-      color: #f0e6c8;
-      min-width: 70px;
-      text-align: center;
-      border: 1px solid #c9a227;
-      padding: 4px 10px;
-      border-radius: 4px;
-      background: #0d0520;
-    }
-    header button {
-      background: #c9a227;
-      color: #1a0a2e;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: inherit;
-      font-weight: bold;
-      font-size: 0.9rem;
-    }
-    header button:hover { background: #e8be3a; }
-    #game-container {
-      flex: 1;
-      padding: 14px 10px;
-      max-width: 1350px;
-      margin: 0 auto;
-      width: 100%;
-    }
-    #top-area {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 16px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-    #foundations {
-      display: flex;
-      gap: 10px;
-      flex: 1;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-    .pile-container {
-      position: relative;
-      width: 150px;
-      height: 210px;
-      border: 2px dashed #5a3e80;
-      border-radius: 8px;
-      background: rgba(0,0,0,0.3);
-    }
-    .pile-title {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.5rem;
-      opacity: 0.4;
-      pointer-events: none;
-      text-align: center;
-    }
-    /* CARDS */
-    .card {
-      width: 150px;
-      height: 210px;
-      border-radius: 6px;
-      border: 2px solid #c9a227;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 0;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: box-shadow 0.15s ease;
-      user-select: none;
-      overflow: hidden;
-      cursor: grab;
-      touch-action: none;
-    }
-    .card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      border-radius: 4px;
-    }
-    .card.back {
-      background: #1a0a2e;
-      border: 2px solid #c9a227;
-    }
-    .card.back img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .card.dragging { opacity: 0.35; cursor: grabbing; }
-    #touch-drag-ghost {
-      position: fixed;
-      pointer-events: none;
-      z-index: 9999;
-      border-radius: 6px;
-      overflow: hidden;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.85), 0 0 20px rgba(201,162,39,0.4);
-      border: 2px solid #c9a227;
-      display: none;
-      transform: rotate(-3deg) scale(1.06);
-      opacity: 0.92;
-    }
-    #touch-drag-ghost img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
-    }
-    /* stack of cards ghost count badge */
-    #touch-drag-ghost .ghost-count {
-      position: absolute; top: 4px; right: 6px;
-      background: rgba(201,162,39,0.9); color: #1a0a2e;
-      font-size: 0.75rem; font-weight: bold; border-radius: 999px;
-      padding: 1px 6px; display: none;
-    }
-    .card.highlight { box-shadow: 0 0 12px 4px #c9a227; }
-    .card.drag-over { box-shadow: 0 0 10px 3px #44ff88; }
-    .pile-container.drop-valid, .tableau-pile.drop-valid, .card.drop-valid { box-shadow: 0 0 14px 5px #44ff88 !important; border-color: #44ff88 !important; }
-    .pile-container.drop-invalid, .tableau-pile.drop-invalid, .card.drop-invalid { box-shadow: 0 0 14px 5px #ff3333 !important; border-color: #ff3333 !important; }
-    #tableau {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      flex-wrap: nowrap;
-    }
-    .tableau-pile {
-      position: relative;
-      flex: 1;
-      min-width: 150px;
-      height: 780px;
-    }
-    #message {
-      margin-top: 12px;
-      color: #c9a227;
-      font-size: 1rem;
-      min-height: 1.4em;
-      text-align: center;
-    }
-    /* LEADERBOARD MODAL */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 100;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.75);
-    }
-    .modal.visible { display: flex; align-items: center; justify-content: center; }
-    .modal-content {
-      background: #1a0a2e;
-      border: 2px solid #c9a227;
-      border-radius: 10px;
-      padding: 24px;
-      max-width: 440px;
-      width: 90%;
-      color: #f0e6c8;
-      position: relative;
-    }
-    .modal-content h2 { color: #c9a227; margin-bottom: 14px; }
-    .modal-content p { margin-bottom: 10px; line-height: 1.6; }
-    .close {
-      position: absolute;
-      top: 10px; right: 16px;
-      font-size: 1.6rem;
-      cursor: pointer;
-      color: #c9a227;
-    }
-    /* Win modal extras */
-    #initialsInput {
-      background: #0d0520;
-      border: 1px solid #c9a227;
-      color: #f0e6c8;
-      padding: 6px 10px;
-      font-size: 1rem;
-      font-family: inherit;
-      border-radius: 4px;
-      width: 80px;
-      text-align: center;
-      text-transform: uppercase;
-      margin-right: 8px;
-    }
-    #submitInitials {
-      background: #c9a227;
-      color: #1a0a2e;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      font-family: inherit;
-    }
-    #leaderboardList { list-style: none; padding: 0; margin-top: 10px; }
-    #leaderboardList li {
-      display: flex;
-      justify-content: space-between;
-      padding: 4px 0;
-      border-bottom: 1px solid #3a2060;
-      font-size: 0.95rem;
-    }
-    #leaderboardList li:first-child { color: #c9a227; font-weight: bold; }
-    footer {
-      text-align: center;
-      padding: 8px;
-      font-size: 0.75rem;
-      color: #5a3e80;
-    }
-    @media (max-width: 700px) {
-      .card, .pile-container { width: 108px; height: 152px; }
-      .tableau-pile { min-width: 108px; height: 660px; }
-      header h1 { font-size: 1rem; }
-    }
-
-    /* TITLE SCREEN */
-    #titleScreen {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: #0d0520;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #titleArt {
-      position: relative;
-      width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    #titleArt img {
-      width: 100%;
-      display: block;
-      border-bottom: 3px solid #c9a227;
-    }
-    #titleButtons {
-      position: absolute;
-      top: 50%;
-      right: 4%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
-    }
-    #titleButtons button {
-      background: rgba(13,5,32,0.88);
-      color: #c9a227;
-      border: 2px solid #c9a227;
-      padding: 12px 28px;
-      font-family: Georgia, serif;
-      font-size: 1.05rem;
-      font-weight: bold;
-      letter-spacing: 1px;
-      border-radius: 4px;
-      cursor: pointer;
-      text-transform: uppercase;
-      white-space: nowrap;
-      transition: background 0.15s, color 0.15s;
-    }
-    #titleButtons button:hover {
-      background: #c9a227;
-      color: #0d0520;
-    }
-    @media (max-width: 600px) {
-      #titleButtons { right: 2%; gap: 10px; }
-      #titleButtons button { padding: 8px 14px; font-size: 0.85rem; }
-    }
-
-    /* Win screen extras */
-    #winScoreList li {
-      display: flex;
-      justify-content: space-between;
-      padding: 4px 12px;
-      border-bottom: 1px solid #c9a22722;
-    }
-    #winScoreList li:last-child { border-bottom: none; }
-    #winScoreList li.win-highlight {
-      color: #c9a227;
-      font-weight: bold;
-    }
-    #winPlayAgain {
-      background: #c9a227;
-      color: #0d0520;
-      border: none;
-      padding: 10px 28px;
-      font-family: Georgia, serif;
-      font-size: 1rem;
-      font-weight: bold;
-      letter-spacing: 1px;
-      border-radius: 4px;
-      cursor: pointer;
-      text-transform: uppercase;
-    }
-    #winPlayAgain:hover { background: #e8b92f; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+<meta name="theme-color" content="#0b0612"/>
+<title>JURN Arcana Solitaire</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#07040c;color:#f0e6c8;font-family:Georgia,'Times New Roman',serif}
+body{overscroll-behavior:none;touch-action:manipulation}
+/* ── Atmosphere ── */
+#table{position:fixed;inset:0;background:#0b0612 center/cover no-repeat;z-index:0}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 85%,rgba(0,0,0,.8) 100%)}
+.glow{position:fixed;width:46vmax;height:46vmax;border-radius:50%;pointer-events:none;z-index:1;mix-blend-mode:screen;
+  background:radial-gradient(circle,rgba(255,170,70,.32) 0%,rgba(255,120,40,.12) 30%,rgba(255,90,20,0) 62%);
+  animation:flicker 3.1s infinite ease-in-out}
+.glow.tl{left:-20vmax;top:-20vmax}
+.glow.tr{right:-20vmax;top:-18vmax;animation-duration:2.7s;animation-delay:-.8s}
+.glow.bl{left:-20vmax;bottom:-20vmax;animation-duration:3.6s;animation-delay:-1.7s}
+.glow.br{right:-20vmax;bottom:-20vmax;animation-duration:2.3s;animation-delay:-.3s}
+@keyframes flicker{0%{opacity:.85;transform:scale(1)}8%{opacity:.62}12%{opacity:.95;transform:scale(1.03)}20%{opacity:.75}33%{opacity:1;transform:scale(.98)}
+  41%{opacity:.68}47%{opacity:.9}60%{opacity:.78;transform:scale(1.02)}71%{opacity:1}80%{opacity:.7}88%{opacity:.92;transform:scale(.99)}100%{opacity:.85;transform:scale(1)}}
+#mist{position:fixed;left:-50%;right:-50%;bottom:-10%;height:45%;pointer-events:none;z-index:1;opacity:.35;
+  background:radial-gradient(ellipse at 20% 80%,rgba(150,120,190,.35),transparent 55%),radial-gradient(ellipse at 70% 90%,rgba(120,100,160,.3),transparent 50%),radial-gradient(ellipse at 45% 100%,rgba(170,150,200,.25),transparent 60%);
+  animation:drift 38s linear infinite alternate;filter:blur(18px)}
+@keyframes drift{from{transform:translateX(-8%)}to{transform:translateX(8%)}}
+#embers{position:fixed;inset:0;pointer-events:none;z-index:2}
+/* ── HUD ── */
+#hud{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:8px;
+  padding:calc(6px + env(safe-area-inset-top)) 12px 6px;background:linear-gradient(rgba(5,2,10,.85),rgba(5,2,10,.55) 70%,rgba(5,2,10,0));}
+#hud .brand{font-size:1.05rem;letter-spacing:3px;color:#d8b04a;text-transform:uppercase;white-space:nowrap;text-shadow:0 0 10px rgba(216,176,74,.4)}
+#hud .stats{display:flex;gap:10px;margin-left:auto;font-variant-numeric:tabular-nums;font-size:.95rem;color:#e9dcb5}
+#hud .stats span b{color:#d8b04a;font-weight:normal;font-size:.72rem;letter-spacing:1px;margin-right:4px;text-transform:uppercase}
+.hbtn{background:rgba(20,10,30,.7);border:1px solid rgba(216,176,74,.55);color:#e9dcb5;border-radius:8px;padding:6px 11px;font:inherit;font-size:.85rem;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;transition:background .15s,transform .1s,box-shadow .2s}
+.hbtn:hover{background:rgba(60,30,80,.85);box-shadow:0 0 12px rgba(216,176,74,.35)}
+.hbtn:active{transform:scale(.95)}
+.hbtn:disabled{opacity:.4;cursor:default}
+.hbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#btns{display:flex;gap:6px}
+/* ── Board ── */
+#board{position:absolute;z-index:5;left:50%;transform:translateX(-50%);}
+.slot{position:absolute;border-radius:7%/4.7%;border:1.5px solid rgba(216,176,74,.28);background:rgba(8,3,14,.35);
+  box-shadow:inset 0 0 18px rgba(0,0,0,.6);transition:box-shadow .2s,border-color .2s}
+.slot.found{background:rgba(8,3,14,.45) center/58% no-repeat}
+.slot.found::after{content:"";position:absolute;inset:0;border-radius:inherit;background:inherit;background-color:transparent;opacity:.5}
+.slot.found{background-blend-mode:normal}
+.slot .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(216,176,74,.35);font-size:calc(var(--cw)*.28);letter-spacing:1px}
+.slot.stock{cursor:pointer}
+.slot.target,.card.target{box-shadow:0 0 0 2px rgba(255,190,90,.9),0 0 22px 8px rgba(255,150,50,.65)!important;border-color:rgba(255,200,110,.9)}
+.slot.hint,.card.hint{animation:hintpulse 1s ease-in-out 2}
+@keyframes hintpulse{0%,100%{box-shadow:0 2px 6px rgba(0,0,0,.6)}50%{box-shadow:0 0 0 2px #9fe6ff,0 0 26px 10px rgba(120,210,255,.75)}}
+.slot.flare{animation:flare .7s ease-out}
+@keyframes flare{0%{box-shadow:0 0 0 0 rgba(255,200,100,.9)}40%{box-shadow:0 0 30px 14px rgba(255,170,60,.75)}100%{box-shadow:inset 0 0 18px rgba(0,0,0,.6)}}
+.card{position:absolute;left:0;top:0;width:var(--cw);height:var(--ch);perspective:900px;will-change:transform;
+  transition:transform .3s cubic-bezier(.2,.85,.25,1);touch-action:none;cursor:default}
+.card.nomove{transition:none}
+.card.spring{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.card .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .38s cubic-bezier(.3,.7,.3,1);border-radius:6%/4%;
+  box-shadow:0 2px 6px rgba(0,0,0,.65)}
+.card.up .inner{transform:rotateY(180deg)}
+.card img{position:absolute;inset:0;width:100%;height:100%;border-radius:6%/4%;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  user-select:none;-webkit-user-drag:none;pointer-events:none;object-fit:cover;background:#1a0f22}
+.card img.front{transform:rotateY(180deg)}
+.card.up{cursor:grab}
+.card.drag{transition:none;cursor:grabbing}
+.card.drag .inner{box-shadow:0 18px 30px rgba(0,0,0,.7)}
+.card.shake{animation:shake .32s}
+@keyframes shake{0%,100%{margin-left:0}25%{margin-left:-5px}50%{margin-left:5px}75%{margin-left:-3px}}
+/* ── Toast & overlays ── */
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;z-index:40;
+  background:rgba(12,6,20,.92);border:1px solid rgba(216,176,74,.5);padding:9px 16px;border-radius:10px;font-size:.95rem;transition:all .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#finishBtn{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:30;display:none;
+  font-size:1.05rem;padding:11px 20px;background:linear-gradient(#5a2a18,#2a0f08);border-color:#ffb85a;color:#ffe2a8;box-shadow:0 0 20px rgba(255,150,50,.5);animation:breathe 1.8s infinite}
+@keyframes breathe{50%{box-shadow:0 0 34px rgba(255,150,50,.85)}}
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(3,1,6,.72);backdrop-filter:blur(3px);padding:16px}
+.modal.open{display:flex;animation:fadein .25s}
+@keyframes fadein{from{opacity:0}}
+.panel{position:relative;background:linear-gradient(#1b0d26,#0e0616);border:1px solid rgba(216,176,74,.55);border-radius:14px;padding:22px 22px 18px;max-width:420px;width:100%;
+  box-shadow:0 0 40px rgba(120,60,160,.35),0 0 0 1px rgba(0,0,0,.6) inset;max-height:88vh;overflow:auto}
+.panel h2{color:#d8b04a;letter-spacing:2px;font-weight:normal;text-transform:uppercase;font-size:1.15rem;margin-bottom:12px;text-align:center}
+.panel p,.panel li{line-height:1.5;font-size:.95rem;margin-bottom:8px}
+.panel .x{position:absolute;right:12px;top:8px;background:none;border:0;color:#d8b04a;font-size:1.6rem;cursor:pointer}
+.panel .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.seg{display:flex;border:1px solid rgba(216,176,74,.55);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;color:#e9dcb5;padding:6px 12px;font:inherit;cursor:pointer}
+.seg button.on{background:#d8b04a;color:#1a0a24}
+.setrow{display:flex;justify-content:space-between;align-items:center;margin:12px 0}
+#lbList,#winList{list-style:none}
+#lbList li,#winList li{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px dashed rgba(216,176,74,.2);font-variant-numeric:tabular-nums}
+#lbList li.me,#winList li.me{color:#ffcf6e}
+.tomb{font-size:.72rem;color:#b8a6c8;margin-left:6px}
+#initials{width:84px;text-align:center;font:inherit;font-size:1.2rem;letter-spacing:4px;text-transform:uppercase;background:#0a0410;border:1px solid #d8b04a;color:#f0e6c8;border-radius:6px;padding:6px}
+/* inspect */
+#inspect{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78)}
+#inspect.open{display:flex;animation:fadein .18s}
+#inspect img{max-height:86vh;max-width:88vw;border-radius:3%;box-shadow:0 0 50px rgba(255,160,60,.35);animation:rise .25s cubic-bezier(.2,.8,.3,1.2)}
+@keyframes rise{from{transform:scale(.6) translateY(30px);opacity:0}}
+/* title */
+#title{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:rgba(4,2,8,.55);padding:16px}
+#title .art{position:relative;width:min(760px,94vw);aspect-ratio:16/9;border-radius:12px;overflow:hidden;box-shadow:0 0 60px rgba(255,140,40,.25),0 0 0 1px rgba(216,176,74,.4)}
+#title .art img{width:100%;height:100%;object-fit:cover;animation:slowzoom 18s ease-in-out infinite alternate}
+@keyframes slowzoom{to{transform:scale(1.06)}}
+#title .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#title .big{font-size:1.15rem;padding:11px 26px;background:linear-gradient(#3b1a52,#1a0a26);border-color:#d8b04a;color:#ffe9b0}
+#title.hide{animation:fadeout .5s forwards}
+@keyframes fadeout{to{opacity:0;visibility:hidden}}
+#winBurst{position:fixed;inset:0;z-index:45;pointer-events:none}
+@media (max-width:640px){
+  #hud .brand{display:none}
+  #hud{padding-left:6px;padding-right:6px;gap:4px}
+  #hud .stats{margin-left:0;margin-right:auto;gap:8px;font-size:.85rem}
+  .hbtn{padding:6px 8px}
+  .hbtn .t{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .glow,#mist,#title .art img,#finishBtn{animation:none}
+  .card,.card .inner{transition-duration:.01s!important}
+}
+</style>
 </head>
 <body>
+<div id="table"></div>
+<div id="mist"></div>
+<div class="glow tl"></div><div class="glow tr"></div><div class="glow bl"></div><div class="glow br"></div>
+<div id="vignette"></div>
+<canvas id="embers"></canvas>
 
-<!-- TITLE SCREEN OVERLAY -->
-<div id="titleScreen">
-  <div id="titleArt">
-    <img src="assets/arcana_title.jpg" alt="JURN Minor Arcana Solitaire">
-    <div id="titleButtons">
-      <button id="titleNewGame">&#9760; New Game</button>
-      <button id="titleLb">Best Times</button>
-      <button id="titleHelp">Rules</button>
-    </div>
+<header id="hud">
+  <div class="brand">&#9760; Arcana Solitaire</div>
+  <div class="stats"><span><b>Time</b><i id="tTime">0:00</i></span><span><b>Moves</b><i id="tMoves">0</i></span></div>
+  <div id="btns">
+    <button class="hbtn" id="bUndo" title="Undo (Z)"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span class="t">Undo</span></button>
+    <button class="hbtn" id="bHint" title="Hint (H)"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span class="t">Hint</span></button>
+    <button class="hbtn" id="bNew" title="New deal"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span class="t">New</span></button>
+    <button class="hbtn" id="bMenu" title="Menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
   </div>
-</div>
-
-<header id="gameHeader" style="display:none;">
-  <h1>&#9760; Arcana Solitaire</h1>
-  <span id="hintsToggleHint" style="font-size:0.75rem;color:#c9a22799;letter-spacing:1px;align-self:center;">Press T for hints</span>
-  <div id="timerDisplay">0:00</div>
-  <button id="helpBtn">Rules</button>
-  <button id="lbBtn">Best Times</button>
-  <button id="newGameBtn">New Game</button>
 </header>
 
-<div id="game-container">
-  <div id="top-area">
-    <div id="stock" class="pile-container">
-      <div class="pile-title">&#9886;</div>
-    </div>
-    <div id="waste" class="pile-container">
-      <div class="pile-title"></div>
-    </div>
-    <div id="foundations">
-      <div id="foundation-wands"   class="pile-container" data-suit="wands"><div class="pile-title">&#127757;</div></div>
-      <div id="foundation-cups"    class="pile-container" data-suit="cups"><div class="pile-title">&#127942;</div></div>
-      <div id="foundation-swords"  class="pile-container" data-suit="swords"><div class="pile-title">&#9876;</div></div>
-      <div id="foundation-pent"    class="pile-container" data-suit="pent"><div class="pile-title">&#11088;</div></div>
-    </div>
+<div id="board"></div>
+<button class="hbtn" id="finishBtn">&#10022; Finish the Reading</button>
+<div id="toast"></div>
+<canvas id="winBurst"></canvas>
+<div id="inspect"><img alt=""/></div>
+
+<div id="title">
+  <div class="art"><img id="titleImg" alt="JURN Minor Arcana Solitaire"/></div>
+  <div class="row">
+    <button class="hbtn big" id="tPlay">&#9760; Deal the Cards</button>
   </div>
-  <div id="tableau"></div>
-  <div id="message"></div>
-</div>
-
-<footer>&#9760; JURN Arcana Solitaire &mdash; thejurn.com &middot; Comments &amp; inquiries: <a href="mailto:contact@thejurn.com" style="color:inherit;">contact@thejurn.com</a></footer>
-
-<!-- HELP MODAL -->
-<div id="helpModal" class="modal">
-  <div class="modal-content">
-    <span class="close" id="closeHelp">&times;</span>
-    <h2>How to Play</h2>
-    <p><strong>Goal:</strong> Build all four Foundation piles Ace &rarr; King for each suit: Wands &#127757;, Cups &#127942;, Swords &#9876;, Pentacles &#11088;.</p>
-    <p><strong>Tableau:</strong> Stack cards in descending order, alternating suit-color (Wands/Cups = warm; Swords/Pentacles = cool). Empty columns accept only a King.</p>
-    <p><strong>Stock:</strong> Click the stock pile to deal one card to the Waste. Click the empty stock to recycle.</p>
-    <p><strong>Timer:</strong> Starts on your first move. Fastest solve wins. Top-10 times saved to the leaderboard.</p>
+  <div class="row">
+    <button class="hbtn" id="tRules">How to Play</button>
+    <button class="hbtn" id="tLb">Best Times</button>
+    <button class="hbtn" id="tSet">Settings</button>
   </div>
 </div>
 
-<!-- LEADERBOARD MODAL -->
-<div id="lbModal" class="modal">
-  <div class="modal-content">
-    <span class="close" id="closeLb">&times;</span>
-    <h2>&#9760; Best Times</h2>
-    <ul id="leaderboardList"><li>Loading...</li></ul>
+<div class="modal" id="mMenu"><div class="panel">
+  <button class="x" data-close>&times;</button><h2>&#9760; The Table</h2>
+  <div class="row" style="flex-direction:column;align-items:stretch">
+    <button class="hbtn" id="mRestart">Restart this deal</button>
+    <button class="hbtn" id="mRules">How to play</button>
+    <button class="hbtn" id="mLb">Best times</button>
+    <button class="hbtn" id="mSet">Settings</button>
+    <a class="hbtn" href="/games.html" style="text-decoration:none;justify-content:center">More JURN games</a>
   </div>
-</div>
+</div></div>
 
-<!-- WIN MODAL -->
-<!-- Card burst canvas sits behind modal -->
-<canvas id="burstCanvas" style="position:fixed;inset:0;z-index:99;pointer-events:none;display:none;"></canvas>
+<div class="modal" id="mRulesM"><div class="panel">
+  <button class="x" data-close>&times;</button><h2>How to Play</h2>
+  <p><b>Goal:</b> build all four suit altars from Ace up to King: Wands, Cups, Swords, Pentacles.</p>
+  <p><b>Columns:</b> stack cards in descending order (King, Queen, Knight, Page, 10&hellip;2, Ace). Each card must be a <b>different suit</b> from the card it lands on. Only a King can fill an empty column.</p>
+  <p><b>Deck:</b> tap the deck to turn cards (1 or 3 at a time, see Settings). When it runs out, tap the empty spot to gather the cards again.</p>
+  <p><b>Quick moves:</b> tap a card to send it to its best spot. Drag to choose. <b>Press and hold</b> any card to see it full size.</p>
+  <p><b>Keys:</b> Z undo &middot; H hint &middot; Space draw</p>
+</div></div>
 
-<div id="winModal" class="modal">
-  <div class="modal-content" style="text-align:center;">
-    <h2>&#9760; You Win! &#9760;</h2>
-    <p id="winTimeMsg" style="font-size:1.2rem; color:#c9a227; margin:12px 0;"></p>
-    <p>Enter your initials:</p>
-    <div style="margin:10px 0;">
-      <input id="initialsInput" maxlength="3" placeholder="AAA"/>
-      <button id="submitInitials">Save</button>
-    </div>
-    <p id="winMessage" style="margin-top:8px;color:#c9a227;font-weight:bold;"></p>
-    <!-- Top 5 scores shown inline after save -->
-    <div id="winLeaderboard" style="display:none;margin-top:16px;">
-      <div style="font-size:0.8rem;color:#c9a22799;letter-spacing:1px;margin-bottom:6px;">BEST TIMES</div>
-      <ul id="winScoreList" style="list-style:none;padding:0;margin:0;font-size:0.95rem;"></ul>
-    </div>
-    <button id="winPlayAgain" style="margin-top:18px;display:none;">&#9760; Play Again</button>
+<div class="modal" id="mSetM"><div class="panel">
+  <button class="x" data-close>&times;</button><h2>Settings</h2>
+  <div class="setrow"><span>Turn from deck</span><div class="seg" id="sDraw"><button data-v="1">1 card</button><button data-v="3">3 cards</button></div></div>
+  <div class="setrow"><span>Sound</span><div class="seg" id="sSound"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+  <div class="setrow"><span>Glow where cards can land</span><div class="seg" id="sGlow"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+  <p style="font-size:.8rem;color:#b8a6c8">Changing the deck setting starts a new deal.</p>
+</div></div>
+
+<div class="modal" id="mLbM"><div class="panel">
+  <button class="x" data-close>&times;</button><h2>&#9760; The Crypt Register</h2>
+  <ul id="lbList"><li>Summoning&hellip;</li></ul>
+</div></div>
+
+<div class="modal" id="mStuck"><div class="panel">
+  <h2>The cards have gone quiet</h2>
+  <p style="text-align:center">No moves left that change anything.</p>
+  <div class="row">
+    <button class="hbtn" id="sUndo">Undo</button>
+    <button class="hbtn" id="sRestart">Restart deal</button>
+    <button class="hbtn" id="sNew">New deal</button>
   </div>
-</div>
+  <div class="row"><button class="hbtn" data-close style="opacity:.75">Keep looking</button></div>
+</div></div>
+
+<div class="modal" id="mWin"><div class="panel" style="text-align:center">
+  <h2>&#9760; The Reading Is Complete &#9760;</h2>
+  <p id="winStats" style="font-size:1.15rem;color:#ffcf6e"></p>
+  <div id="winForm"><p>Carve your initials in the Crypt Register:</p>
+    <div class="row" style="margin-top:4px"><input id="initials" maxlength="3" placeholder="AAA" autocomplete="off"/><button class="hbtn" id="winSave">Carve</button></div></div>
+  <p id="winMsg" style="color:#d8b04a;margin-top:8px"></p>
+  <ul id="winList"></ul>
+  <div class="row"><button class="hbtn" id="winAgain" style="font-size:1.05rem">&#9760; Deal Again</button></div>
+</div></div>
 
 <script>
-// ── Firebase (pitstop-wall project) ──────────────────────────────────────────
+"use strict";
+// ── Assets: relative on thejurn.com, branch raw files elsewhere (preview) ──
+const ON_SITE = /(^|\.)thejurn\.com$/.test(location.hostname) || location.hostname==="localhost" || location.hostname==="127.0.0.1";
+const RAW = "https://raw.githubusercontent.com/spacetrucker1138/pitstop/arcana-solitaire-v2/games/arcana-solitaire/";
+const A = (ON_SITE ? "" : RAW) + "assets/";
+const FULL_ART = "https://thejurn.com/assets/tarot/";
 const FB_URL = "https://pitstop-wall-default-rtdb.firebaseio.com/arcana-solitaire/leaderboard";
 
-async function fbGet(path) {
-  const r = await fetch(FB_URL + (path||"") + ".json");
-  return r.ok ? r.json() : null;
-}
-async function fbPush(data) {
-  const r = await fetch(FB_URL + ".json", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(data)
-  });
-  return r.ok ? r.json() : null;
-}
-
-// ── Card image map ────────────────────────────────────────────────────────────
-const BASE = "https://thejurn.com/assets/tarot/";
-const BACK = "https://thejurn.com/assets/tarot-game/card_back.jpg";
-
-const cardImageMap = {
-  "wands": {
-    "A": "wands_01_ace_of_wands.jpg",
-    "2": "wands_02_two_of_wands.jpg",
-    "3": "wands_03_three_of_wands.jpg",
-    "4": "wands_04_four_of_wands.jpg",
-    "5": "wands_05_five_of_wands.jpg",
-    "6": "wands_06_six_of_wands.jpg",
-    "7": "wands_07_seven_of_wands.jpg",
-    "8": "wands_08_eight_of_wands.jpg",
-    "9": "wands_09_nine_of_wands.jpg",
-    "10": "wands_10_ten_of_wands.jpg",
-    "Page": "wands_11_page_of_wands.jpg",
-    "Knight": "wands_12_knight_of_wands.jpg",
-    "Queen": "wands_13_queen_of_wands.jpg",
-    "King": "wands_14_king_of_wands.jpg",
-  },
-  "cups": {
-    "A": "cups_01_ace_of_cups.jpg",
-    "2": "cups_02_two_of_cups.jpg",
-    "3": "cups_03_three_of_cups.jpg",
-    "4": "cups_04_four_of_cups.jpg",
-    "5": "cups_05_five_of_cups.jpg",
-    "6": "cups_06_six_of_cups.jpg",
-    "7": "cups_07_seven_of_cups.jpg",
-    "8": "cups_08_eight_of_cups.jpg",
-    "9": "cups_09_nine_of_cups.jpg",
-    "10": "cups_10_ten_of_cups.jpg",
-    "Page": "cups_11_page_of_cups.jpg",
-    "Knight": "cups_12_knight_of_cups.jpg",
-    "Queen": "cups_13_queen_of_cups.jpg",
-    "King": "cups_14_king_of_cups.jpg",
-  },
-  "swords": {
-    "A": "swords_01_ace_of_swords.jpg",
-    "2": "swords_02_two_of_swords.jpg",
-    "3": "swords_03_three_of_swords.jpg",
-    "4": "swords_04_four_of_swords.jpg",
-    "5": "swords_05_five_of_swords.jpg",
-    "6": "swords_06_six_of_swords.jpg",
-    "7": "swords_07_seven_of_swords.jpg",
-    "8": "swords_08_eight_of_swords.jpg",
-    "9": "swords_09_nine_of_swords.jpg",
-    "10": "swords_10_ten_of_swords.jpg",
-    "Page": "swords_11_page_of_swords.jpg",
-    "Knight": "swords_12_knight_of_swords.jpg",
-    "Queen": "swords_13_queen_of_swords.jpg",
-    "King": "swords_14_king_of_swords.jpg",
-  },
-  "pent": {
-    "A": "pent_01_ace_of_pentacles.jpg",
-    "2": "pent_02_two_of_pentacles.jpg",
-    "3": "pent_03_three_of_pentacles.jpg",
-    "4": "pent_04_four_of_pentacles.jpg",
-    "5": "pent_05_five_of_pentacles.jpg",
-    "6": "pent_06_six_of_pentacles.jpg",
-    "7": "pent_07_seven_of_pentacles.jpg",
-    "8": "pent_08_eight_of_pentacles.jpg",
-    "9": "pent_09_nine_of_pentacles.jpg",
-    "10": "pent_10_ten_of_pentacles.jpg",
-    "Page": "pent_11_page_of_pentacles.jpg",
-    "Knight": "pent_12_knight_of_pentacles.jpg",
-    "Queen": "pent_13_queen_of_pentacles.jpg",
-    "King": "pent_14_king_of_pentacles.jpg",
-  },
-};
-
-// ── Game constants ────────────────────────────────────────────────────────────
 const SUITS = ["wands","cups","swords","pent"];
+const SUIT_NAME = {wands:"Wands",cups:"Cups",swords:"Swords",pent:"Pentacles"};
 const RANKS = ["A","2","3","4","5","6","7","8","9","10","Page","Knight","Queen","King"];
-// Suit color groups: wands+cups = "warm", swords+pent = "cool" (alternating rule)
-function suitColor(suit) {
-  return (suit === "wands" || suit === "cups") ? "warm" : "cool";
+const RFILE = ["01_ace","02_two","03_three","04_four","05_five","06_six","07_seven","08_eight","09_nine","10_ten","11_page","12_knight","13_queen","14_king"];
+function cardFile(c){ const s=c.suit==="pent"?"pentacles":c.suit; return `${c.suit}_${RFILE[c.r]}_of_${s}.jpg`; }
+
+// ── Settings ──
+const S = Object.assign({draw:1,sound:1,glow:1}, JSON.parse(localStorage.getItem("arcanaV2")||"{}"));
+function saveS(){ localStorage.setItem("arcanaV2", JSON.stringify(S)); }
+
+// ── State ──
+let G, history=[], initialDeal=null, timer=null, seconds=0, started=false, busy=false, won=false, stuckShown=false;
+const els = {}; // id -> card element
+const board = document.getElementById("board");
+let L = {}; // layout
+
+function newState(){ return {stock:[],waste:[],found:{wands:[],cups:[],swords:[],pent:[]},tab:[[],[],[],[],[],[],[]],moves:0}; }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function cardById(id){ const [suit,r]=id.split(":"); return {suit,r:+r}; }
+
+function shuffleDeck(){
+  const d=[]; for(const s of SUITS) for(let r=0;r<14;r++) d.push({id:s+":"+r,suit:s,r,up:false});
+  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
+  return d;
+}
+function deal(deck){
+  const g=newState(); let k=0;
+  for(let i=0;i<7;i++) for(let j=0;j<=i;j++){ const c=deck[k++]; c.up=(j===i); g.tab[i].push(c); }
+  g.stock=deck.slice(k).map(c=>({...c,up:false}));
+  return g;
 }
 
-// ── Game state ────────────────────────────────────────────────────────────────
-let deck=[], stock=[], waste=[], foundations={}, tableau=[];
-let draggedInfo = null; // { cards, sourceType, index }
-let hintsEnabled = false; // T toggles drag highlighting
-let timerInterval=null, timerSeconds=0, timerStarted=false;
-let finalTime=0;
-
-function formatTime(s) {
-  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
-}
-function startTimer() {
-  if (timerStarted) return;
-  timerStarted = true;
-  timerInterval = setInterval(() => {
-    timerSeconds++;
-    document.getElementById("timerDisplay").textContent = formatTime(timerSeconds);
-  }, 1000);
-}
-function stopTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
-  finalTime = timerSeconds;
-}
-function resetTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
-  timerSeconds = 0;
-  timerStarted = false;
-  document.getElementById("timerDisplay").textContent = "0:00";
+// ── Rules ──
+function canFound(c,suit){ const p=G.found[suit]; if(c.suit!==suit) return false; return p.length===c.r; }
+function canTab(c,i){ const p=G.tab[i]; if(!p.length) return c.r===13; const t=p[p.length-1]; return t.up && t.suit!==c.suit && t.r===c.r+1; }
+function validRun(pile,idx){ // cards from idx down form a legal sequence
+  for(let k=idx;k<pile.length-1;k++){ const a=pile[k],b=pile[k+1]; if(!a.up||!b.up||a.suit===b.suit||a.r!==b.r+1) return false; }
+  return pile[idx] && pile[idx].up;
 }
 
-// ── Deck build & shuffle ──────────────────────────────────────────────────────
-function buildDeck() {
-  deck = [];
-  for (let suit of SUITS)
-    for (let rank of RANKS)
-      deck.push({ suit, rank, faceUp: false });
-  // Fisher-Yates
-  for (let i = deck.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
+// ── Layout ──
+function computeLayout(){
+  const vw=innerWidth, vh=innerHeight;
+  const hud=document.getElementById("hud").offsetHeight;
+  const mobile = vw<700;
+  const gap = mobile? Math.max(3,Math.round(vw*0.012)) : Math.round(Math.min(18,vw*0.012));
+  const pad = mobile? 6 : 20;
+  const availH = vh - hud - (mobile?10:24);
+  let cw = Math.floor((Math.min(vw,1260) - pad*2 - gap*6)/7);
+  cw = Math.min(cw, 140, Math.floor(availH/4.2));
+  const ch = Math.round(cw*1.5);
+  const rowGap = mobile? Math.round(ch*0.18) : Math.round(ch*0.16);
+  L = {cw,ch,gap,top:hud+(mobile?6:10),tabY:ch+rowGap,boardH:availH,mobile,
+       fu:Math.round(ch*0.25), fd:Math.round(ch*0.1)};
+  board.style.width=(cw*7+gap*6)+"px"; board.style.height=availH+"px"; board.style.top=L.top+"px";
+  board.style.setProperty("--cw",cw+"px"); board.style.setProperty("--ch",ch+"px");
+  document.getElementById("table").style.backgroundImage = `url(${A}table/${(vw/vh)<0.9?"table_mobile.webp":"table_desktop.webp"})`;
+}
+const colX = i => i*(L.cw+L.gap);
+function fanFor(i){
+  const p=G.tab[i]; let down=0, up=0; p.forEach(c=>c.up?up++:down++);
+  const maxSpan = L.boardH - L.tabY - L.ch - 4;
+  const need = down*L.fd + Math.max(0,up-1)*L.fu;
+  const k = need>maxSpan && need>0 ? maxSpan/need : 1;
+  return {fd:L.fd*Math.min(1,k*1.0), fu:L.fu*k};
+}
+function posOf(loc){ // returns list of {id,x,y,z}
+  const out=[];
+  out.push(...G.stock.map((c,k)=>({c,x:colX(0),y:0,z:10+k})));
+  const w=G.waste, n=w.length, show=S.draw===3?3:1;
+  w.forEach((c,k)=>{ const vis=k-(n-Math.min(show,n)); const off=vis>0? vis*L.cw*0.24 : 0; out.push({c,x:colX(1)+off,y:0,z:100+k}); });
+  SUITS.forEach((s,si)=> G.found[s].forEach((c,k)=>out.push({c,x:colX(3+si),y:0,z:200+k})));
+  G.tab.forEach((p,i)=>{ const f=fanFor(i); let y=L.tabY; p.forEach((c,k)=>{ out.push({c,x:colX(i),y,z:300+k}); y+= c.up?f.fu:f.fd; }); });
+  return out;
 }
 
-function dealGame() {
-  buildDeck();
-  let idx = 0;
-  tableau = [];
-  for (let i = 0; i < 7; i++) {
-    let pile = [];
-    for (let j = 0; j <= i; j++) {
-      let card = deck[idx++];
-      card.faceUp = (j === i);
-      pile.push(card);
-    }
-    tableau.push(pile);
-  }
-  stock = deck.slice(idx).map(c => ({...c, faceUp: false}));
-  waste = [];
-  foundations = { wands:[], cups:[], swords:[], pent:[] };
+// ── Slots ──
+function buildSlots(){
+  board.querySelectorAll(".slot").forEach(e=>e.remove());
+  const mk=(cls,x,y,html)=>{ const d=document.createElement("div"); d.className="slot "+cls; d.style.cssText=`left:${x}px;top:${y}px;width:${L.cw}px;height:${L.ch}px`; if(html) d.innerHTML=html; board.appendChild(d); return d; };
+  const st=mk("stock",colX(0),0,'<div class="lbl">&#8635;</div>'); st.id="slotStock"; st.addEventListener("click",onStock);
+  mk("waste",colX(1),0).id="slotWaste";
+  SUITS.forEach((s,si)=>{ const d=mk("found",colX(3+si),0); d.id="slotF-"+s; d.style.backgroundImage=`url(${A}table/sigil_${s}.png)`; d.style.backgroundSize="56%"; d.style.backgroundPosition="center"; d.style.backgroundRepeat="no-repeat"; d.style.opacity=".9"; });
+  for(let i=0;i<7;i++){ const d=mk("tab",colX(i),L.tabY,'<div class="lbl">K</div>'); d.id="slotT-"+i; }
 }
 
-// ── Card element creation ─────────────────────────────────────────────────────
-function createCardElement(card, sourceType, cardIndex) {
-  const div = document.createElement("div");
-  div.className = "card";
-  const img = document.createElement("img");
-  if (!card.faceUp) {
-    div.classList.add("back");
-    img.src = BACK;
-    img.alt = "card back";
-  } else {
-    div.classList.add("face-up");
-    img.src = BASE + cardImageMap[card.suit][card.rank];
-    img.alt = card.rank + " of " + card.suit;
-  }
-  img.draggable = false;
-  div.appendChild(img);
-
-  if (card.faceUp && (sourceType.startsWith("waste") || sourceType.startsWith("tableau"))) {
-    div.draggable = true;
-    div.addEventListener("dragstart", e => {
-      e.dataTransfer.setData("text/plain", JSON.stringify({ source: sourceType, index: cardIndex }));
-      div.classList.add("dragging");
-      // Compute draggedInfo for highlighting
-      if (sourceType === "waste") {
-        draggedInfo = { cards: waste.length ? [waste[waste.length-1]] : [], sourceType, index: cardIndex };
-      } else if (sourceType.startsWith("tableau-")) {
-        const si = parseInt(sourceType.split("-")[1]);
-        draggedInfo = { cards: tableau[si].slice(cardIndex), sourceType, index: cardIndex };
-      }
-      setTimeout(highlightDropTargets, 0);
-    });
-    div.addEventListener("dragend", () => {
-      div.classList.remove("dragging");
-      clearDropHighlights();
-      draggedInfo = null;
-    });
-  }
-  return div;
+// ── Card elements ──
+function makeCardEl(c){
+  const d=document.createElement("div"); d.className="card"; d.dataset.id=c.id;
+  d.innerHTML=`<div class="inner"><img class="back" src="https://thejurn.com/assets/tarot-game/card_back.jpg" alt=""><img class="front" alt="${RANKS[c.r]} of ${SUIT_NAME[c.suit]}"></div>`;
+  d.addEventListener("pointerdown",onPointerDown);
+  board.appendChild(d); els[c.id]=d; return d;
 }
+function ensureFront(c){ const img=els[c.id].querySelector(".front"); if(!img.getAttribute("src")) img.src=A+"cards/"+cardFile(c); }
 
-// ── Drop logic ────────────────────────────────────────────────────────────────
-function canPlaceOnFoundation(card, pile) {
-  if (!pile.length) return card.rank === "A";
-  const top = pile[pile.length-1];
-  if (top.suit !== card.suit) return false;
-  return RANKS.indexOf(card.rank) === RANKS.indexOf(top.rank)+1;
-}
-function canPlaceOnTableau(card, pile) {
-  if (!pile.length) return card.rank === "King";
-  const top = pile[pile.length-1];
-  if (!top.faceUp) return false;
-  if (suitColor(card.suit) === suitColor(top.suit)) return false; // must alternate warm/cool
-  return RANKS.indexOf(card.rank) === RANKS.indexOf(top.rank)-1;
-}
-
-function enableDrop(el, destType, destId) {
-  el.addEventListener("dragover", e => { e.preventDefault(); el.classList.add("drag-over"); });
-  el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
-  el.addEventListener("drop", e => {
-    e.preventDefault();
-    el.classList.remove("drag-over");
-    if (document.activeElement && document.activeElement.tagName === "INPUT") return;
-    let data;
-    try { data = JSON.parse(e.dataTransfer.getData("text/plain")); } catch { return; }
-    startTimer();
-    handleDrop(data, destType, destId);
+function render(opts={}){
+  const ps=posOf();
+  ps.forEach(({c,x,y,z})=>{
+    const el=els[c.id]||makeCardEl(c);
+    if(c.up) ensureFront(c);
+    el.classList.toggle("up",!!c.up);
+    if(opts.instant) el.classList.add("nomove");
+    const prev=el._pos, moved=!prev||prev.x!==x||prev.y!==y;
+    el._pos={x,y};
+    if(moved && !opts.instant){ el.style.zIndex=1000+z; clearTimeout(el._zt); el._zt=setTimeout(()=>el.style.zIndex=z,320); }
+    else el.style.zIndex=z;
+    el.style.transform=`translate3d(${x}px,${y}px,0)`;
+    if(opts.instant){ void el.offsetWidth; el.classList.remove("nomove"); }
   });
+  document.getElementById("tMoves").textContent=G.moves;
+  document.getElementById("bUndo").disabled=!history.length;
+  const stockLbl=document.querySelector("#slotStock .lbl"); if(stockLbl) stockLbl.style.opacity=G.waste.length?1:.25;
+  checkFinish();
 }
 
-function handleDrop(data, destType, destId) {
-  let card, cards;
-  const { source, index } = data;
-  if (source === "waste") {
-    card = waste[waste.length-1];
-    if (!card) return;
-    if (destType === "foundation") {
-      if (canPlaceOnFoundation(card, foundations[destId])) {
-        foundations[destId].push(waste.pop());
-        clearMsg(); checkWin();
-      } else { showMsg("Can't place there."); }
-    } else if (destType === "tableau") {
-      const pile = tableau[destId];
-      if (canPlaceOnTableau(card, pile)) {
-        pile.push(waste.pop());
-        clearMsg();
-      } else { showMsg("Can't place there."); }
-    }
-  } else if (source.startsWith("tableau-")) {
-    const srcIdx = parseInt(source.split("-")[1]);
-    const srcPile = tableau[srcIdx];
-    cards = srcPile.slice(index);
-    if (destType === "foundation") {
-      if (cards.length === 1 && canPlaceOnFoundation(cards[0], foundations[destId])) {
-        foundations[destId].push(srcPile.pop());
-        if (srcPile.length > 0 && !srcPile[srcPile.length-1].faceUp)
-          srcPile[srcPile.length-1].faceUp = true;
-        clearMsg(); checkWin();
-      } else { showMsg("Can't place there."); }
-    } else if (destType === "tableau") {
-      const destPile = tableau[destId];
-      if (parseInt(destId) === srcIdx) return;
-      if (canPlaceOnTableau(cards[0], destPile)) {
-        destPile.push(...srcPile.splice(index));
-        if (srcPile.length > 0 && !srcPile[srcPile.length-1].faceUp)
-          srcPile[srcPile.length-1].faceUp = true;
-        clearMsg();
-      } else { showMsg("Can't place there."); }
+// ── Timer ──
+function fmt(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function startTimer(){ if(started) return; started=true; timer=setInterval(()=>{ seconds++; document.getElementById("tTime").textContent=fmt(seconds); },1000); }
+function stopTimer(){ clearInterval(timer); timer=null; }
+function resetTimer(){ stopTimer(); started=false; seconds=0; document.getElementById("tTime").textContent="0:00"; }
+
+// ── Moves ──
+function snapshot(){ history.push(clone(G)); if(history.length>500) history.shift(); }
+function revealTop(i){ const p=G.tab[i]; if(p.length && !p[p.length-1].up){ p[p.length-1].up=true; return true; } return false; }
+function locate(id){
+  if(G.waste.length && G.waste[G.waste.length-1].id===id) return {type:"waste"};
+  for(const s of SUITS){ const p=G.found[s]; if(p.length && p[p.length-1].id===id) return {type:"found",suit:s}; }
+  for(let i=0;i<7;i++){ const k=G.tab[i].findIndex(c=>c.id===id); if(k>=0) return {type:"tab",i,k}; }
+  if(G.waste.some(c=>c.id===id)) return {type:"wasteBuried"};
+  return null;
+}
+function takeCards(src){
+  if(src.type==="waste") return [G.waste[G.waste.length-1]];
+  if(src.type==="found") return [G.found[src.suit][G.found[src.suit].length-1]];
+  if(src.type==="tab") return G.tab[src.i].slice(src.k);
+  return [];
+}
+function legal(src,dst){
+  const cards=takeCards(src); if(!cards.length) return false;
+  if(src.type==="tab" && !validRun(G.tab[src.i],src.k)) return false;
+  if(dst.type==="found") return cards.length===1 && canFound(cards[0],dst.suit) && !(src.type==="found");
+  if(dst.type==="tab"){ if(src.type==="tab"&&src.i===dst.i) return false; return canTab(cards[0],dst.i); }
+  return false;
+}
+function doMove(src,dst){
+  snapshot();
+  let cards;
+  if(src.type==="waste") cards=[G.waste.pop()];
+  else if(src.type==="found") cards=[G.found[src.suit].pop()];
+  else cards=G.tab[src.i].splice(src.k);
+  if(dst.type==="found") G.found[dst.suit].push(...cards); else G.tab[dst.i].push(...cards);
+  let flipped=false; if(src.type==="tab") flipped=revealTop(src.i);
+  G.moves++; startTimer(); render();
+  if(dst.type==="found"){ sfx.found(); flare("slotF-"+dst.suit); } else sfx.place();
+  if(flipped) setTimeout(()=>sfx.flip(),140);
+  afterMove();
+}
+function onStock(){
+  if(busy||won) return;
+  if(G.stock.length){
+    snapshot();
+    const n=Math.min(S.draw,G.stock.length);
+    for(let k=0;k<n;k++){ const c=G.stock.pop(); c.up=true; G.waste.push(c); }
+    G.moves++; startTimer(); render(); sfx.flip();
+  } else if(G.waste.length){
+    snapshot();
+    G.stock=G.waste.reverse().map(c=>({...c,up:false})); G.waste=[];
+    G.moves++; render(); sfx.shuffle();
+  } else return;
+  afterMove();
+}
+function undo(){
+  if(busy||!history.length) return;
+  G=history.pop(); won=false; stuckShown=false; render(); sfx.flip();
+}
+function afterMove(){
+  if(Object.values(G.found).reduce((a,p)=>a+p.length,0)===56) return onWin();
+  setTimeout(checkStuck,450);
+}
+
+// ── Move finding (auto-move, hints, stuck detection) ──
+function bestDest(src){
+  const cards=takeCards(src); if(!cards.length) return null;
+  if(cards.length===1 && src.type!=="found"){ const s=cards[0].suit; if(canFound(cards[0],s)) return {type:"found",suit:s}; }
+  let empty=null;
+  for(let i=0;i<7;i++){
+    const dst={type:"tab",i}; if(!legal(src,dst)) continue;
+    if(G.tab[i].length) return dst;
+    if(src.type==="tab" && src.k===0) continue; // king already at bottom of a column
+    if(empty===null) empty=dst;
+  }
+  return empty;
+}
+function findMoves(){ // productive moves, best first
+  const out=[];
+  for(let i=0;i<7;i++){ const p=G.tab[i]; if(!p.length) continue; const top={type:"tab",i,k:p.length-1}; if(canFound(p[p.length-1],p[p.length-1].suit)) out.push({src:top,dst:{type:"found",suit:p[p.length-1].suit},score:p.length>1&&!p[p.length-2].up?100:80}); }
+  if(G.waste.length){ const c=G.waste[G.waste.length-1]; if(canFound(c,c.suit)) out.push({src:{type:"waste"},dst:{type:"found",suit:c.suit},score:85}); }
+  for(let i=0;i<7;i++){
+    const p=G.tab[i]; const first=p.findIndex(c=>c.up); if(first<0) continue;
+    for(let k=first;k<p.length;k++){
+      if(!validRun(p,k)) continue;
+      const src={type:"tab",i,k};
+      for(let j=0;j<7;j++){
+        if(j===i||!legal(src,{type:"tab",i:j})) continue;
+        const reveals = k===first && k>0;
+        const empties = k===0 && G.tab[j].length>0 && kingWaiting();
+        const exposesFound = k>first && canFound(p[k-1],p[k-1].suit);
+        if(G.tab[j].length===0 && k===0) continue;
+        if(reveals) out.push({src,dst:{type:"tab",i:j},score:90});
+        else if(empties) out.push({src,dst:{type:"tab",i:j},score:60});
+        else if(exposesFound) out.push({src,dst:{type:"tab",i:j},score:70});
+      }
     }
   }
-  render();
+  if(G.waste.length){ const d=bestDest({type:"waste"}); if(d&&d.type==="tab") out.push({src:{type:"waste"},dst:d,score:50}); }
+  return out.sort((a,b)=>b.score-a.score);
+}
+function kingWaiting(){ if([...G.waste,...G.stock].some(c=>c.r===13)) return true; return G.tab.some(p=>p.some((c,k)=>k>0&&c.up&&c.r===13&&validRun(p,k))); }
+function stockHasPlay(){ // any card in stock/waste cycle playable now?
+  const pool=[...G.waste,...G.stock];
+  for(const c of pool){
+    if(canFound(c,c.suit)) return true;
+    for(let i=0;i<7;i++) if(canTab(c,i)) return true;
+  }
+  return false;
+}
+function checkStuck(){
+  if(won||busy||stuckShown) return;
+  if(findMoves().length) return;
+  if((G.stock.length||G.waste.length) && stockHasPlay()) return;
+  stuckShown=true; sfx.err(); open("mStuck");
+}
+function hint(){
+  if(busy||won) return;
+  clearHints();
+  const m=findMoves()[0];
+  if(m){
+    const cards=takeCards(m.src); els[cards[0].id].classList.add("hint");
+    const dEl = m.dst.type==="found" ? (G.found[m.dst.suit].length? els[G.found[m.dst.suit].at(-1).id] : document.getElementById("slotF-"+m.dst.suit))
+              : (G.tab[m.dst.i].length? els[G.tab[m.dst.i].at(-1).id] : document.getElementById("slotT-"+m.dst.i));
+    dEl.classList.add("hint"); sfx.hint();
+  } else if(G.stock.length||G.waste.length){
+    (G.stock.length? els[G.stock.at(-1).id] : document.getElementById("slotStock")).classList.add("hint");
+    toast(G.stock.length? "Turn a card from the deck" : "Gather the deck and go again"); sfx.hint();
+  } else toast("No moves left");
+  setTimeout(clearHints,2100);
+}
+function clearHints(){ document.querySelectorAll(".hint").forEach(e=>e.classList.remove("hint")); }
+
+// ── Auto-finish ──
+function canAutoFinish(){ return !G.stock.length && !G.waste.length && G.tab.every(p=>p.every(c=>c.up)) && !won; }
+function checkFinish(){ document.getElementById("finishBtn").style.display = canAutoFinish() && !busy ? "inline-flex" : "none"; }
+async function autoFinish(){
+  if(!canAutoFinish()) return;
+  busy=true; checkFinish(); snapshot();
+  let delay=150;
+  while(true){
+    let moved=false;
+    for(let i=0;i<7&&!moved;i++){ const p=G.tab[i]; if(p.length && canFound(p.at(-1),p.at(-1).suit)){ const c=p.pop(); G.found[c.suit].push(c); G.moves++; render(); sfx.found(); flare("slotF-"+c.suit); moved=true; } }
+    if(!moved) break;
+    await new Promise(r=>setTimeout(r,delay)); delay=Math.max(55,delay*0.92);
+  }
+  busy=false; afterMove();
 }
 
-// ── Drop target highlighting ──────────────────────────────────────────────────
-function clearDropHighlights() {
-  document.querySelectorAll(".drop-valid, .drop-invalid").forEach(el => {
-    el.classList.remove("drop-valid","drop-invalid");
+// ── Pointer: drag / tap / hold ──
+let drag=null;
+function onPointerDown(e){
+  if(busy||won||e.button>0) return;
+  const el=e.currentTarget, id=el.dataset.id;
+  // stock card -> draw
+  if(G.stock.some(c=>c.id===id)){ e.preventDefault(); onStock(); return; }
+  const loc=locate(id);
+  if(!loc) return;
+  const card=cardById(id);
+  const isUp=el.classList.contains("up");
+  const holdTimer=setTimeout(()=>{ if(drag&&!drag.moved){ inspect(card); drag.cancel=true; } },480);
+  if(!isUp || loc.type==="wasteBuried"){ drag={el,holdOnly:true,holdTimer,moved:false}; return; }
+  const src = loc.type==="tab"? {type:"tab",i:loc.i,k:loc.k} : loc;
+  const cards = takeCards(src);
+  const movable = !(src.type==="tab" && !validRun(G.tab[src.i],src.k));
+  const rect=board.getBoundingClientRect();
+  drag={el,src,cards,movable,holdTimer,moved:false,sx:e.clientX,sy:e.clientY,ox:e.clientX-rect.left-el._pos.x,oy:e.clientY-rect.top-el._pos.y,lastX:e.clientX,tilt:0};
+  el.setPointerCapture(e.pointerId);
+}
+window.addEventListener("pointermove",e=>{
+  if(!drag||drag.holdOnly||drag.cancel) { if(drag&&drag.holdOnly&&(Math.abs(e.movementX)+Math.abs(e.movementY)>4)) clearTimeout(drag.holdTimer); return; }
+  const dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+  if(!drag.moved){ if(Math.hypot(dx,dy)<7) return; clearTimeout(drag.holdTimer); if(!drag.movable){ drag.cancel=true; els[drag.cards[0].id].classList.add("shake"); setTimeout(()=>els[drag.cards[0].id].classList.remove("shake"),330); return; } drag.moved=true; sfx.pick(); }
+  const rect=board.getBoundingClientRect();
+  const x=e.clientX-rect.left-drag.ox, y=e.clientY-rect.top-drag.oy;
+  drag.tilt = Math.max(-8,Math.min(8,drag.tilt*0.8+(e.clientX-drag.lastX)*0.6)); drag.lastX=e.clientX;
+  const fu = drag.src.type==="tab"? fanFor(drag.src.i).fu : 0;
+  drag.cards.forEach((c,k)=>{ const ce=els[c.id]; ce.classList.add("drag"); ce.style.zIndex=5000+k; ce.style.transform=`translate3d(${x}px,${y+k*fu}px,0) rotate(${drag.tilt}deg) scale(1.04)`; });
+  drag.x=x; drag.y=y;
+  if(S.glow) markTargets();
+});
+window.addEventListener("pointerup",e=>finishPointer(e));
+window.addEventListener("pointercancel",e=>finishPointer(e,true));
+function finishPointer(e,cancelled){
+  if(!drag) return;
+  const d=drag; drag=null; clearTimeout(d.holdTimer);
+  if(document.getElementById("inspect").classList.contains("open")){ closeInspect(); return; }
+  if(d.holdOnly||d.cancel) return;
+  d.cards.forEach(c=>els[c.id].classList.remove("drag"));
+  clearTargets();
+  if(!d.moved){ // tap → auto move
+    if(cancelled) return;
+    const dst=bestDest(d.src);
+    if(dst) doMove(d.src,dst); else { const ce=els[d.cards[0].id]; ce.classList.add("shake"); sfx.err(); setTimeout(()=>ce.classList.remove("shake"),330); }
+    return;
+  }
+  const dst=cancelled?null:dropTarget(d);
+  if(dst) doMove(d.src,dst);
+  else { d.cards.forEach(c=>els[c.id].classList.add("spring")); render(); sfx.err(); setTimeout(()=>d.cards.forEach(c=>els[c.id].classList.remove("spring")),460); }
+}
+function candidateDests(){ const out=SUITS.map(s=>({type:"found",suit:s})); for(let i=0;i<7;i++) out.push({type:"tab",i}); return out; }
+function destRect(dst){
+  if(dst.type==="found"){ const x=colX(3+SUITS.indexOf(dst.suit)); return {x,y:0,w:L.cw,h:L.ch}; }
+  const p=G.tab[dst.i]; let y=L.tabY; if(p.length){ const el=els[p.at(-1).id]; y=el._pos.y; }
+  return {x:colX(dst.i),y,w:L.cw,h:L.ch};
+}
+function dropTarget(d){
+  let best=null, bestA=0;
+  for(const dst of candidateDests()){
+    if(!legal(d.src,dst)) continue;
+    const r=destRect(dst);
+    const ox=Math.max(0,Math.min(d.x+L.cw,r.x+r.w)-Math.max(d.x,r.x));
+    const oy=Math.max(0,Math.min(d.y+L.ch,r.y+r.h+L.ch*0.5)-Math.max(d.y,r.y-L.ch*0.3));
+    const a=ox*oy; if(a>bestA){ bestA=a; best=dst; }
+  }
+  return bestA>L.cw*L.ch*0.12 ? best : null;
+}
+function markTargets(){
+  clearTargets();
+  for(const dst of candidateDests()){
+    if(!legal(drag.src,dst)) continue;
+    let el;
+    if(dst.type==="found") el = G.found[dst.suit].length? els[G.found[dst.suit].at(-1).id] : document.getElementById("slotF-"+dst.suit);
+    else el = G.tab[dst.i].length? els[G.tab[dst.i].at(-1).id] : document.getElementById("slotT-"+dst.i);
+    if(el) el.classList.add("target");
+  }
+}
+function clearTargets(){ document.querySelectorAll(".target").forEach(e=>e.classList.remove("target")); }
+
+// ── Inspect ──
+function inspect(c){ const m=document.getElementById("inspect"); const img=m.querySelector("img"); img.src=A+"cards/"+cardFile(c); const hi=new Image(); hi.onload=()=>{ if(m.classList.contains("open")) img.src=hi.src; }; hi.src=FULL_ART+cardFile(c); m.classList.add("open"); sfx.flip(); }
+function closeInspect(){ document.getElementById("inspect").classList.remove("open"); }
+document.getElementById("inspect").addEventListener("click",closeInspect);
+
+// ── Deal animation ──
+async function startGame(deck){
+  closeAll(); won=false; stuckShown=false; history=[]; resetTimer(); clearWin();
+  initialDeal = clone(deck);
+  G = deal(clone(deck));
+  Object.values(els).forEach(e=>e.remove()); for(const k in els) delete els[k];
+  computeLayout(); buildSlots();
+  // place everything at the stock face down, then fly to positions
+  busy=true;
+  const finalUp = new Set(); G.tab.forEach(p=>{ if(p.length) finalUp.add(p.at(-1).id); });
+  const all=[...G.stock]; G.tab.forEach(p=>all.push(...p));
+  all.forEach((c,k)=>{ const el=makeCardEl(c); el.classList.add("nomove"); el._pos={x:colX(0),y:0}; el.style.transform=`translate3d(${colX(0)}px,0,0)`; el.style.zIndex=10+k; });
+  void board.offsetWidth; all.forEach(c=>els[c.id].classList.remove("nomove"));
+  const ups=[]; G.tab.forEach(p=>p.forEach(c=>{ if(c.up){ ups.push(c); c.up=false; } }));
+  sfx.shuffle();
+  const ps=posOf(); const step = matchMedia("(prefers-reduced-motion:reduce)").matches?0:38;
+  // deal row by row like a real deal
+  const order=[]; for(let row=0;row<7;row++) for(let i=row;i<7;i++) order.push(G.tab[i][row]);
+  for(const c of order){ const p=ps.find(q=>q.c.id===c.id); const el=els[c.id]; el._pos={x:p.x,y:p.y}; el.style.zIndex=p.z; el.style.transform=`translate3d(${p.x}px,${p.y}px,0)`; if(step){ sfx.tick(); await new Promise(r=>setTimeout(r,step)); } }
+  await new Promise(r=>setTimeout(r,step?260:0));
+  for(const c of ups){ c.up=true; ensureFront(c); els[c.id].classList.add("up"); if(step) await new Promise(r=>setTimeout(r,55)); }
+  if(step) sfx.flip();
+  busy=false; render();
+}
+function newGame(){ startGame(shuffleDeck()); }
+function restartDeal(){ if(initialDeal) startGame(clone(initialDeal)); }
+
+// ── Win ──
+function onWin(){
+  won=true; stopTimer(); sfx.win(); document.getElementById("finishBtn").style.display="none";
+  winBurst();
+  setTimeout(()=>{
+    document.getElementById("winStats").textContent=`Solved in ${fmt(seconds)} · ${G.moves} moves${S.draw===3?" · 3-card deck":""}`;
+    document.getElementById("winForm").style.display=""; document.getElementById("winMsg").textContent=""; document.getElementById("winList").innerHTML="";
+    document.getElementById("initials").value=localStorage.getItem("arcanaInit")||"";
+    open("mWin");
+  },1500);
+}
+let burstRAF=null;
+function clearWin(){ cancelAnimationFrame(burstRAF); const c=document.getElementById("winBurst"); c.getContext("2d").clearRect(0,0,c.width,c.height); }
+function winBurst(){
+  const cv=document.getElementById("winBurst"), ctx=cv.getContext("2d"); cv.width=innerWidth; cv.height=innerHeight;
+  const sig=SUITS.map(s=>{ const i=new Image(); i.src=A+"table/sigil_"+s+".png"; return i; });
+  const P=[]; const br=board.getBoundingClientRect();
+  SUITS.forEach((s,si)=>{ const cx=br.left+colX(3+si)+L.cw/2, cy=br.top+L.ch/2;
+    for(let k=0;k<26;k++){ const a=Math.random()*Math.PI*2, v=2+Math.random()*7; P.push({x:cx,y:cy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-4,life:1,img:k<6?sig[si]:null,r:Math.random()*6,s:k<6?18+Math.random()*16:2+Math.random()*3,rot:Math.random()*6,vr:(Math.random()-.5)*.2,hue:30+Math.random()*25}); }
   });
+  let f=0;
+  (function tick(){
+    ctx.clearRect(0,0,cv.width,cv.height); f++;
+    for(const p of P){ p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.vx*=0.99; p.life-=0.006; p.rot+=p.vr; if(p.life<=0) continue;
+      ctx.globalAlpha=Math.max(0,p.life);
+      if(p.img&&p.img.complete){ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.drawImage(p.img,-p.s/2,-p.s/2,p.s,p.s); ctx.restore(); }
+      else { ctx.fillStyle=`hsl(${p.hue},100%,${60+Math.random()*20}%)`; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,7); ctx.fill(); }
+    }
+    ctx.globalAlpha=1;
+    if(f<300) burstRAF=requestAnimationFrame(tick); else ctx.clearRect(0,0,cv.width,cv.height);
+  })();
 }
 
-function highlightDropTargets() {
-  if (!hintsEnabled) return;
-  if (!draggedInfo || !draggedInfo.cards.length) return;
-  const { cards } = draggedInfo;
-  const topCard = cards[0];
-
-  // Foundations — only highlight if valid (green only), single card only
-  for (let suit of SUITS) {
-    const fDiv = document.getElementById("foundation-"+suit);
-    if (!fDiv) continue;
-    if (cards.length === 1 && canPlaceOnFoundation(topCard, foundations[suit])) {
-      // Highlight the top card element, or the pile container if empty
-      const children = fDiv.querySelectorAll(".card");
-      const target = children.length ? children[children.length-1] : fDiv;
-      target.classList.add("drop-valid");
-    }
-    // No red on foundations — only show green opportunities
-  }
-
-  // Tableau — highlight only the top visible card (or empty pile slot)
-  const pileEls = document.querySelectorAll(".tableau-pile");
-  for (let i = 0; i < 7; i++) {
-    if (!pileEls[i]) continue;
-    if (draggedInfo.sourceType === "tableau-"+i) continue; // skip source pile
-    const valid = canPlaceOnTableau(topCard, tableau[i]);
-    // Target the top face-up card element, or pile container if empty
-    const faceUpCards = pileEls[i].querySelectorAll(".card.face-up");
-    const emptySlot = tableau[i].length === 0;
-    if (valid) {
-      const target = faceUpCards.length ? faceUpCards[faceUpCards.length-1] : pileEls[i];
-      target.classList.add("drop-valid");
-    } else if (!emptySlot) {
-      // Red only on the top visible (face-up) card — not the whole column
-      if (faceUpCards.length) {
-        faceUpCards[faceUpCards.length-1].classList.add("drop-invalid");
-      }
-    }
-  }
+// ── Leaderboard (Crypt Register) ──
+async function fbGet(){ try{ const r=await fetch(FB_URL+".json"); return r.ok? await r.json() : null; }catch{ return null; } }
+async function fbPush(d){ try{ const r=await fetch(FB_URL+".json",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); return r.ok? await r.json():null; }catch{ return null; } }
+function lbRows(data,me,limit){
+  const e=Object.values(data||{}).filter(x=>x&&x.time).sort((a,b)=>a.time-b.time).slice(0,limit);
+  if(!e.length) return "<li>No names carved yet.</li>";
+  return e.map((x,i)=>`<li class="${me&&x.ts===me.ts?"me":""}"><span>${i+1}. ${String(x.initials).replace(/[^A-Z?]/g,"")}${x.draw===3?'<span class="tomb">3-card</span>':""}</span><span>${fmt(x.time)}<span class="tomb">${x.moves||""}${x.moves?" mv":""}</span></span></li>`).join("");
 }
-
-// ── Render ────────────────────────────────────────────────────────────────────
-function render() {
-  // Stock
-  const stockDiv = document.getElementById("stock");
-  stockDiv.innerHTML = "<div class=\"pile-title\">&#9886;</div>";
-  if (stock.length) {
-    const back = createCardElement({faceUp:false}, "stock", 0);
-    back.style.cursor = "pointer";
-    back.addEventListener("click", () => {
-      startTimer();
-      if (stock.length) {
-        const c = stock.pop();
-        c.faceUp = true;
-        waste.push(c);
-        clearMsg(); render();
-      }
-    });
-    stockDiv.appendChild(back);
-  } else {
-    // recycle
-    stockDiv.style.cursor = "pointer";
-    stockDiv.onclick = () => {
-      if (!stock.length && waste.length) {
-        startTimer();
-        stock = waste.reverse().map(c => ({...c, faceUp:false}));
-        waste = [];
-        render();
-      }
-    };
-  }
-
-  // Waste
-  const wasteDiv = document.getElementById("waste");
-  wasteDiv.innerHTML = "";
-  if (waste.length) {
-    const card = waste[waste.length-1];
-    wasteDiv.appendChild(createCardElement(card, "waste", waste.length-1));
-  }
-
-  // Foundations
-  for (let suit of SUITS) {
-    const fDiv = document.getElementById("foundation-"+suit);
-    const icons = {wands:"&#127757;",cups:"&#127942;",swords:"&#9876;",pent:"&#11088;"};
-    fDiv.innerHTML = `<div class="pile-title">${icons[suit]}</div>`;
-    const pile = foundations[suit];
-    if (pile.length) {
-      fDiv.appendChild(createCardElement(pile[pile.length-1], "foundation", pile.length-1));
-    }
-  }
-
-  // Tableau
-  const tabDiv = document.getElementById("tableau");
-  tabDiv.innerHTML = "";
-  for (let i = 0; i < 7; i++) {
-    const pileEl = document.createElement("div");
-    pileEl.className = "tableau-pile pile-container";
-    enableDrop(pileEl, "tableau", i);
-    const pile = tableau[i];
-    for (let j = 0; j < pile.length; j++) {
-      const card = pile[j];
-      const cardEl = createCardElement(card, "tableau-"+i, j);
-      const offset = card.faceUp ? 42 : 21;
-      cardEl.style.top = (j * offset) + "px";
-      // Allow dropping onto face-up tableau cards too
-      if (card.faceUp) {
-        enableDrop(cardEl, "tableau", i);
-      }
-      pileEl.appendChild(cardEl);
-    }
-    tabDiv.appendChild(pileEl);
-  }
-
-  // Foundation drop zones
-  for (let suit of SUITS) {
-    enableDrop(document.getElementById("foundation-"+suit), "foundation", suit);
-  }
-}
-
-function showMsg(m) { document.getElementById("message").textContent = m; }
-function clearMsg() { document.getElementById("message").textContent = ""; }
-
-// ── Win detection ─────────────────────────────────────────────────────────────
-function checkWin() {
-  const total = Object.values(foundations).reduce((s,p)=>s+p.length,0);
-  if (total === 56) {
-    stopTimer();
-    setTimeout(() => showWin(), 300);
-  }
-}
-
-function showWin() {
-  document.getElementById("winTimeMsg").textContent =
-    "Solved in " + formatTime(finalTime) + "!";
-  document.getElementById("winMessage").textContent = "";
-  document.getElementById("initialsInput").value = "";
-  document.getElementById("winLeaderboard").style.display = "none";
-  document.getElementById("winPlayAgain").style.display = "none";
-  document.getElementById("winScoreList").innerHTML = "";
-  document.getElementById("winModal").classList.add("visible");
-  launchCardBurst();
-}
-
-// ── Card burst confetti ───────────────────────────────────────────────────────
-function launchCardBurst() {
-  const canvas = document.getElementById("burstCanvas");
-  const W = window.innerWidth, H = window.innerHeight;
-  canvas.width = W; canvas.height = H;
-  canvas.style.display = "block";
-  const ctx = canvas.getContext("2d");
-  const SUITS = ["\u2660","\u2665","\u2666","\u2663","\u2020","\u2694"];
-  const COLORS = ["#c9a227","#e8b92f","#f0e6c8","#9b59b6","#c0392b","#2ecc71"];
-  const particles = [];
-  for (let i = 0; i < 60; i++) {
-    particles.push({
-      x: W / 2 + (Math.random() - 0.5) * 200,
-      y: H / 2,
-      vx: (Math.random() - 0.5) * 18,
-      vy: -(Math.random() * 14 + 4),
-      rot: Math.random() * Math.PI * 2,
-      rotV: (Math.random() - 0.5) * 0.2,
-      sym: SUITS[Math.floor(Math.random() * SUITS.length)],
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      size: 16 + Math.random() * 24,
-      alpha: 1,
-      gravity: 0.45 + Math.random() * 0.2
-    });
-  }
-  let frame = 0;
-  function animate() {
-    ctx.clearRect(0, 0, W, H);
-    let alive = false;
-    for (const p of particles) {
-      p.vy += p.gravity;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rot += p.rotV;
-      p.alpha -= 0.012;
-      if (p.alpha > 0) {
-        alive = true;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.font = `bold ${p.size}px serif`;
-        ctx.fillStyle = p.color;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(p.sym, 0, 0);
-        ctx.restore();
-      }
-    }
-    frame++;
-    if (alive && frame < 180) {
-      requestAnimationFrame(animate);
-    } else {
-      canvas.style.display = "none";
-      ctx.clearRect(0, 0, W, H);
-    }
-  }
-  requestAnimationFrame(animate);
-}
-
-document.getElementById("submitInitials").addEventListener("click", async () => {
-  if (document.activeElement.tagName !== "INPUT") return;
-  const raw = document.getElementById("initialsInput").value.trim().toUpperCase().replace(/[^A-Z]/g,"");
-  const initials = raw.slice(0,3) || "???";
-  const entry = { initials, time: finalTime, ts: Date.now() };
-  await fbPush(entry);
-  document.getElementById("winMessage").textContent = "Saved!";
-  document.getElementById("initialsInput").blur();
-  loadLeaderboard();
-  // Show inline top-5 in win screen
-  await showWinScores(initials, finalTime);
-  document.getElementById("winPlayAgain").style.display = "inline-block";
+function localLb(){ try{ return JSON.parse(localStorage.getItem("arcanaTimes")||"[]"); }catch{ return []; } }
+function addLocal(e){ const a=localLb(); a.push(e); a.sort((x,y)=>x.time-y.time); localStorage.setItem("arcanaTimes",JSON.stringify(a.slice(0,10))); }
+async function boardData(){ const g=await fbGet(); if(g) return {data:g,global:true}; const o={}; localLb().forEach((e,i)=>o["l"+i]=e); return {data:o,global:false}; }
+const LOCAL_NOTE='<li style="border:0;font-size:.8rem;color:#b8a6c8;justify-content:center">Showing best times on this device</li>';
+async function showLb(){ open("mLbM"); const ul=document.getElementById("lbList"); ul.innerHTML="<li>Summoning&hellip;</li>"; const b=await boardData(); ul.innerHTML=lbRows(b.data,null,10)+(b.global?"":LOCAL_NOTE); }
+document.getElementById("winSave").addEventListener("click",async()=>{
+  const ini=(document.getElementById("initials").value.toUpperCase().replace(/[^A-Z]/g,"").slice(0,3))||"???";
+  localStorage.setItem("arcanaInit",ini==="???"?"":ini);
+  const entry={initials:ini,time:seconds,moves:G.moves,draw:S.draw,rules:"v2",ts:Date.now()};
+  document.getElementById("winMsg").textContent="Carving…";
+  addLocal(entry);
+  const res=await fbPush(entry);
+  document.getElementById("winMsg").textContent = res? "Carved into the stone." : "Carved on this device.";
+  document.getElementById("winForm").style.display="none";
+  const b=await boardData(); document.getElementById("winList").innerHTML=lbRows(b.data,entry,5)+(b.global?"":LOCAL_NOTE);
 });
 
-async function showWinScores(myInitials, myTime) {
-  const data = await fbGet();
-  const lb = document.getElementById("winLeaderboard");
-  const ul = document.getElementById("winScoreList");
-  if (!data) { lb.style.display = "none"; return; }
-  const entries = Object.values(data)
-    .filter(e => e && e.time)
-    .sort((a,b) => a.time - b.time)
-    .slice(0,5);
-  if (!entries.length) { lb.style.display = "none"; return; }
-  ul.innerHTML = entries.map((e,i) => {
-    const mine = e.initials === myInitials && e.time === myTime;
-    return `<li class="${mine ? "win-highlight" : ""}"><span>${i+1}. ${e.initials}</span><span>${formatTime(e.time)}</span></li>`;
-  }).join("");
-  lb.style.display = "block";
-}
-
-// ── Leaderboard ───────────────────────────────────────────────────────────────
-async function loadLeaderboard() {
-  const data = await fbGet();
-  const ul = document.getElementById("leaderboardList");
-  if (!data) { ul.innerHTML = "<li>No scores yet!</li>"; return; }
-  const entries = Object.values(data)
-    .filter(e => e && e.time)
-    .sort((a,b) => a.time - b.time)
-    .slice(0,10);
-  if (!entries.length) { ul.innerHTML = "<li>No scores yet!</li>"; return; }
-  ul.innerHTML = entries.map((e,i) =>
-    `<li><span>${i+1}. ${e.initials}</span><span>${formatTime(e.time)}</span></li>`
-  ).join("");
-}
-
-// ── New game ──────────────────────────────────────────────────────────────────
-function newGame() {
-  resetTimer();
-  dealGame();
-  clearMsg();
-  render();
-  // Close win modal if open
-  document.getElementById("winModal").classList.remove("visible");
-}
-
-// ── UI wiring ─────────────────────────────────────────────────────────────────
-document.getElementById("newGameBtn").addEventListener("click", newGame);
-
-document.getElementById("helpBtn").addEventListener("click", () => {
-  document.getElementById("helpModal").classList.add("visible");
-});
-document.getElementById("closeHelp").addEventListener("click", () => {
-  document.getElementById("helpModal").classList.remove("visible");
-});
-
-document.getElementById("lbBtn").addEventListener("click", async () => {
-  await loadLeaderboard();
-  document.getElementById("lbModal").classList.add("visible");
-});
-document.getElementById("closeLb").addEventListener("click", () => {
-  document.getElementById("lbModal").classList.remove("visible");
-});
-
-// Click on modals backdrop to close
-["helpModal","lbModal"].forEach(id => {
-  document.getElementById(id).addEventListener("click", e => {
-    if (e.target.id === id) document.getElementById(id).classList.remove("visible");
-  });
-});
-
-// Keyboard shortcuts (guard against input focus)
-document.getElementById("winPlayAgain").addEventListener("click", () => {
-  document.getElementById("winModal").classList.remove("visible");
-  newGame();
-});
-
-document.addEventListener("keydown", e => {
-  const tag = document.activeElement && document.activeElement.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA") return;
-  if (e.key === "n" || e.key === "N") newGame();
-  if (e.key === "t" || e.key === "T") {
-    hintsEnabled = !hintsEnabled;
-    const hint = document.getElementById("hintsToggleHint");
-    if (hint) hint.textContent = hintsEnabled ? "Hints ON (T)" : "Press T for hints";
-  }
-});
-
-// ── Title screen ─────────────────────────────────────────────────────────────
-function showTitleScreen() {
-  document.getElementById("titleScreen").style.display = "flex";
-  document.getElementById("gameHeader").style.display = "none";
-}
-function hideTitleScreen() {
-  document.getElementById("titleScreen").style.display = "none";
-  document.getElementById("gameHeader").style.display = "flex";
-}
-
-document.getElementById("titleNewGame").addEventListener("click", () => {
-  hideTitleScreen();
-  newGame();
-});
-document.getElementById("titleHelp").addEventListener("click", () => {
-  document.getElementById("helpModal").classList.add("visible");
-});
-document.getElementById("titleLb").addEventListener("click", async () => {
-  await loadLeaderboard();
-  document.getElementById("lbModal").classList.add("visible");
-});
-
-// Also hook existing in-game New Game to return to title on ESC? No — just keep playing.
-
-
-/* ═══════════════════════════════════════════════════════════════
-   TOUCH DRAG ENGINE — bridges pointer events to existing
-   handleDrop(data, destType, destId) logic
-   Hold 250ms → lift card as ghost; release over target → drop
-   Short tap → existing click/flip behavior fires normally
-   ═══════════════════════════════════════════════════════════════ */
-(function(){
-  var HOLD_MS = 250;
-  var MOVE_THRESH = 6;
-  var ghost = document.getElementById('touch-drag-ghost');
-  var ghostImg = document.getElementById('touch-drag-ghost-img');
-  var ghostCount = document.getElementById('ghost-count');
-  var td = null; // active drag state
-
-  function moveGhost(cx, cy){
-    ghost.style.left = (cx - parseInt(ghost.style.width)/2)  + 'px';
-    ghost.style.top  = (cy - parseInt(ghost.style.height)/2) + 'px';
-  }
-
-  function liftCard(sourceEl, source, index, cx, cy){
-    // clone card size from source element
-    var r = sourceEl.getBoundingClientRect();
-    ghost.style.width  = r.width  + 'px';
-    ghost.style.height = r.height + 'px';
-    ghostImg.src = sourceEl.querySelector('img').src;
-
-    // Show card count badge for tableau stacks
-    var stackSize = 1;
-    if(source.startsWith('tableau-')){
-      var si = parseInt(source.split('-')[1]);
-      stackSize = tableau[si].length - index;
-    }
-    if(stackSize > 1){
-      ghostCount.textContent = '×' + stackSize;
-      ghostCount.style.display = 'block';
-    } else {
-      ghostCount.style.display = 'none';
-    }
-
-    ghost.style.display = 'block';
-    moveGhost(cx, cy);
-    sourceEl.classList.add('dragging');
-
-    // Set draggedInfo for hint system
-    if(source === 'waste'){
-      draggedInfo = { cards: waste.length ? [waste[waste.length-1]] : [], sourceType: source, index: index };
-    } else if(source.startsWith('tableau-')){
-      var si2 = parseInt(source.split('-')[1]);
-      draggedInfo = { cards: tableau[si2].slice(index), sourceType: source, index: index };
-    }
-    highlightDropTargets();
-  }
-
-  function endDrag(sourceEl){
-    ghost.style.display = 'none';
-    if(sourceEl) sourceEl.classList.remove('dragging');
-    clearDropHighlights();
-    draggedInfo = null;
-  }
-
-  /* Find the deepest drop-capable element under (cx,cy), skipping the ghost */
-  function dropTargetAt(cx, cy){
-    ghost.style.display = 'none';
-    var el = document.elementFromPoint(cx, cy);
-    ghost.style.display = 'block';
-    if(!el) return null;
-
-    /* Walk up to find an element with data-dest-type (set by enableDrop wrapper) */
-    var cur = el;
-    while(cur && cur !== document.body){
-      if(cur.dataset && cur.dataset.destType) return cur;
-      cur = cur.parentElement;
-    }
-    return null;
-  }
-
-  /* Patch enableDrop to stamp dest info onto elements */
-  var _origEnableDrop = enableDrop;
-  enableDrop = function(el, destType, destId){
-    _origEnableDrop(el, destType, destId);
-    el.dataset.destType = destType;
-    el.dataset.destId   = String(destId);
-  };
-
-  /* Main pointer handler — attached via document delegation */
-  document.addEventListener('pointerdown', function(e){
-    /* Mouse gets native HTML5 drag-and-drop — touch/pen use this engine */
-    if(e.pointerType === 'mouse') return;
-    /* Only act on touch/pen pointers on a draggable card */
-    var target = e.target;
-    var cardEl = target.closest ? target.closest('.card[draggable="true"]') : null;
-    if(!cardEl) return;
-
-    /* Don't interfere with modal or input interactions */
-    if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-
-    /* Read source info from the closest ancestor with a data-source attribute,
-       or fall back to the draggable div's dragstart data */
-    /* We reconstruct from DOM position instead */
-    var source = cardEl.dataset.source;
-    var idx    = parseInt(cardEl.dataset.index);
-    if(!source) return; // not a tagged card
-
-    e.preventDefault();
-    try{ cardEl.setPointerCapture(e.pointerId); }catch(ex){}
-
-    td = {
-      el: cardEl, source: source, index: idx,
-      startX: e.clientX, startY: e.clientY,
-      moved: false, lifted: false, pointerId: e.pointerId
-    };
-
-    td.timer = setTimeout(function(){
-      if(!td) return;
-      td.lifted = true;
-      startTimer();
-      liftCard(td.el, td.source, td.index, td.startX, td.startY);
-    }, HOLD_MS);
-  }, {passive: false});
-
-  document.addEventListener('pointermove', function(e){
-    if(e.pointerType === 'mouse' || !td) return;
-    var dx = e.clientX - td.startX, dy = e.clientY - td.startY;
-    if(Math.sqrt(dx*dx + dy*dy) > MOVE_THRESH){
-      td.moved = true;
-      /* if we've moved and timer hasn't fired yet, lift immediately */
-      if(!td.lifted && td.source){
-        clearTimeout(td.timer);
-        td.lifted = true;
-        startTimer();
-        liftCard(td.el, td.source, td.index, e.clientX, e.clientY);
-      }
-    }
-    if(td.lifted) moveGhost(e.clientX, e.clientY);
-  }, {passive: false});
-
-  document.addEventListener('pointerup', function(e){
-    if(e.pointerType === 'mouse' || !td) return;
-    clearTimeout(td.timer);
-    var wasLifted = td.lifted;
-    var src = td.source, idx = td.index, el = td.el;
-    td = null;
-
-    if(wasLifted){
-      var destEl = dropTargetAt(e.clientX, e.clientY);
-      endDrag(el);
-      if(destEl){
-        handleDrop({ source: src, index: idx }, destEl.dataset.destType, destEl.dataset.destId);
-      }
-    }
-    /* if not lifted and not moved → let existing click handler fire naturally */
-  }, {passive: false});
-
-  document.addEventListener('pointercancel', function(e){
-    if(e.pointerType === 'mouse' || !td) return;
-    clearTimeout(td.timer);
-    endDrag(td.el);
-    td = null;
-  });
-
-  /* Stamp data-source/data-index onto card elements during creation */
-  var _origCreateCardElement = createCardElement;
-  createCardElement = function(card, sourceType, cardIndex){
-    var el = _origCreateCardElement(card, sourceType, cardIndex);
-    if(card.faceUp && (sourceType.startsWith('waste') || sourceType.startsWith('tableau'))){
-      el.dataset.source = sourceType;
-      el.dataset.index  = String(cardIndex);
-    }
-    return el;
+// ── Sound (synthesized, no files) ──
+const sfx=(()=>{
+  let ac=null; const ctx=()=>{ if(!S.sound) return null; if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch{ return null; } } if(ac.state==="suspended") ac.resume(); return ac; };
+  function noise(dur,freq,q,vol,t0=0){ const a=ctx(); if(!a) return; const n=a.createBuffer(1,a.sampleRate*dur,a.sampleRate), d=n.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+    const s=a.createBufferSource(); s.buffer=n; const f=a.createBiquadFilter(); f.type="bandpass"; f.frequency.value=freq; f.Q.value=q; const g=a.createGain(); g.gain.value=vol; s.connect(f).connect(g).connect(a.destination); s.start(a.currentTime+t0); }
+  function tone(freq,dur,vol,type="sine",t0=0,slide){ const a=ctx(); if(!a) return; const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.setValueAtTime(freq,a.currentTime+t0); if(slide) o.frequency.exponentialRampToValueAtTime(slide,a.currentTime+t0+dur);
+    g.gain.setValueAtTime(0.0001,a.currentTime+t0); g.gain.exponentialRampToValueAtTime(vol,a.currentTime+t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+t0+dur); o.connect(g).connect(a.destination); o.start(a.currentTime+t0); o.stop(a.currentTime+t0+dur+0.02); }
+  return {
+    flip(){ noise(0.07,2600,1.2,0.35); },
+    tick(){ noise(0.035,3200,2,0.18); },
+    pick(){ noise(0.05,1800,1,0.2); },
+    place(){ noise(0.08,900,0.8,0.45); tone(110,0.09,0.12,"sine"); },
+    found(){ noise(0.06,1200,1,0.3); tone(659,0.5,0.08,"triangle",0.02); tone(988,0.6,0.05,"sine",0.05); },
+    shuffle(){ for(let k=0;k<9;k++) noise(0.04,2000+Math.random()*1500,1.5,0.2,k*0.035); },
+    err(){ tone(140,0.16,0.09,"sawtooth",0,90); },
+    hint(){ tone(880,0.25,0.05,"sine"); tone(1320,0.3,0.035,"sine",0.08); },
+    win(){ [220,261.6,329.6,392,523.3,659.3].forEach((f,i)=>tone(f,1.1,0.07,"triangle",i*0.13)); tone(110,2,0.08,"sine",0); }
   };
 })();
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-// Show title screen on load; game initializes when player hits New Game
-showTitleScreen();
-dealGame(); // pre-deal silently so first click is instant
-render();
+// ── Embers ──
+(function embers(){
+  const cv=document.getElementById("embers"), ctx=cv.getContext("2d"); let W,H,P=[];
+  const rm=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  function size(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+  size(); addEventListener("resize",size);
+  const N = innerWidth<700? 18 : 34;
+  function spawn(p){ const side=Math.random()<.5; p.x= side? Math.random()*W*0.22 : W-Math.random()*W*0.22; p.y=H*(0.2+Math.random()*0.9); p.vy=-(0.15+Math.random()*0.45); p.vx=(Math.random()-.5)*0.25; p.r=0.6+Math.random()*1.6; p.life=0; p.max=300+Math.random()*500; p.ph=Math.random()*6; return p; }
+  for(let i=0;i<N;i++){ const p=spawn({}); p.life=Math.random()*p.max; P.push(p); }
+  function tick(){ ctx.clearRect(0,0,W,H);
+    for(const p of P){ p.life++; p.x+=p.vx+Math.sin((p.life+p.ph*60)/40)*0.2; p.y+=p.vy; if(p.life>p.max||p.y<-10) spawn(p);
+      const a=Math.sin(Math.PI*p.life/p.max)*0.8; ctx.fillStyle=`rgba(255,${150+Math.floor(Math.random()*60)},70,${a})`; ctx.shadowColor="rgba(255,140,40,.9)"; ctx.shadowBlur=6; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+    requestAnimationFrame(tick); }
+  if(!rm) tick();
+})();
+
+// ── UI wiring ──
+function open(id){ document.getElementById(id).classList.add("open"); }
+function closeAll(){ document.querySelectorAll(".modal.open").forEach(m=>m.classList.remove("open")); }
+document.querySelectorAll(".modal").forEach(m=>{ m.addEventListener("click",e=>{ if(e.target===m && m.id!=="mWin") m.classList.remove("open"); }); m.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>m.classList.remove("open"))); });
+function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("show"),1800); }
+function flare(id){ const el=document.getElementById(id); if(!el) return; el.classList.remove("flare"); void el.offsetWidth; el.classList.add("flare"); }
+function syncSeg(id,val){ document.querySelectorAll(`#${id} button`).forEach(b=>b.classList.toggle("on",b.dataset.v==String(val))); }
+function syncSettings(){ syncSeg("sDraw",S.draw); syncSeg("sSound",S.sound); syncSeg("sGlow",S.glow); }
+document.querySelectorAll("#sDraw button").forEach(b=>b.onclick=()=>{ const v=+b.dataset.v; if(v!==S.draw){ S.draw=v; saveS(); syncSettings(); if(G && !document.getElementById("title").classList.contains("show")) { if(G) newGame(); } } });
+document.querySelectorAll("#sSound button").forEach(b=>b.onclick=()=>{ S.sound=+b.dataset.v; saveS(); syncSettings(); sfx.hint(); });
+document.querySelectorAll("#sGlow button").forEach(b=>b.onclick=()=>{ S.glow=+b.dataset.v; saveS(); syncSettings(); });
+document.getElementById("bUndo").onclick=undo;
+document.getElementById("bHint").onclick=hint;
+document.getElementById("bNew").onclick=()=>{ if(G && G.moves>0 && !won && !confirm("Abandon this reading and deal a new one?")) return; newGame(); };
+document.getElementById("bMenu").onclick=()=>open("mMenu");
+document.getElementById("mRestart").onclick=restartDeal;
+document.getElementById("mRules").onclick=()=>{ closeAll(); open("mRulesM"); };
+document.getElementById("mLb").onclick=()=>{ closeAll(); showLb(); };
+document.getElementById("mSet").onclick=()=>{ closeAll(); open("mSetM"); };
+document.getElementById("sUndo").onclick=()=>{ closeAll(); undo(); };
+document.getElementById("sRestart").onclick=restartDeal;
+document.getElementById("sNew").onclick=newGame;
+document.getElementById("finishBtn").onclick=autoFinish;
+document.getElementById("winAgain").onclick=newGame;
+document.getElementById("tRules").onclick=()=>open("mRulesM");
+document.getElementById("tLb").onclick=showLb;
+document.getElementById("tSet").onclick=()=>open("mSetM");
+document.getElementById("tPlay").onclick=()=>{ const t=document.getElementById("title"); t.classList.add("hide"); setTimeout(()=>t.style.display="none",520); newGame(); };
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") { if(e.key==="Enter") document.getElementById("winSave").click(); return; }
+  if((e.key==="z"||e.key==="Z")&&!e.shiftKey){ undo(); e.preventDefault(); }
+  else if(e.key==="h"||e.key==="H") hint();
+  else if(e.key===" "){ onStock(); e.preventDefault(); }
+  else if(e.key==="Escape"){ closeAll(); closeInspect(); }
+});
+let rt; addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{ if(!G) { computeLayout(); return; } computeLayout(); buildSlots(); render({instant:true}); },120); });
+// init
+document.getElementById("titleImg").src=A+"arcana_title.jpg";
+syncSettings(); computeLayout();
+// warm the cache with the web-sized art after first paint
+setTimeout(()=>{ for(const s of SUITS) for(let r=0;r<14;r++){ const i=new Image(); i.src=A+"cards/"+cardFile({suit:s,r}); } },1500);
+// test hook (used by automated QA only)
+window.__arcana={get G(){return G;},set G(v){G=v;},render,doMove,legal,findMoves,checkStuck,canAutoFinish,autoFinish,undo,onStock,newGame,history:()=>history,setState(v){G=v;history=[];won=false;stuckShown=false;closeAll();Object.values(els).forEach(e=>e.remove());for(const k in els)delete els[k];render({instant:true});}};
 </script>
-<div id="touch-drag-ghost"><img id="touch-drag-ghost-img" src="" alt=""><span class="ghost-count" id="ghost-count"></span></div>
 </body>
 </html>
