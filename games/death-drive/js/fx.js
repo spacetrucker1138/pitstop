@@ -67,15 +67,15 @@ var FX = (function () {
   }
 
   // traffic tail lights
-  function afterCar(ctx, r, sprite, fog) {
+  function afterCar(ctx, r, sprite, fog, rgb) {
     if (r.w < 3) return;
     var a = Math.max(0, Math.min(1, fog * 1.2)) * 0.95;
     if (a < 0.05) return;
     var L = sprite.lights || [0.3, 0.7, 0.72];
     var rad = Math.max(2, r.w * 0.07);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    glowDot(ctx, r.x + r.w * L[0], r.y + r.h * L[2], rad, '255,30,40', a);
-    glowDot(ctx, r.x + r.w * L[1], r.y + r.h * L[2], rad, '255,30,40', a);
+    glowDot(ctx, r.x + r.w * L[0], r.y + r.h * L[2], rad, rgb || '255,30,40', a);
+    glowDot(ctx, r.x + r.w * L[1], r.y + r.h * L[2], rad, rgb || '255,30,40', a);
     ctx.restore();
   }
 
@@ -91,8 +91,8 @@ var FX = (function () {
 
   // headlight beams on the road ahead + under-glow
   function beforePlayer(ctx, x, y, scale, sp) {
-    var vw = SPRITES.PLAYER_STRAIGHT.w * scale * XS * SPRITES.SCALE * roadWidth;
-    var vh = SPRITES.PLAYER_STRAIGHT.h * scale * XS * SPRITES.SCALE * roadWidth;
+    var P = SPRITES.PLAYER, vw = P.w * P.scale * scale * XS * SPRITES.SCALE * roadWidth;
+    var vh = P.h * P.scale * scale * XS * SPRITES.SCALE * roadWidth;
     var top = y - vh * 0.6, far = Math.max(H * 0.42, y - vh * 3.2);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     var g = ctx.createLinearGradient(0, top, 0, far);
@@ -107,12 +107,33 @@ var FX = (function () {
   }
 
   function afterPlayer(ctx, r, sp) {
-    // van tail lights + brake flare
-    var a = keySlower && DD.state === 'racing' ? 1 : 0.55;
+    // van tail lights + brake flare, anchored to the lamps painted on the current frame
+    var spr = DD.playerSprite || SPRITES.PLAYER, L = spr.lights || [0.11, 0.88, 0.69];
+    var brake = keySlower && DD.state === 'racing';
+    var a = brake ? 1 : 0.5, rad = r.w * (brake ? 0.2 : 0.11);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    glowDot(ctx, r.x + r.w * 0.1, r.y + r.h * 0.62, r.w * (keySlower ? 0.26 : 0.16), '255,30,40', a);
-    glowDot(ctx, r.x + r.w * 0.9, r.y + r.h * 0.62, r.w * (keySlower ? 0.26 : 0.16), '255,30,40', a);
+    glowDot(ctx, r.x + r.w * L[0], r.y + r.h * L[2], rad, '255,30,40', a);
+    glowDot(ctx, r.x + r.w * L[1], r.y + r.h * L[2], rad, '255,30,40', a);
     ctx.restore();
+    lastPlayer = r; lastPlayerSprite = spr;
+    // damaged van trails smoke
+    if (DD.damage >= 3 && DD.state === 'racing' && Math.random() < 0.35 + 0.3 * sp)
+      spawn({ t: 'dust', x: r.x + r.w * rnd(0.3, 0.7), y: r.y + r.h * rnd(0.1, 0.4), vx: rnd(-0.1, 0.1) * H, vy: -rnd(0.08, 0.2) * H, life: rnd(0.5, 0.9), max: 0.9, size: rnd(5, 10) * H / 480, c: '40,36,48' });
+  }
+  var lastPlayer = null, lastPlayerSprite = null;
+  // exhaust backfire: flame bursts out of the twin pipes
+  function backfire(power) {
+    var r = lastPlayer; if (!r) return;
+    AudioEngine.backfire && AudioEngine.backfire(power);
+    var steer = lastPlayerSprite === SPRITES.PLAYER_L || lastPlayerSprite === SPRITES.PLAYERD_L || lastPlayerSprite === SPRITES.PLAYER_BRAKE_L ? -1 :
+      lastPlayerSprite === SPRITES.PLAYER_R || lastPlayerSprite === SPRITES.PLAYERD_R || lastPlayerSprite === SPRITES.PLAYER_BRAKE_R ? 1 : 0;
+    var pipes = steer < 0 ? [0.2, 0.55] : steer > 0 ? [0.45, 0.8] : [0.3, 0.7];
+    pipes.forEach(function (px) {
+      var n = Math.round(6 + 6 * power);
+      for (var i = 0; i < n; i++)
+        spawn({ t: 'flame', x: r.x + r.w * px + rnd(-2, 2), y: r.y + r.h * 0.9, vx: rnd(-0.08, 0.08) * H, vy: rnd(0.05, 0.25) * H, life: rnd(0.08, 0.22), max: 0.22, size: rnd(4, 9) * H / 480 * (0.6 + power) });
+    });
+    shake = Math.max(shake, 0.05 * power);
   }
 
   function renderDepthFactor(sp) { return 1 - 0.1 * Math.max(0, (sp - 0.55) / 0.45); }
@@ -149,6 +170,10 @@ var FX = (function () {
       } else if (p.t === 'dust') {
         ctx.fillStyle = 'rgba(' + p.c + ',' + (0.35 * t) + ')';
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      } else if (p.t === 'flame') {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        glowDot(ctx, p.x, p.y, p.size * (1.6 - t * 0.6), t > 0.5 ? '255,220,120' : '255,110,20', Math.min(1, t * 1.6));
+        ctx.restore();
       } else if (p.t === 'confetti') {
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = Math.min(1, t * 2);
         ctx.fillStyle = p.c; ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore();
@@ -187,6 +212,6 @@ var FX = (function () {
   function reset() { parts.length = 0; streaks.length = 0; shake = 0; finishT = 0; }
 
   return { hit: hit, update: update, preWorld: preWorld, afterCar: afterCar, afterProp: afterProp, beforePlayer: beforePlayer,
-    afterPlayer: afterPlayer, overlay: overlay, renderDepthFactor: renderDepthFactor, finish: finish, reset: reset,
+    afterPlayer: afterPlayer, backfire: backfire, overlay: overlay, renderDepthFactor: renderDepthFactor, finish: finish, reset: reset,
     get count() { return parts.length; } };
 })();

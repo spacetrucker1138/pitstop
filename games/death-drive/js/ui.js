@@ -36,6 +36,7 @@
     else flash('LAP ' + lap + ' &nbsp;' + fmt(t) + (best ? ' &nbsp;BEST LAP!' : '') + '<br><span style="font-size:.7em">FINAL LAP</span>', 2800);
   };
   DD.hooks.onFinish = showEnd;
+  DD.hooks.onGhost = function (ghostAhead) { flash(ghostAhead ? '<span style="color:#8ff">THE GHOST PASSED YOU</span>' : '<span style="color:#8ff">YOU PASSED THE GHOST!</span>', 1800); };
 
   // ── HUD (DOM updates only when changed) ──
   var hudCache = {};
@@ -129,6 +130,11 @@
     var total = DD.raceTime, prev = DD.prevBestRace;
     $('endTotal').textContent = fmt(total);
     $('endLaps').textContent = DD.lapTimes.map(function (t, i) { return 'LAP ' + (i + 1) + ' ' + fmt(t); }).join('   ') + '   BEST LAP ' + fmt(DD.bestLap);
+    var g = DD.ghost, gl = $('endGhost');
+    if (g && gl) {
+      if (g.doneT && g.doneT < total) { gl.textContent = 'THE GHOST WON BY ' + (total - g.doneT).toFixed(1) + 's'; gl.className = 'bad'; }
+      else { var rem = Math.max(0, trackLength * TOTAL_LAPS - g.dist) / Math.max(1, g.speed); gl.textContent = 'YOU BEAT THE GHOST BY ' + rem.toFixed(1) + 's'; gl.className = 'good'; }
+    }
     var d = $('endDelta');
     if (!prev) { d.textContent = 'FIRST FINISH — TIME TO BEAT SET'; d.className = 'good'; }
     else if (total < prev) { d.textContent = 'NEW PERSONAL BEST!  -' + (prev - total).toFixed(1) + 's'; d.className = 'good'; }

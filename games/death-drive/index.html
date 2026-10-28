@@ -51,7 +51,8 @@ body{font-family:'Courier New',monospace;color:#fff}
 #endTotal{font-size:max(20px,calc(var(--u)*6));font-weight:bold;margin-bottom:4px}
 #endLaps{color:rgba(255,255,255,.7);font-size:max(11px,calc(var(--u)*2.5));letter-spacing:.08em;margin-bottom:4px}
 #endDelta{font-size:max(12px,calc(var(--u)*3));letter-spacing:.1em;margin-bottom:calc(var(--u)*2)}
-#endDelta.good{color:#c8ff00;text-shadow:0 0 10px #c8ff00}#endDelta.bad{color:#ff7a9c}
+#endDelta.good,#endGhost.good{color:#c8ff00;text-shadow:0 0 10px #c8ff00}#endDelta.bad,#endGhost.bad{color:#ff7a9c}
+#endGhost{font-size:max(11px,calc(var(--u)*2.6));letter-spacing:.1em;margin-bottom:calc(var(--u)*2)}
 #initialsSection{display:none;flex-direction:column;align-items:center;margin-bottom:calc(var(--u)*1.5)}
 .initials-label{color:rgba(255,255,255,.65);font-size:max(10px,calc(var(--u)*2.1));letter-spacing:.15em;margin-bottom:6px}
 #initialsInput{background:rgba(255,255,255,.08);border:1px solid rgba(200,255,0,.5);color:#c8ff00;font-family:inherit;font-size:22px;text-align:center;width:100px;letter-spacing:.3em;padding:4px 8px;text-transform:uppercase;outline:none;-webkit-user-select:text;user-select:text}
@@ -103,6 +104,7 @@ body.touch.menu #mob-overlay{display:none}
    <div id="endTotal" class="lime"></div>
    <div id="endLaps"></div>
    <div id="endDelta"></div>
+   <div id="endGhost"></div>
    <div id="initialsSection">
     <div class="initials-label">ENTER YOUR INITIALS</div>
     <input type="text" id="initialsInput" maxlength="3" autocomplete="off" autocapitalize="characters">

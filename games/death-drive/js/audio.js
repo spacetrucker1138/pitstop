@@ -130,7 +130,27 @@ var AudioEngine = (function () {
   function setMuted(b) { muted = b; localStorage.setItem('dd_muted', b ? '1' : '0'); refresh(); }
   function refresh() { if (master) master.gain.setTargetAtTime(out(), ctx.currentTime, 0.05); applyMusic(); }
 
+  // exhaust backfire pop
+  var lastPop = 0;
+  function backfire(power) {
+    if (!ctx) return;
+    var t = ctx.currentTime; if (t - lastPop < 0.12) return; lastPop = t;
+    thud(t, 160, 45, 0.5 * power, 0.07); burst(t, 450, 0.8, 0.45 * power, 0.09, 'lowpass');
+    if (power > 0.8) { thud(t + 0.09, 140, 40, 0.35, 0.06); burst(t + 0.09, 500, 0.8, 0.3, 0.07, 'lowpass'); }
+  }
+  // ghost overtakes: a short eerie wail
+  function ghostWail() {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    [0, 7].forEach(function (d) {
+      var o = ctx.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(520 + d, t); o.frequency.linearRampToValueAtTime(880 + d, t + 0.5); o.frequency.linearRampToValueAtTime(420 + d, t + 1.2);
+      var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + 0.2); g.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.35);
+    });
+  }
   return {
+    backfire: backfire, ghostWail: ghostWail,
     init: init, startEngine: startEngine, setEngineSpeed: setEngineSpeed, setOffroad: setOffroad,
     playCollision: playCollision, playCrash: playCrash, playScreech: playScreech, playHorn: playHorn,
     beep: beep, fanfare: fanfare, fadeMusic: fadeMusic, setVolume: setVolume, setMuted: setMuted,

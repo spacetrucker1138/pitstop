@@ -95,10 +95,10 @@ var Render = {
   },
   player: function (ctx, width, height, resolution, roadWidth, sprites, speedPercent, scale, destX, destY, steer, updown) {
     var bounce = (1.5 * Math.random() * speedPercent * resolution) * Util.randomChoice([-1, 1]);
-    var sprite;
-    if (steer < 0) sprite = updown > 0 ? SPRITES.PLAYER_UPHILL_LEFT : SPRITES.PLAYER_LEFT;
-    else if (steer > 0) sprite = updown > 0 ? SPRITES.PLAYER_UPHILL_RIGHT : SPRITES.PLAYER_RIGHT;
-    else sprite = updown > 0 ? SPRITES.PLAYER_UPHILL_STRAIGHT : SPRITES.PLAYER_STRAIGHT;
+    var base = DD.damage >= 3 ? 'PLAYERD' : 'PLAYER';
+    if (keySlower && DD.state === 'racing') base += '_BRAKE';
+    var sprite = SPRITES[base + (steer < 0 ? '_L' : steer > 0 ? '_R' : '')];
+    DD.playerSprite = sprite;
     return Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY + bounce, -0.5, -1);
   },
   fog: function (ctx, x, y, width, height, fog) {
@@ -133,27 +133,17 @@ var SPRITES = {
   BILLBOARD01: { x: 0, y: 0, w: 400, h: 266 }, BILLBOARD02: { x: 400, y: 0, w: 400, h: 266 }, BILLBOARD03: { x: 800, y: 0, w: 400, h: 266 },
   BILLBOARD04: { x: 0, y: 266, w: 400, h: 266 }, BILLBOARD05: { x: 400, y: 266, w: 400, h: 266 }, BILLBOARD06: { x: 800, y: 266, w: 400, h: 266 },
   BILLBOARD07: { x: 0, y: 532, w: 400, h: 266 }, BILLBOARD08: { x: 400, y: 532, w: 400, h: 266 }, BILLBOARD09: { x: 800, y: 532, w: 400, h: 266 },
-  // NPC vehicles — mobCars sheet (339x151 per cell). Angles: left col x=0, rear x=339, right x=678
-  CAR01_L: { x: 0, y: 151, w: 339, h: 151 }, CAR01: { x: 339, y: 151, w: 339, h: 151 }, CAR01_R: { x: 678, y: 151, w: 339, h: 151 },
-  CAR02_L: { x: 0, y: 302, w: 339, h: 151 }, CAR02: { x: 339, y: 302, w: 339, h: 151 }, CAR02_R: { x: 678, y: 302, w: 339, h: 151 },
-  CAR03_L: { x: 0, y: 453, w: 339, h: 151 }, CAR03: { x: 339, y: 453, w: 339, h: 151 }, CAR03_R: { x: 678, y: 453, w: 339, h: 151 },
-  CAR04_L: { x: 0, y: 604, w: 339, h: 151 }, CAR04: { x: 339, y: 604, w: 339, h: 151 }, CAR04_R: { x: 678, y: 604, w: 339, h: 151 },
-  SEMI_L: { x: 0, y: 755, w: 339, h: 151 }, SEMI: { x: 339, y: 755, w: 339, h: 151 }, SEMI_R: { x: 678, y: 755, w: 339, h: 151 },
-  CAR05_L: { x: 0, y: 0, w: 339, h: 151 }, CAR05: { x: 339, y: 0, w: 339, h: 151 }, CAR05_R: { x: 678, y: 0, w: 339, h: 151 },
-  PLAYER_UPHILL_LEFT: { x: 5, y: 1709, w: 119, h: 131 }, PLAYER_UPHILL_STRAIGHT: { x: 200, y: 1709, w: 119, h: 131 }, PLAYER_UPHILL_RIGHT: { x: 395, y: 1709, w: 119, h: 131 },
-  PLAYER_LEFT: { x: 5, y: 1495, w: 119, h: 131 }, PLAYER_STRAIGHT: { x: 200, y: 1495, w: 119, h: 131 }, PLAYER_RIGHT: { x: 395, y: 1495, w: 119, h: 131 }
+  _end: null
 };
-SPRITES.SCALE = 0.3 * (1 / SPRITES.PLAYER_STRAIGHT.w);
+SPRITES.SCALE = 0.3 * (1 / 119); // world scale (kept from the original 119px van)
+// ── VEHICLES (v3 redesign): one atlas, tight-cropped frames, light anchors measured from the art ──
+var VEHICLES = {"PLAYER_L":{"x":0,"y":0,"w":162,"h":160,"scale":0.6666666666666666,"file":"veh/player.webp","lights":[0.084,0.639,0.676]},"PLAYER_BRAKE_L":{"x":166,"y":0,"w":162,"h":160,"scale":0.6666666666666666,"file":"veh/player.webp","lights":[0.084,0.639,0.676]},"PLAYER":{"x":332,"y":0,"w":129,"h":165,"scale":0.6666666666666666,"file":"veh/player.webp","lights":[0.112,0.879,0.699]},"PLAYER_BRAKE":{"x":465,"y":0,"w":129,"h":165,"scale":0.6666666666666666,"file":"veh/player.webp","lights":[0.112,0.879,0.699]},"PLAYER_R":{"x":598,"y":0,"w":159,"h":160,"scale":0.6666666666666666,"file":"veh/player.webp","lights":[0.368,0.913,0.665]},"PLAYER_BRAKE_R":{"x":761,"y":0,"w":159,"h":160,"scale":0.6666666666666666,"file":"veh/player.webp","lights":[0.368,0.913,0.665]},"PLAYERD_L":{"x":0,"y":0,"w":153,"h":161,"scale":0.6666666666666666,"file":"veh/playerd.webp","lights":[0.089,0.647,0.612]},"PLAYERD_BRAKE_L":{"x":157,"y":0,"w":153,"h":161,"scale":0.6666666666666666,"file":"veh/playerd.webp","lights":[0.089,0.647,0.612]},"PLAYERD":{"x":314,"y":0,"w":129,"h":163,"scale":0.6666666666666666,"file":"veh/playerd.webp","lights":[0.125,0.879,0.621]},"PLAYERD_BRAKE":{"x":447,"y":0,"w":129,"h":163,"scale":0.6666666666666666,"file":"veh/playerd.webp","lights":[0.125,0.879,0.621]},"PLAYERD_R":{"x":580,"y":0,"w":151,"h":160,"scale":0.6666666666666666,"file":"veh/playerd.webp","lights":[0.361,0.903,0.628]},"PLAYERD_BRAKE_R":{"x":735,"y":0,"w":151,"h":160,"scale":0.6666666666666666,"file":"veh/playerd.webp","lights":[0.361,0.903,0.628]},"HEARSE_L":{"x":0,"y":0,"w":289,"h":148,"scale":0.6666666666666666,"file":"veh/hearse.webp","lights":[0.026,0.516,0.692]},"HEARSE":{"x":293,"y":0,"w":200,"h":155,"scale":0.6666666666666666,"file":"veh/hearse.webp","lights":[0.054,0.94,0.759]},"HEARSE_R":{"x":497,"y":0,"w":288,"h":148,"scale":0.6666666666666666,"file":"veh/hearse.webp","lights":[0.48,0.971,0.693]},"MUSCLE_L":{"x":0,"y":0,"w":283,"h":154,"scale":0.6666666666666666,"file":"veh/muscle.webp","lights":[0.074,0.511,0.502]},"MUSCLE":{"x":287,"y":0,"w":208,"h":150,"scale":0.6666666666666666,"file":"veh/muscle.webp","lights":[0.121,0.87,0.524]},"MUSCLE_R":{"x":499,"y":0,"w":283,"h":154,"scale":0.6666666666666666,"file":"veh/muscle.webp","lights":[0.478,0.92,0.503]},"SEDAN_L":{"x":0,"y":0,"w":307,"h":173,"scale":0.6666666666666666,"file":"veh/sedan.webp","lights":[0.055,0.456,0.641]},"SEDAN":{"x":311,"y":0,"w":213,"h":169,"scale":0.6666666666666666,"file":"veh/sedan.webp","lights":[0.096,0.893,0.674]},"SEDAN_R":{"x":528,"y":0,"w":306,"h":173,"scale":0.6666666666666666,"file":"veh/sedan.webp","lights":[0.531,0.941,0.641]},"HOTROD_L":{"x":0,"y":0,"w":286,"h":175,"scale":0.6666666666666666,"file":"veh/hotrod.webp","lights":[0.095,0.434,0.63]},"HOTROD":{"x":290,"y":0,"w":237,"h":174,"scale":0.6666666666666666,"file":"veh/hotrod.webp","lights":[0.228,0.766,0.627]},"HOTROD_R":{"x":531,"y":0,"w":287,"h":175,"scale":0.6666666666666666,"file":"veh/hotrod.webp","lights":[0.551,0.893,0.632]},"SEMI_L":{"x":0,"y":0,"w":380,"h":342,"scale":0.8333333333333333,"file":"veh/semi.webp","lights":[0.044,0.463,0.703]},"SEMI":{"x":383,"y":0,"w":234,"h":332,"scale":0.8333333333333333,"file":"veh/semi.webp","lights":[0.097,0.899,0.699]},"SEMI_R":{"x":620,"y":0,"w":380,"h":342,"scale":0.8333333333333333,"file":"veh/semi.webp","lights":[0.526,0.951,0.704]},"ICE_L":{"x":0,"y":0,"w":328,"h":298,"scale":0.6666666666666666,"file":"veh/ice.webp","lights":[0.045,0.509,0.784]},"ICE":{"x":332,"y":0,"w":243,"h":308,"scale":0.6666666666666666,"file":"veh/ice.webp","lights":[0.107,0.892,0.797]},"ICE_R":{"x":579,"y":0,"w":328,"h":298,"scale":0.6666666666666666,"file":"veh/ice.webp","lights":[0.495,0.951,0.785]},"GHOST_L":{"x":0,"y":0,"w":280,"h":161,"scale":0.6666666666666666,"file":"veh/ghost.webp","lights":[0.091,0.583,0.587]},"GHOST":{"x":284,"y":0,"w":209,"h":160,"scale":0.6666666666666666,"file":"veh/ghost.webp","lights":[0.112,0.884,0.637]},"GHOST_R":{"x":497,"y":0,"w":279,"h":161,"scale":0.6666666666666666,"file":"veh/ghost.webp","lights":[0.414,0.905,0.59]}};
+for (var vk in VEHICLES) SPRITES[vk] = VEHICLES[vk];
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
-(function (L) { for (var k in L) SPRITES[k].lights = L[k]; })({
-  CAR05_L: [0.225, 0.503, 0.75], CAR05: [0.261, 0.656, 0.74], CAR05_R: [0.494, 0.836, 0.77],
-  CAR01_L: [0.323, 0.495, 0.734], CAR01: [0.366, 0.636, 0.717], CAR01_R: [0.49, 0.664, 0.75],
-  CAR02_L: [0.278, 0.435, 0.77], CAR02: [0.374, 0.614, 0.744], CAR02_R: [0.513, 0.716, 0.744],
-  CAR03_L: [0.24, 0.465, 0.758], CAR03: [0.336, 0.62, 0.758], CAR03_R: [0.536, 0.746, 0.768],
-  CAR04_L: [0.21, 0.468, 0.65], CAR04: [0.314, 0.633, 0.65], CAR04_R: [0.461, 0.749, 0.623],
-  SEMI_L: [0.26, 0.555, 0.734], SEMI: [0.2, 0.59, 0.734], SEMI_R: [0.438, 0.82, 0.734]
-});
-SPRITES.CARS = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04, SPRITES.SEMI, SPRITES.CAR05];
-SPRITES.CARS_L = [SPRITES.CAR01_L, SPRITES.CAR02_L, SPRITES.CAR03_L, SPRITES.CAR04_L, SPRITES.SEMI_L, SPRITES.CAR05_L];
-SPRITES.CARS_R = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES.CAR04_R, SPRITES.SEMI_R, SPRITES.CAR05_R];
+SPRITES.CAR_TYPES = ['HEARSE', 'MUSCLE', 'SEDAN', 'HOTROD', 'SEMI', 'ICE'];
+SPRITES.CAR_TINT = [false, true, true, true, false, false]; // grey-bodied cars get a random paint job
+SPRITES.CARS = SPRITES.CAR_TYPES.map(function (k) { return SPRITES[k]; });
+SPRITES.CARS_L = SPRITES.CAR_TYPES.map(function (k) { return SPRITES[k + '_L']; });
+SPRITES.CARS_R = SPRITES.CAR_TYPES.map(function (k) { return SPRITES[k + '_R']; });
+SPRITES.PLAYER_STRAIGHT = SPRITES.PLAYER;

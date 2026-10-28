@@ -36,7 +36,7 @@ function fmt(t) {
 function update(dt) {
   FX.update(dt);
   var playerSegment = findSegment(position + playerZ);
-  var playerW = SPRITES.PLAYER_STRAIGHT.w * SPRITES.SCALE * 0.75;
+  var playerW = SPRITES.PLAYER.w * SPRITES.PLAYER.scale * SPRITES.SCALE * 0.75;
   var racing = DD.state === 'racing', finishing = DD.state === 'finishing';
   var speedPercent = speed / maxSpeed;
   var dx = dt * 2 * speedPercent;
@@ -44,6 +44,13 @@ function update(dt) {
   var n, car, carW, sprite, spriteW;
 
   updateCars(dt, playerSegment, playerW);
+  updateGhost(dt);
+  if (DD.state === 'racing') {
+    // exhaust backfire: lifting off the gas at speed, or the odd pop when flat out
+    if (DD.wasFaster && !keyFaster && speedPercent > 0.55) FX.backfire(1);
+    else if (keyFaster && speedPercent > 0.92 && Math.random() < dt * 0.25) FX.backfire(0.6);
+  }
+  DD.wasFaster = keyFaster;
   DD.hitCooldown = Math.max(0, DD.hitCooldown - dt);
 
   if (DD.state === 'countdown') {
@@ -81,7 +88,7 @@ function update(dt) {
         speed = Math.min(speed * 0.35, maxSpeed * 0.3);
         playerX += (playerX > 0 ? -1 : 1) * 0.22;
         DD.hitCooldown = 0.6;
-        AudioEngine.playCrash();
+        AudioEngine.playCrash(); if (DD.raceTime - (DD.dmgT || -9) > 1.5) { DD.damage += 1; DD.dmgT = DD.raceTime; }
         FX.hit('crash', playerX, 0, 0.6 + impact);
         break;
       }
@@ -91,9 +98,9 @@ function update(dt) {
 
   for (n = 0; n < playerSegment.cars.length; n++) {
     car = playerSegment.cars[n];
-    carW = car.sprite.w * SPRITES.SCALE * 0.75;
+    carW = car.sprite.w * (car.sprite.scale || 1) * SPRITES.SCALE * 0.75;
     if (speed > car.speed && Util.overlap(playerX, playerW, car.offset, carW, 0.8)) {
-      AudioEngine.playCollision();
+      AudioEngine.playCollision(); if (DD.raceTime - (DD.dmgT || -9) > 1.5) { DD.damage += 0.34; DD.dmgT = DD.raceTime; }
       FX.hit('bump', playerX, 0, 0.5 + (speed - car.speed) / maxSpeed);
       speed = car.speed * (car.speed / speed);
       position = Util.increase(car.z, -playerZ, trackLength);
@@ -165,7 +172,7 @@ function updateCars(dt, playerSegment, playerW) {
 }
 
 function updateCarOffset(car, carSegment, playerSegment, playerW) {
-  var i, j, dir, segment, other, otherW, lookahead = 20, carW = car.sprite.w * SPRITES.SCALE;
+  var i, j, dir, segment, other, otherW, lookahead = 20, carW = car.sprite.w * (car.sprite.scale || 1) * SPRITES.SCALE;
   if ((carSegment.index - playerSegment.index) > drawDistance) return 0;
   for (i = 1; i < lookahead; i++) {
     segment = segments[(carSegment.index + i) % segments.length];
@@ -174,7 +181,7 @@ function updateCarOffset(car, carSegment, playerSegment, playerW) {
       return dir * 1 / i * (car.speed - speed) / maxSpeed;
     }
     for (j = 0; j < segment.cars.length; j++) {
-      other = segment.cars[j]; otherW = other.sprite.w * SPRITES.SCALE;
+      other = segment.cars[j]; otherW = other.sprite.w * (other.sprite.scale || 1) * SPRITES.SCALE;
       if (car.speed > other.speed && Util.overlap(car.offset, carW, other.offset, otherW, 1.2)) {
         dir = other.offset > 0.5 ? -1 : other.offset < -0.5 ? 1 : (car.offset > other.offset ? 1 : -1);
         return dir * 1 / i * (car.speed - other.speed) / maxSpeed;
@@ -229,6 +236,7 @@ function render() {
       r = Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, spriteScale, spriteX, spriteY, -0.5, -1, segment.clip, car.tint);
       if (r) FX.afterCar(ctx, r, sprite, segment.fog);
     }
+    if (DD.ghost && DD.ghost.on && findSegment(DD.ghost.z) === segment) drawGhost(segment);
     for (i = 0; i < segment.sprites.length; i++) {
       sprite = segment.sprites[i];
       spriteScale = segment.p1.screen.scale;
@@ -357,7 +365,7 @@ function resetCars() {
     if (ti === 4) spd = maxSpeed * (0.25 + Math.random() * 0.15);
     else { var roll = Math.random(); spd = maxSpeed * (roll < 0.4 ? 0.30 + Math.random() * 0.15 : roll < 0.8 ? 0.45 + Math.random() * 0.15 : 0.60 + Math.random() * 0.15); }
     var h = [0, 30, 60, 120, 180, 210, 270, 300][Math.floor(Math.random() * 8)];
-    var car = { offset: offset, z: z, sprite: SPRITES.CARS[ti], typeIndex: ti, speed: spd, tint: 'hsl(' + h + ',70%,52%)', laneTarget: offset, laneTimer: Math.random() * 5 };
+    var car = { offset: offset, z: z, sprite: SPRITES.CARS[ti], typeIndex: ti, speed: spd, tint: SPRITES.CAR_TINT[ti] ? 'hsl(' + h + ',70%,58%)' : null, laneTarget: offset, laneTimer: Math.random() * 5 };
     findSegment(car.z).cars.push(car); cars.push(car);
   }
 }
@@ -420,24 +428,59 @@ function startLoop() {
 
 DD.boot = function (extraImages, onReady) {
   layout();
-  var names = ['background.png', 'sprites.png', 'billboards.png', 'mobCars.png'].concat(extraImages || []);
+  var vehFiles = []; for (var vf in VEHICLES) if (vehFiles.indexOf(VEHICLES[vf].file) < 0) vehFiles.push(VEHICLES[vf].file);
+  var names = ['background.png', 'sprites.png', 'billboards.png'].concat(vehFiles).concat(extraImages || []);
   loadImages(names, function (imgs) {
     background = imgs['background.png']; sprites = imgs['sprites.png'];
-    billboardSprites = imgs['billboards.png']; mobCarSprites = imgs['mobCars.png'];
+    billboardSprites = imgs['billboards.png'];
     SPRITES.BILLBOARDS.forEach(function (s) { s.sheet = billboardSprites; });
-    SPRITES.CARS.concat(SPRITES.CARS_L, SPRITES.CARS_R).forEach(function (s) { s.sheet = mobCarSprites; });
+    for (var vk in VEHICLES) VEHICLES[vk].sheet = imgs[VEHICLES[vk].file];
     onReady && onReady(imgs);
     resetRoad();
     startLoop();
   });
 };
 
+// ── GHOST RIVAL: a phantom roadster racing the same two laps. Passes through traffic; can't be hit. ──
+function updateGhost(dt) {
+  var g = DD.ghost; if (!g || !g.on) return;
+  if (DD.state !== 'racing' && DD.state !== 'finishing') return;
+  var seg = findSegment(g.z), gap = g.dist - DD.raceDist; // + = ghost ahead
+  var target = maxSpeed * (0.80 - Math.min(0.08, Math.abs(seg.curve) * 0.012));
+  if (gap > segmentLength * 160) target *= 0.9; else if (gap < -segmentLength * 160) target *= 1.06; // keep it in the race
+  g.speed = Util.accelerate(g.speed, g.speed < target ? accel * 0.8 : decel, dt);
+  g.speed = Math.min(g.speed, target * 1.02);
+  g.t += dt; g.offset = Math.sin(g.t * 0.45) * 0.55 + Math.sin(g.t * 1.3) * 0.12;
+  g.z = Util.increase(g.z, dt * g.speed, trackLength); g.dist += dt * g.speed;
+  g.percent = Util.percentRemaining(g.z, segmentLength);
+  if (!g.doneT && g.dist >= trackLength * TOTAL_LAPS) g.doneT = DD.raceTime;
+  if (DD.state === 'racing') {
+    var ahead = gap > 0;
+    if (g.ahead !== undefined && ahead !== g.ahead && DD.raceTime - (g.msgT || -9) > 4 && Math.abs(gap) < segmentLength * 30) {
+      g.msgT = DD.raceTime; DD.hooks.onGhost && DD.hooks.onGhost(ahead); AudioEngine.ghostWail && AudioEngine.ghostWail();
+    }
+    g.ahead = ahead;
+  }
+}
+function drawGhost(segment) {
+  var g = DD.ghost, view = g.offset < -0.15 ? '_L' : g.offset > 0.15 ? '_R' : '';
+  var spr = SPRITES['GHOST' + view];
+  var sc = Util.interpolate(segment.p1.screen.scale, segment.p2.screen.scale, g.percent);
+  var sx = Util.interpolate(segment.p1.screen.x, segment.p2.screen.x, g.percent) + sc * g.offset * roadWidth * XS;
+  var sy = Util.interpolate(segment.p1.screen.y, segment.p2.screen.y, g.percent);
+  ctx.save(); ctx.globalAlpha = 0.55 + 0.2 * Math.sin(g.t * 6);
+  var r = Render.sprite(ctx, width, height, resolution, roadWidth, sprites, spr, sc, sx, sy, -0.5, -1, segment.clip);
+  ctx.restore();
+  if (r) FX.afterCar(ctx, r, spr, segment.fog, '140,255,255');
+}
 DD.resetRace = function () {
   position = 0; speed = 0; playerX = 0;
   keyLeft = keyRight = keyFaster = keySlower = false;
   DD.raceTime = 0; DD.lapTime = 0; DD.lap = 1; DD.lapTimes = []; DD.raceDist = 0; DD.hitCooldown = 0; DD.offroad = 0;
   skyOffset = hillOffset = treeOffset = 0;
   resetCars(); FX.reset();
+  DD.damage = 0; DD.dmgT = -9; DD.wasFaster = false;
+  DD.ghost = { on: true, z: playerZ + segmentLength * 4, dist: segmentLength * 4, offset: 0.5, speed: 0, t: 0, percent: 0 };
 };
 DD.startCountdown = function () { DD.resetRace(); DD.state = 'countdown'; DD.countdownT = 3; DD.lastBeep = 4; };
 
