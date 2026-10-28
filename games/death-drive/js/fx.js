@@ -49,22 +49,33 @@ var FX = (function () {
     if (shake > 0) { var a = shake * h * 0.035; ctx.translate(rnd(-0.5, 0.5) * a, rnd(-0.5, 0.5) * a); }
   }
 
+  // glows are pre-rendered once per colour and stamped with drawImage (no per-frame gradients)
+  var glowCache = {};
+  function glowSprite(rgb) {
+    var c = glowCache[rgb]; if (c) return c;
+    c = document.createElement('canvas'); c.width = c.height = 64;
+    var x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(' + rgb + ',1)'); g.addColorStop(0.35, 'rgba(' + rgb + ',0.45)'); g.addColorStop(1, 'rgba(' + rgb + ',0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return (glowCache[rgb] = c);
+  }
   function glowDot(ctx, x, y, r, rgb, alpha) {
-    var g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, 'rgba(' + rgb + ',' + alpha + ')'); g.addColorStop(0.35, 'rgba(' + rgb + ',' + alpha * 0.45 + ')'); g.addColorStop(1, 'rgba(' + rgb + ',0)');
-    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    if (r < 0.5 || alpha <= 0.01) return;
+    var a = ctx.globalAlpha; ctx.globalAlpha = Math.min(1, alpha);
+    ctx.drawImage(glowSprite(rgb), x - r, y - r, r * 2, r * 2);
+    ctx.globalAlpha = a;
   }
 
   // traffic tail lights
-  function afterCar(ctx, r, view, fog, ti) {
+  function afterCar(ctx, r, sprite, fog) {
     if (r.w < 3) return;
     var a = Math.max(0, Math.min(1, fog * 1.2)) * 0.95;
     if (a < 0.05) return;
-    var ly = r.y + r.h * 0.58, pts;
-    if (view === 0) pts = [0.2, 0.8]; else if (view < 0) pts = [0.42, 0.86]; else pts = [0.14, 0.58];
-    var rad = Math.max(2, r.w * 0.09);
+    var L = sprite.lights || [0.3, 0.7, 0.72];
+    var rad = Math.max(2, r.w * 0.07);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    for (var i = 0; i < 2; i++) glowDot(ctx, r.x + r.w * pts[i], ly, rad, '255,30,40', a);
+    glowDot(ctx, r.x + r.w * L[0], r.y + r.h * L[2], rad, '255,30,40', a);
+    glowDot(ctx, r.x + r.w * L[1], r.y + r.h * L[2], rad, '255,30,40', a);
     ctx.restore();
   }
 

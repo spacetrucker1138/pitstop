@@ -58,6 +58,18 @@ var Render = {
     for (; x < width; x += tw - 1)
       ctx.drawImage(background, layer.x, layer.y, layer.w, layer.h, Math.floor(x), offset || 0, Math.ceil(tw), height);
   },
+  _tint: {},
+  tinted: function (sheet, sprite, tint) {
+    var key = sprite.x + ',' + sprite.y + ',' + tint, c = Render._tint[key];
+    if (c) return c;
+    c = document.createElement('canvas'); c.width = sprite.w; c.height = sprite.h;
+    var x = c.getContext('2d');
+    x.drawImage(sheet, sprite.x, sprite.y, sprite.w, sprite.h, 0, 0, sprite.w, sprite.h);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = tint; x.fillRect(0, 0, sprite.w, sprite.h);
+    x.globalCompositeOperation = 'destination-in';
+    x.drawImage(sheet, sprite.x, sprite.y, sprite.w, sprite.h, 0, 0, sprite.w, sprite.h);
+    return (Render._tint[key] = c);
+  },
   // returns the drawn rect (or null) so effects can attach to it
   sprite: function (ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY, offsetX, offsetY, clipY, tint) {
     var k = sprite.scale || 1;
@@ -70,17 +82,10 @@ var Render = {
     if (clipH < destH && destW > 0.5 && drawH > 0.5) {
       var srcH = sprite.h - (sprite.h * clipH / destH);
       if (tint) {
-        var oc = Render._tc || (Render._tc = document.createElement('canvas'));
-        var cw = Math.ceil(destW), ch = Math.ceil(drawH);
-        if (oc.width < cw) oc.width = cw; if (oc.height < ch) oc.height = ch;
-        var ox = oc.getContext('2d');
-        ox.globalCompositeOperation = 'source-over'; ox.clearRect(0, 0, cw, ch);
-        ox.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, srcH, 0, 0, destW, drawH);
-        ox.globalCompositeOperation = 'multiply'; ox.fillStyle = tint; ox.fillRect(0, 0, cw, ch);
-        ox.globalCompositeOperation = 'destination-in';
-        ox.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, srcH, 0, 0, destW, drawH);
-        ox.globalCompositeOperation = 'source-over';
-        ctx.drawImage(oc, 0, 0, cw, ch, destX, destY, cw, ch);
+        // tinted cars are pre-baked once per (sprite, colour) at native size, then drawn like any sprite.
+        // (v2 preview tinted every car on an offscreen canvas every frame - that stalled the GPU in traffic)
+        var tc = Render.tinted(srcSheet, sprite, tint);
+        ctx.drawImage(tc, 0, 0, sprite.w, srcH, destX, destY, destW, drawH);
       } else {
         ctx.drawImage(srcSheet, sprite.x, sprite.y, sprite.w, srcH, destX, destY, destW, drawH);
       }
@@ -141,6 +146,14 @@ var SPRITES = {
 SPRITES.SCALE = 0.3 * (1 / SPRITES.PLAYER_STRAIGHT.w);
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
+(function (L) { for (var k in L) SPRITES[k].lights = L[k]; })({
+  CAR05_L: [0.225, 0.503, 0.75], CAR05: [0.261, 0.656, 0.74], CAR05_R: [0.494, 0.836, 0.77],
+  CAR01_L: [0.323, 0.495, 0.734], CAR01: [0.366, 0.636, 0.717], CAR01_R: [0.49, 0.664, 0.75],
+  CAR02_L: [0.278, 0.435, 0.77], CAR02: [0.374, 0.614, 0.744], CAR02_R: [0.513, 0.716, 0.744],
+  CAR03_L: [0.24, 0.465, 0.758], CAR03: [0.336, 0.62, 0.758], CAR03_R: [0.536, 0.746, 0.768],
+  CAR04_L: [0.21, 0.468, 0.65], CAR04: [0.314, 0.633, 0.65], CAR04_R: [0.461, 0.749, 0.623],
+  SEMI_L: [0.26, 0.555, 0.734], SEMI: [0.2, 0.59, 0.734], SEMI_R: [0.438, 0.82, 0.734]
+});
 SPRITES.CARS = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04, SPRITES.SEMI, SPRITES.CAR05];
 SPRITES.CARS_L = [SPRITES.CAR01_L, SPRITES.CAR02_L, SPRITES.CAR03_L, SPRITES.CAR04_L, SPRITES.SEMI_L, SPRITES.CAR05_L];
 SPRITES.CARS_R = [SPRITES.CAR01_R, SPRITES.CAR02_R, SPRITES.CAR03_R, SPRITES.CAR04_R, SPRITES.SEMI_R, SPRITES.CAR05_R];

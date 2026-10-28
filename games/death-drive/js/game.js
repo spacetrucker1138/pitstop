@@ -227,7 +227,7 @@ function render() {
       spriteX = Util.interpolate(segment.p1.screen.x, segment.p2.screen.x, car.percent) + spriteScale * car.offset * roadWidth * XS;
       spriteY = Util.interpolate(segment.p1.screen.y, segment.p2.screen.y, car.percent);
       r = Render.sprite(ctx, width, height, resolution, roadWidth, sprites, sprite, spriteScale, spriteX, spriteY, -0.5, -1, segment.clip, car.tint);
-      if (r) FX.afterCar(ctx, r, view, segment.fog, ti);
+      if (r) FX.afterCar(ctx, r, sprite, segment.fog);
     }
     for (i = 0; i < segment.sprites.length; i++) {
       sprite = segment.sprites[i];
@@ -263,7 +263,7 @@ function drawGauge(sp) {
   ctx.lineWidth = R * 0.16; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(cx, cy, R * 0.9, a0, a1); ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.stroke();
   var g = ctx.createLinearGradient(cx - R, cy, cx + R, cy); g.addColorStop(0, '#c8ff00'); g.addColorStop(0.65, '#ffb000'); g.addColorStop(1, '#ff2bd6');
-  if (sp > 0.005) { ctx.beginPath(); ctx.arc(cx, cy, R * 0.9, a0, a); ctx.strokeStyle = g; ctx.shadowColor = sp > 0.85 ? '#ff2bd6' : '#c8ff00'; ctx.shadowBlur = R * 0.3; ctx.stroke(); ctx.shadowBlur = 0; }
+  if (sp > 0.005) { ctx.beginPath(); ctx.arc(cx, cy, R * 0.9, a0, a); ctx.strokeStyle = g; ctx.stroke(); ctx.globalAlpha = 0.25; ctx.lineWidth = R * 0.3; ctx.stroke(); ctx.globalAlpha = 0.92; ctx.lineWidth = R * 0.16; }
   ctx.lineWidth = Math.max(1, R * 0.03); ctx.strokeStyle = 'rgba(255,255,255,0.5)';
   for (var k = 0; k <= 12; k++) {
     var ta = a0 + (a1 - a0) * k / 12, r0 = R * (k % 3 ? 0.7 : 0.64);
@@ -408,7 +408,9 @@ function startLoop() {
   function frame() {
     var now = Util.timestamp(), dt = Math.min(1, (now - last) / 1000);
     gdt += dt;
-    while (gdt > step) { gdt -= step; update(step); }
+    var steps = 0;
+    while (gdt > step && steps < 6) { gdt -= step; update(step); steps++; }
+    if (steps >= 6) gdt = 0; // never try to catch up after a stall (avoids a lag spiral)
     render();
     last = now;
     requestAnimationFrame(frame);

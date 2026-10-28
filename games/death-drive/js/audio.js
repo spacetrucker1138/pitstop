@@ -14,10 +14,12 @@ var AudioEngine = (function () {
     try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     master = ctx.createGain(); master.gain.value = out(); master.connect(ctx.destination);
   }
+  var noiseCache = {};
   function noiseBuffer(sec) {
+    var key = Math.round(sec * 20); if (noiseCache[key]) return noiseCache[key];
     var n = ctx.sampleRate * sec | 0, b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
     for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    return b;
+    return (noiseCache[key] = b);
   }
   function startEngine() {
     if (!ctx || running) return;
