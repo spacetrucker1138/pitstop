@@ -170,18 +170,18 @@ body.touch.menu #mob-overlay{display:none}
 (function () {
   var cuts = [0, 220, 420, 600, 760, 920, 1088], n = cuts.length - 1, left = n, imgs = [];
   for (var i = 0; i < n; i++) (function (i) {
-    var im = new Image(); im.onload = im.onerror = function () { if (--left === 0) done(); };
+    var im = new Image(); im.crossOrigin = 'anonymous'; im.onload = im.onerror = function () { if (--left === 0) done(); };
     im.src = 'images/title/bg' + i + '.webp'; imgs[i] = im;
   })(i);
   function done() {
     var c = document.createElement('canvas'); c.width = 1920; c.height = 1088;
     var x = c.getContext('2d');
     imgs.forEach(function (im, i) { if (im.naturalWidth) x.drawImage(im, 0, cuts[i]); });
-    c.toBlob(function (b) {
+    try { c.toBlob(function (b) {
       var u = URL.createObjectURL(b);
       document.getElementById('tBg').style.backgroundImage = 'url(' + u + ')';
       document.getElementById('bgImage').src = u;
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.9); } catch (e) { console.warn('title art', e); }
   }
 })();
 </script>
