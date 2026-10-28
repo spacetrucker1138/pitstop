@@ -51,15 +51,12 @@ var Render = {
     }
     Render.fog(ctx, 0, y1, width, y2 - y1, fog);
   },
+  // layers are seamless 1280px strips; keep their aspect ratio and tile them across any screen width
   background: function (ctx, background, width, height, layer, rotation, offset) {
-    rotation = rotation || 0; offset = offset || 0;
-    var imageW = layer.w / 2, imageH = layer.h;
-    var sourceX = layer.x + Math.floor(layer.w * rotation), sourceY = layer.y;
-    var sourceW = Math.min(imageW, layer.x + layer.w - sourceX), sourceH = imageH;
-    var destW = Math.floor(width * (sourceW / imageW));
-    ctx.drawImage(background, sourceX, sourceY, sourceW, sourceH, 0, offset, destW, height);
-    if (sourceW < imageW)
-      ctx.drawImage(background, layer.x, sourceY, imageW - sourceW, sourceH, destW - 1, offset, width - destW + 1, height);
+    var k = height / layer.h, tw = layer.w * k;
+    var x = -((rotation || 0) * tw) % tw; if (x > 0) x -= tw;
+    for (; x < width; x += tw - 1)
+      ctx.drawImage(background, layer.x, layer.y, layer.w, layer.h, Math.floor(x), offset || 0, Math.ceil(tw), height);
   },
   // returns the drawn rect (or null) so effects can attach to it
   sprite: function (ctx, width, height, resolution, roadWidth, sprites, sprite, scale, destX, destY, offsetX, offsetY, clipY, tint) {
