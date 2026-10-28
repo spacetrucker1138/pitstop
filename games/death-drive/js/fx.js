@@ -125,8 +125,8 @@ var FX = (function () {
   function backfire(power) {
     var r = lastPlayer; if (!r) return;
     AudioEngine.backfire && AudioEngine.backfire(power);
-    var steer = lastPlayerSprite === SPRITES.PLAYER_L || lastPlayerSprite === SPRITES.PLAYERD_L || lastPlayerSprite === SPRITES.PLAYER_BRAKE_L ? -1 :
-      lastPlayerSprite === SPRITES.PLAYER_R || lastPlayerSprite === SPRITES.PLAYERD_R || lastPlayerSprite === SPRITES.PLAYER_BRAKE_R ? 1 : 0;
+    var nm = lastPlayerSprite && lastPlayerSprite.name || '';
+    var steer = /_L2?$/.test(nm) ? -1 : /_R2?$/.test(nm) ? 1 : 0; // art-side: _L frames have the rear on the left
     var pipes = steer < 0 ? [0.2, 0.55] : steer > 0 ? [0.45, 0.8] : [0.3, 0.7];
     pipes.forEach(function (px) {
       var n = Math.round(6 + 6 * power);

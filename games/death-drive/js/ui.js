@@ -4,7 +4,7 @@
   var titleOv = $('titleOverlay'), endOv = $('endOverlay');
   var touch = DD.isTouch;
   document.body.classList.toggle('touch', touch);
-  if (touch) { $('pressText').textContent = 'TAP TO RACE'; $('controlsText').innerHTML = 'Turn the <b>wheel</b> to steer &nbsp; hold <b>GAS</b> &nbsp; tap wheel centre for <b>horn</b>'; $('againHint').textContent = ''; }
+  if (touch) { $('pressText').textContent = 'TAP TO RACE'; $('controlsText').innerHTML = 'Turn the <span class="kc wide">WHEEL</span> to steer &nbsp; hold <span class="kc wide">GAS</span> &nbsp; tap wheel centre for <b>horn</b>'; $('againHint').textContent = ''; }
 
   // ── menu state helpers ──
   function setMenu(on) { document.body.classList.toggle('menu', on); }
@@ -185,7 +185,7 @@
     wctx.beginPath(); wctx.arc(Math.sin(a) * R, -Math.cos(a) * R, BALL_R, 0, Math.PI * 2); wctx.fillStyle = 'rgba(255,255,220,0.95)'; wctx.fill();
     wctx.restore();
   }
-  function applyAngle(a) { keyLeft = a < -DEAD; keyRight = a > DEAD; }
+  function applyAngle(a) { keyLeft = a < -DEAD; keyRight = a > DEAD; DD.wheelAngle = a; }
   wc.addEventListener('touchstart', function (e) {
     e.preventDefault(); if (dragging) return;
     var t = e.changedTouches[0], p = local(t), dx = p.x - CX, dy = p.y - CY;

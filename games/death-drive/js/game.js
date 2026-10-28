@@ -66,6 +66,11 @@ function update(dt) {
   position = Util.increase(position, dt * speed, trackLength);
 
   var steerL = racing && keyLeft, steerR = racing && keyRight;
+  // steering amount for the van frames: holding a direction ramps from a gentle to a hard turn
+  var st = steerL ? -1 : steerR ? 1 : 0;
+  if (st === 0) DD.steerAmt = 0;
+  else { if (st * (DD.steerAmt || 0) < 0) DD.steerAmt = 0; DD.steerAmt = Util.limit((DD.steerAmt || 0) + st * dt * 2.2, -1, 1); }
+  if (DD.isTouch && st !== 0 && DD.wheelAngle !== undefined) DD.steerAmt = st * Math.min(1, Math.abs(DD.wheelAngle) / 1.4);
   if (steerL) { playerX -= dx; AudioEngine.playScreech(speedPercent - 0.5); }
   else if (steerR) { playerX += dx; AudioEngine.playScreech(speedPercent - 0.5); }
   playerX -= dx * speedPercent * playerSegment.curve * centrifugal;
@@ -434,7 +439,7 @@ DD.boot = function (extraImages, onReady) {
     background = imgs['background.png']; sprites = imgs['sprites.png'];
     billboardSprites = imgs['billboards.png'];
     SPRITES.BILLBOARDS.forEach(function (s) { s.sheet = billboardSprites; });
-    for (var vk in VEHICLES) VEHICLES[vk].sheet = imgs[VEHICLES[vk].file];
+    for (var vk in VEHICLES) { VEHICLES[vk].sheet = imgs[VEHICLES[vk].file]; VEHICLES[vk].name = vk; }
     onReady && onReady(imgs);
     resetRoad();
     startLoop();
