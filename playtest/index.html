@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playtest Grave Hog's Graveyard Shift &mdash; Spacetrucker's Pit Stop</title>
+  <meta name="description" content="Sign up to playtest Grave Hog's Graveyard Shift, the free early access game from The JURN. Testing runs in phases: web first, then Android and Steam later. We'll email you when your phase opens.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://thejurn.com/playtest/">
+  <meta property="og:title" content="Playtest Grave Hog's Graveyard Shift">
+  <meta property="og:description" content="Free, early access, still being worked on. Sign up to playtest: web first, then Android and Steam later.">
+  <meta property="og:image" content="https://thejurn.com/games/graveyard-shift/og-image.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💀</text></svg>">
+  <link rel="canonical" href="https://thejurn.com/playtest/">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .pt-wrap{max-width:640px;margin:0 auto;padding:90px 16px 50px}
+    .pt-wrap h1{font-family:'Creepster',cursive;font-weight:400;letter-spacing:2px;font-size:clamp(34px,8vw,56px);line-height:1.1;color:var(--neon-green);text-shadow:0 0 18px var(--neon-green),0 0 40px #9b30ff;margin:0 0 12px;text-align:center}
+    .pt-lead{text-align:center;color:#ccc;margin-bottom:18px}
+    .pt-phases{border:1px solid #9b30ff;border-radius:8px;background:rgba(155,48,255,.1);padding:14px 16px;margin:0 0 24px}
+    .pt-phases h2{font-size:1.05rem;margin:0 0 6px;color:#d9a6ff}
+    .pt-phases p{margin:0 0 6px;font-size:.95rem}
+    .pt-phases p:last-child{margin:0}
+    form#pt-form{display:block}
+    .pt-field{margin:0 0 20px;border:0;padding:0;min-width:0}
+    .pt-field label.pt-lbl,.pt-field legend{display:block;font-weight:600;color:var(--bone-white);margin-bottom:6px;font-size:1rem;padding:0}
+    .pt-opt{color:var(--text-dim);font-weight:300;font-size:.85rem}
+    .pt-help{display:block;font-size:.85rem;color:var(--text-dim);margin:0 0 6px}
+    .pt-field input[type=text],.pt-field input[type=email]{display:block;width:100%;min-height:48px;padding:10px 12px;font:inherit;font-size:1rem;color:var(--bone-white);background:#0c0c14;border:1px solid var(--glass-border);border:1px solid rgba(191,0,255,.5);border-radius:6px}
+    .pt-field input:focus-visible{outline:2px solid var(--neon-green);outline-offset:2px}
+    .pt-choice{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 12px;margin:0 0 8px;border:1px solid rgba(191,0,255,.35);border-radius:6px;background:#0c0c14;cursor:pointer;color:var(--bone-white);font-size:1rem}
+    .pt-choice input{width:24px;height:24px;flex:none;accent-color:#39ff14;cursor:pointer;margin:0}
+    .pt-choice:focus-within{outline:2px solid var(--neon-green)}
+    .pt-radios{display:flex;gap:10px;flex-wrap:wrap}
+    .pt-radios .pt-choice{flex:1 1 120px;margin:0}
+    .pt-err{display:none;color:#ff6b81;font-size:.88rem;margin-top:4px}
+    .pt-field.bad .pt-err{display:block}
+    .pt-field.bad input[type=text],.pt-field.bad input[type=email]{border-color:#ff1744}
+    .pt-btn{display:inline-block;min-height:48px;padding:12px 26px;border:2px solid var(--neon-green);background:transparent;color:var(--neon-green);font:inherit;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;border-radius:3px;cursor:pointer;box-shadow:0 0 14px var(--neon-green) inset,0 0 14px var(--neon-green)}
+    .pt-btn:hover{background:rgba(57,255,20,.12)}
+    .pt-btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .pt-btn.p{border-color:#b04cff;color:#d9a6ff;box-shadow:0 0 14px #9b30ff}
+    #pt-form .pt-btn{width:100%}
+    #pt-summary{display:none;color:#ff6b81;margin:0 0 14px}
+    #pt-done{display:none;margin-top:28px;border:1px solid var(--neon-green);border-radius:8px;padding:16px;background:rgba(57,255,20,.05)}
+    #pt-done h2{font-size:1.1rem;margin:0 0 8px;color:var(--neon-green)}
+    #pt-done p{margin:0 0 10px}
+    #pt-text{width:100%;min-height:200px;padding:10px;font:inherit;font-size:.9rem;color:var(--bone-white);background:#0c0c14;border:1px solid rgba(191,0,255,.5);border-radius:6px;margin-bottom:12px;resize:vertical}
+    #pt-done .pt-actions{display:flex;gap:10px;flex-wrap:wrap}
+    #pt-done .pt-actions .pt-btn{flex:1 1 200px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
+    #pt-copied{min-height:1.5em;color:var(--neon-green);font-size:.9rem;margin-top:8px}
+    .pt-fine{font-size:.8rem;color:var(--text-dim);margin-top:14px;text-align:center}
+    @media (max-width:768px){.pt-wrap{padding-top:80px}}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">Spacetrucker's Pit Stop</a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/graveyard-dimension/">Graveyard Dimension</a></li>
+      <li><a href="/music.html">Music</a></li>
+      <li><a href="/games.html">Games</a></li>
+      <li><a href="/wall/">The Wall</a></li>
+      <li class="nav-more"><button type="button" aria-haspopup="true" onclick="this.parentNode.classList.toggle('open');this.setAttribute('aria-expanded',this.parentNode.classList.contains('open'))">More &#9662;</button>
+        <ul class="nav-dd">
+          <li><a href="/library.html">The Library</a></li>
+          <li><a href="/about.html">About</a></li>
+          <li><a href="/publishing/">Publishing</a></li>
+          <li><a href="https://frightqueue.thejurn.com" target="_blank" rel="noopener">Fright Queue</a></li>
+          <li><a href="/ghoulbox/">Ghoul Box</a></li>
+          <li><a href="/fiends.html">Fiends</a></li>
+          <li><a href="/links.html">Links</a></li>
+        </ul>
+      </li>
+    </ul>
+    <a href="https://ko-fi.com/spacetrucker" class="nav-join" target="_blank" rel="noopener">Join the Crew</a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<main class="pt-wrap">
+  <h1>Playtest Grave Hog's Graveyard Shift</h1>
+  <p class="pt-lead">Grave Hog's Graveyard Shift is free and in early access, and it is still being worked on. Help us find what's broken before the dead do.</p>
+
+  <section class="pt-phases" aria-labelledby="pt-phases-h">
+    <h2 id="pt-phases-h">How testing works: it runs in phases</h2>
+    <p><strong>Phase 1: web.</strong> Then <strong>Android</strong> and <strong>Steam</strong> come later.</p>
+    <p>Don't expect an install right away. Signing up puts you in line, and we'll email you when your phase opens.</p>
+  </section>
+
+  <form id="pt-form" novalidate>
+    <p id="pt-summary" role="alert" tabindex="-1"></p>
+
+    <div class="pt-field" id="f-name">
+      <label class="pt-lbl" for="pt-name">Name or handle <span class="pt-opt">(required)</span></label>
+      <input type="text" id="pt-name" name="name" autocomplete="nickname" required aria-describedby="e-name">
+      <span class="pt-err" id="e-name">Please enter a name or handle.</span>
+    </div>
+
+    <div class="pt-field" id="f-email">
+      <label class="pt-lbl" for="pt-email">Email <span class="pt-opt">(required)</span></label>
+      <span class="pt-help" id="h-email">For Android, use the Gmail on your Google Play account</span>
+      <input type="email" id="pt-email" name="email" autocomplete="email" inputmode="email" required aria-describedby="h-email e-email">
+      <span class="pt-err" id="e-email">Please enter a valid email address.</span>
+    </div>
+
+    <fieldset class="pt-field" id="f-platforms" aria-describedby="e-platforms">
+      <legend>Platforms you play on <span class="pt-opt">(pick at least one)</span></legend>
+      <label class="pt-choice"><input type="checkbox" name="platforms" value="PC browser"> PC browser</label>
+      <label class="pt-choice"><input type="checkbox" name="platforms" value="Phone browser"> Phone browser</label>
+      <label class="pt-choice"><input type="checkbox" name="platforms" value="Android"> Android</label>
+      <label class="pt-choice"><input type="checkbox" name="platforms" value="Steam"> Steam</label>
+      <span class="pt-err" id="e-platforms">Please pick at least one platform.</span>
+    </fieldset>
+
+    <div class="pt-field" id="f-android">
+      <label class="pt-lbl" for="pt-android">Android phone model and version <span class="pt-opt">(optional)</span></label>
+      <input type="text" id="pt-android" name="android" autocomplete="off" placeholder="e.g. Pixel 7, Android 14">
+    </div>
+
+    <div class="pt-field" id="f-steam">
+      <label class="pt-lbl" for="pt-steam">Steam username <span class="pt-opt">(optional)</span></label>
+      <input type="text" id="pt-steam" name="steam" autocomplete="off">
+    </div>
+
+    <fieldset class="pt-field" id="f-days" aria-describedby="e-days">
+      <legend>Can you stay in a test for 14 days? <span class="pt-opt">(required)</span></legend>
+      <div class="pt-radios">
+        <label class="pt-choice"><input type="radio" name="days14" value="Yes"> Yes</label>
+        <label class="pt-choice"><input type="radio" name="days14" value="No"> No</label>
+      </div>
+      <span class="pt-err" id="e-days">Please choose yes or no.</span>
+    </fieldset>
+
+    <div class="pt-field" id="f-consent">
+      <label class="pt-choice" for="pt-consent"><input type="checkbox" id="pt-consent" name="consent" aria-describedby="e-consent"> I agree to be emailed only about testing.</label>
+      <span class="pt-err" id="e-consent">Please tick the box to agree.</span>
+    </div>
+
+    <button type="submit" class="pt-btn">Sign up to playtest</button>
+    <p class="pt-fine">Submitting opens a pre-filled email in your email app. Nothing is stored on this site.</p>
+  </form>
+
+  <section id="pt-done" aria-live="polite" aria-labelledby="pt-done-h">
+    <h2 id="pt-done-h">Almost done: send the email</h2>
+    <p>If your email app didn't open, email <a href="mailto:spacetrucker138@proton.me">spacetrucker138@proton.me</a> with these answers:</p>
+    <label class="pt-lbl" for="pt-text" style="display:block;font-weight:600;color:var(--bone-white);margin-bottom:6px">Your answers</label>
+    <textarea id="pt-text" readonly></textarea>
+    <div class="pt-actions">
+      <button type="button" class="pt-btn" id="pt-copy">Copy to clipboard</button>
+      <a class="pt-btn p" id="pt-mailto" href="#">Open email app again</a>
+    </div>
+    <p id="pt-copied" role="status"></p>
+  </section>
+</main>
+
+<footer>
+  <a href="/" class="site-footer-logo-link" aria-label="The JURN home"><img class="site-footer-logo" src="https://raw.githubusercontent.com/spacetrucker1138/pitstop/main/images/jurn-logo.png" alt="The JURN" width="450" height="187" loading="lazy"></a>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@Spacetrucker138" target="_blank" rel="noopener">YouTube</a>
+    <a href="https://discord.gg/4aWt5h52t" target="_blank" rel="noopener">Discord</a>
+    <a href="https://ko-fi.com/spacetrucker" target="_blank" rel="noopener">Ko-fi</a>
+    <a href="mailto:contact@thejurn.com">Contact</a>
+  </div>
+  <p>&copy; 2026 Spacetrucker's Pit Stop &mdash; The JURN. Amityville, NY. The dead never stop touring.</p>
+</footer>
+
+<script>
+(function(){
+  var TO='spacetrucker138@proton.me';
+  var SUBJECT='Grave%20Hog%27s%20Graveyard%20Shift%20playtester%20signup';
+  var form=document.getElementById('pt-form');
+  var $=function(id){return document.getElementById(id);};
+  function mark(id,bad){$(id).classList.toggle('bad',!!bad);}
+  function checked(name){return Array.prototype.slice.call(form.querySelectorAll('input[name="'+name+'"]:checked'));}
+  function validate(){
+    var bad=[];
+    var name=$('pt-name').value.trim(), email=$('pt-email').value.trim();
+    var okName=name.length>0;
+    var okEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    var okPlat=checked('platforms').length>0;
+    var okDays=checked('days14').length>0;
+    var okConsent=$('pt-consent').checked;
+    mark('f-name',!okName); mark('f-email',!okEmail); mark('f-platforms',!okPlat);
+    mark('f-days',!okDays); mark('f-consent',!okConsent);
+    $('pt-name').setAttribute('aria-invalid',!okName);
+    $('pt-email').setAttribute('aria-invalid',!okEmail);
+    if(!okName)bad.push('pt-name'); if(!okEmail)bad.push('pt-email');
+    if(!okPlat)bad.push('f-platforms'); if(!okDays)bad.push('f-days'); if(!okConsent)bad.push('pt-consent');
+    return bad;
+  }
+  function compose(){
+    var plats=checked('platforms').map(function(i){return i.value;}).join(', ');
+    var v=function(id){return $(id).value.trim()||'(not given)';};
+    return [
+      "Grave Hog's Graveyard Shift playtester signup","",
+      'Name or handle: '+$('pt-name').value.trim(),
+      'Email: '+$('pt-email').value.trim(),
+      'Platforms: '+plats,
+      'Android phone model and version: '+v('pt-android'),
+      'Steam username: '+v('pt-steam'),
+      'Can stay in a test for 14 days: '+checked('days14')[0].value,
+      'Agreed to be emailed only about testing: Yes'
+    ].join('\r\n');
+  }
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var bad=validate(), sum=$('pt-summary');
+    if(bad.length){
+      sum.textContent='Please fix the highlighted fields and try again.';
+      sum.style.display='block';
+      var first=$(bad[0]); var inp=first.querySelector?(first.querySelector('input')||first):first;
+      (inp.focus?inp:first).focus();
+      return;
+    }
+    sum.style.display='none';
+    var text=compose();
+    var href='mailto:'+TO+'?subject='+SUBJECT+'&body='+encodeURIComponent(text);
+    $('pt-text').value=text;
+    var link=$('pt-mailto'); link.setAttribute('href',href);
+    $('pt-done').style.display='block';
+    $('pt-copied').textContent='';
+    $('pt-done').scrollIntoView({behavior:'smooth',block:'start'});
+    var a=document.createElement('a'); a.href=href; a.style.display='none';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+  $('pt-copy').addEventListener('click',function(){
+    var t=$('pt-text'), msg=$('pt-copied');
+    function done(ok){msg.textContent=ok?'Copied. Paste it into an email to '+TO+'.':'Copy failed. Select the text above and copy it manually.';}
+    function legacy(){try{t.focus();t.select();t.setSelectionRange(0,99999);done(document.execCommand('copy'));}catch(e){done(false);}}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(function(){done(true);},legacy);}else{legacy();}
+  });
+})();
+</script>
+</body>
+</html>
