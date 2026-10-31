@@ -22,7 +22,29 @@
     clamp = (v, a, b) => Math.max(a, Math.min(b, v)),
     dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y),
     pick = (a) => a[Math.floor(Math.random() * a.length)];
-  const GAME_VERSION = "v0.9.2 (Early Access)"; // shown on the title screen and the pause menu
+  // ---- TEST 2/3: damage scaling (tune these, Bobby) ----
+  // Regular (non-boss) enemy damage to the player stays 1.0x until DMG_SCALE_START_HOUR (1 AM), then ramps linearly to ENEMY_DMG_SCALE_MAX at 6 AM.
+  // Resets every stage/run (uses state.t / SHIFT_SECONDS). Bosses are NOT scaled. Set to 1.0 to turn the scaling off.
+  const ENEMY_DMG_SCALE_MAX = 2.0;
+  const DMG_SCALE_START_HOUR = 1; // TEST 3: in-game hour (1 = 1 AM) where the ramp begins; "A foul wind approaches..." shows at this moment
+  const FOUL_WIND_TEXT = "A foul wind approaches...";
+  // TEST 3: Grave Digger death drop = DIGGER_XP_MULT x a normal mob's XP gem (NORMAL_MOB_XP = the common Shambler/Bonehead gem) + one Ghost Vacuum pickup (no chest: chests already respawn on any boss death).
+  const NORMAL_MOB_XP = 3,
+    DIGGER_XP_MULT = 2;
+  // TEST 3 (owner request, hidden/unannounced): late-game XP help. No UI, toast, perk text or tip mentions any of this.
+  // Passive bonus added to the XP gem value of every regular (non-boss) kill: level 13-15 => +1, level 16+ => +2.
+  const LATE_XP_BONUS_LV1 = 13, // first player level that gets the +1 bonus
+    LATE_XP_BONUS_LV2 = 16, // first player level that gets the +2 bonus
+    LATE_XP_BONUS_1 = 1,
+    LATE_XP_BONUS_2 = 2;
+  // From player level 15 on, a Ghost kill has this chance to drop a YELLOW gem instead of its normal gem, worth GOLD_GEM_XP base XP (8, plus the hidden bonus above).
+  const GOLD_GEM_MIN_LEVEL = 15,
+    GOLD_GEM_CHANCE = 0.25,
+    GOLD_GEM_XP = 8,
+    GOLD_GEM_COLOR = "#ffd23f";
+  // Grave Digger burst softening (slam + thrown bones + contact). 1.0 = original damage.
+  const GRAVE_DIGGER_DMG_MULT = 0.8;
+  const GAME_VERSION = "v0.12.0"; // shown on the title screen and the pause menu
   const saveKey = "graveyard-shift-save-v1";
   const freshSave = () => ({
     wages: 0,
@@ -35,6 +57,8 @@
     stage2Unlocked: false, // v10: set the first time Grave Hog reaches the Mega Mart (Stage 2 can then be started from the title)
     megaMartClears: 0,
     dex: { w: {}, e: {}, b: {} }, // compendium: weapons owned, monster kills, boss kills (0 = met, not beaten yet)
+    chars: {}, // v18: unlocked playable characters (Grave Hog + his new look are always available)
+    char: "hog", // v18: last picked character
   });
   let save = freshSave();
   try {
@@ -55,6 +79,68 @@
       document.getElementById("save-status").textContent = "SAVE UNAVAILABLE";
       console.warn("Local save failed", e);
     }
+  }
+
+  // =====================================================================================
+  //  v18: PLAYABLE CHARACTERS + UNLOCKS
+  //  Every character except Grave Hog uses the user's 4x8 sheet layout (see IMAGE_FILES). Each one starts with a
+  //  signature weapon in slot 1 instead of the shovel. Unlock requirements are always shown on the select screen.
+  // =====================================================================================
+  const CHARS = [
+    { id: "hog", name: "Grave Hog", role: "Night groundskeeper. Union card, no dental.", start: "shovel", sheet: "hog", portrait: "hud_portrait", classic: true },
+    { id: "hog2", name: "Grave Hog: New Look", role: "Same hog, fresh coat of grime.", start: "shovel" },
+    { id: "vox", name: "Vox", role: "Skeleton band frontman.", start: "deadanomicon", band: true, goal: "Opening Act", hint: "Clear Stage 1 (survive the cemetery till 6 AM)." },
+    { id: "trashqueen", name: "Trash Queen", role: "Royalty of the dumpster.", start: "witchjar", goal: "Clean-Up on Aisle 9", hint: "Clear Stage 2 (survive the Mega Mart till 6 AM)." },
+    { id: "dieanna", name: "Dieanna Graves", role: "Fresh out of county lockup.", start: "chains", goal: "Get Babe Out of Jail", hint: "Pay her bail in the Maintenance Office (5,000 wages)." },
+    { id: "riff", name: "Riff", role: "Skeleton band guitarist.", start: "flyswatter", band: true, goal: "Shred It", hint: "Get any weapon to level 5 in a single shift." },
+    { id: "taz", name: "Taz", role: "Skeleton band bassist.", start: "whistle", band: true, goal: "Keep the Beat", hint: "Survive 10 minutes in Limitless Mode." },
+    { id: "bonecrush", name: "Bonecrush", role: "Skeleton band drummer.", start: "bell", band: true, goal: "Greatest Hits", hint: "Use every weapon in the game at least once (the Compendium tracks it)." },
+    { id: "v1sion", name: "V1sion Goon", role: "Can't read. Can't upgrade. Can puddle.", start: "puddle", band: true, goal: "Clocked Out Early", hint: "Die in under 60 seconds on any stage." },
+  ];
+  // v2 preview: hog2 matches Hog; Vox (1.2) is the reference; Riff/Taz/Bonecrush scaled so their EYE line matches Vox's at idle
+  const CHAR_SCALE = { hog2: 0.94, vox: 1.2, trashqueen: 1.2, dieanna: 1.1, riff: 1.47, taz: 1.43, bonecrush: 1.58, v1sion: 1.25 };
+  for (const c of CHARS) {
+    c.sheet = c.sheet || "ch_" + c.id;
+    c.portrait = c.portrait || "pt_" + c.id;
+    // PATCH (scale preview): per-character render scale so every character stands taller than Grave Hog.
+    // Hog is drawn at 1.00 (64px cell, ~58px of figure). Aspect kept; band/V1sion art stays 0.815x narrower as before.
+    const S = CHAR_SCALE[c.id] || 1;
+    c.sx = S * (c.band ? 0.815 : 1);
+    c.sy = S;
+  }
+  const CHAR_BY = Object.fromEntries(CHARS.map((c) => [c.id, c]));
+  // per-frame [x, hat brim y, feet y] in the 64px cell, measured from the sheets (so the Graveyard Sprinkler hat rides along)
+  const CHAR_ANCHORS = {"vox":[[[32,14,61],[32,13,61],[32,15,61],[32,14,61]],[[30,12,62],[30,11,61],[30,11,62],[30,11,61]],[[32,9,62],[32,9,62],[32,9,62],[32,9,62]],[[32,9,62],[32,8,62],[32,8,62],[32,8,62]],[[24,9,61],[32,23,61],[26,10,61],[38,21,61]],[[36,11,61],[35,16,61],[35,16,61],[40,29,61]],[[46,14,62],[41,25,60],[50,42,61],[24,49,61]],[[16,8,61],[22,11,61],[26,12,61],[28,15,61]]],"riff":[[[35,14,61],[34,14,61],[34,14,61],[34,14,61]],[[33,12,63],[32,11,61],[32,11,63],[32,10,61]],[[32,8,62],[32,8,62],[32,8,62],[32,9,62]],[[29,9,62],[28,9,62],[28,9,62],[28,9,62]],[[32,12,61],[27,10,61],[36,19,61],[32,9,61]],[[32,14,61],[27,14,61],[28,16,61],[32,16,61]],[[22,23,61],[42,29,61],[44,41,61],[46,48,61]],[[37,10,61],[28,9,61],[26,13,61],[36,12,61]]],"taz":[[[35,12,61],[35,12,61],[34,13,61],[35,12,61]],[[34,10,62],[34,10,62],[34,10,62],[34,10,62]],[[33,8,63],[33,7,61],[33,8,63],[33,7,61]],[[28,8,62],[28,8,62],[28,8,62],[28,8,62]],[[36,8,61],[28,10,61],[34,17,61],[32,27,61]],[[30,12,61],[32,12,61],[25,18,61],[27,16,61]],[[23,23,61],[43,30,61],[46,39,61],[48,44,61]],[[32,9,61],[28,9,61],[32,9,61],[33,11,61]]],"bonecrush":[[[32,13,61],[32,13,61],[31,13,61],[32,14,61]],[[32,12,62],[32,11,62],[32,11,62],[32,11,62]],[[32,10,63],[32,8,61],[32,10,63],[32,8,61]],[[33,9,62],[33,8,62],[32,8,63],[32,8,61]],[[35,8,61],[39,14,61],[36,16,61],[32,10,61]],[[32,12,61],[30,15,61],[31,18,61],[34,27,61]],[[24,22,61],[39,37,61],[43,42,61],[39,48,61]],[[20,11,61],[32,11,61],[30,15,61],[32,14,61]]],"trashqueen":[[[32,13,61],[32,13,61],[32,13,61],[32,13,61]],[[32,8,63],[32,7,61],[32,8,63],[32,7,61]],[[32,9,62],[32,7,62],[32,7,62],[32,7,62]],[[28,9,61],[28,9,62],[30,10,62],[28,9,61]],[[31,14,61],[30,14,61],[32,13,61],[28,13,61]],[[29,9,61],[31,13,61],[34,17,61],[30,16,61]],[[23,23,61],[22,34,61],[28,41,61],[26,50,61]],[[25,7,61],[32,7,61],[33,8,61],[40,9,61]]],"dieanna":[[[31,8,61],[30,8,61],[30,9,61],[31,9,61]],[[32,7,62],[30,8,62],[32,7,62],[32,8,62]],[[30,9,62],[30,8,62],[30,8,62],[30,7,62]],[[29,9,62],[29,8,63],[29,9,63],[28,8,62]],[[31,8,61],[30,9,61],[32,9,61],[31,9,61]],[[30,9,61],[30,9,61],[30,12,61],[30,11,61]],[[24,14,61],[26,24,61],[20,43,61],[26,52,62]],[[30,7,61],[31,8,61],[30,8,61],[30,8,61]]],"v1sion":[[[32,17,61],[32,16,61],[32,16,61],[32,18,61]],[[32,10,62],[32,10,62],[32,10,62],[32,11,62]],[[32,7,62],[32,7,62],[32,7,62],[32,7,62]],[[30,12,62],[30,11,62],[30,12,62],[30,11,62]],[[32,18,60],[33,21,60],[34,28,61],[35,28,61]],[[28,10,61],[30,10,61],[28,12,61],[39,12,61]],[[38,20,61],[44,26,61],[44,43,61],[36,49,61]],[[31,13,61],[30,13,61],[34,17,61],[37,27,61]]],"hog2":[[[32,10,61],[32,10,61],[32,10,61],[31,10,61]],[[31,9,63],[32,8,61],[32,9,63],[32,8,61]],[[32,9,62],[32,10,62],[32,10,62],[32,9,62]],[[30,7,62],[29,7,63],[30,7,63],[30,7,62]],[[32,11,61],[38,9,61],[40,16,61],[34,9,61]],[[32,10,60],[30,8,61],[34,13,61],[34,8,61]],[[32,29,61],[32,36,60],[34,42,61],[34,43,61]],[[26,9,61],[36,9,61],[34,9,61],[33,9,61]]]};
+  const BAIL_COST = 5000;
+  const TEST_START_EVOLVED = false; // v0.11 test build: start with your signature weapon LV 5 + evolved. Set to false for release.
+  const TEST_ALL_CHARS = false; // v0.10.1-dev test build: every character selectable. Set to false for release.
+  const TEST_STAGE2_SKIP = false; // TEST 3 build ONLY: shows a "SKIP TO STAGE 2" button on the title screen. MUST be false for release.
+  const charUnlocked = (id) => TEST_ALL_CHARS || !CHAR_BY[id]?.goal || !!save.chars?.[id];
+  const curChar = () => CHAR_BY[state?.char] || CHAR_BY[save.char] || CHARS[0];
+  const isV1 = () => state?.char === "v1sion";
+  function unlockChar(id, quiet = false) {
+    const c = CHAR_BY[id];
+    if (!c || charUnlocked(id)) return false;
+    save.chars = save.chars || {};
+    save.chars[id] = true;
+    saveGame();
+    if (quiet) return true;
+    if (state) {
+      (state.newUnlocks = state.newUnlocks || []).push(id);
+      if (mode === "playing" || mode === "levelup" || mode === "loot") ((state.eventText = `UNLOCKED: ${c.name.toUpperCase()}`), (state.eventUntil = state.t + 4));
+    }
+    toastMsg(`NEW CHARACTER UNLOCKED: ${c.name} ("${c.goal}")! Pick them at START SHIFT.`);
+    sfx("level_up", 1.2, () => audioBeep(990, 0.25, "triangle", 0.05));
+    return true;
+  }
+  // older saves: hand over anything already earned before characters existed
+  function checkSaveUnlocks() {
+    const got = [];
+    const u = (id, ok) => ok && unlockChar(id, true) && got.push(CHAR_BY[id].name);
+    u("vox", save.stage2Unlocked && save.shifts > 0);
+    u("trashqueen", (save.megaMartClears || 0) > 0);
+    u("taz", Object.values(save.bestLimitless || {}).some((v) => v >= 600));
+    if (got.length) setTimeout(() => toastMsg(`Your old timecards unlocked: ${got.join(", ")}. Pick them at START SHIFT.`), 1500);
   }
   // Current visible world size in buffer pixels (changes with the mouse-wheel zoom; default = BASE_VIEW_*).
   let VIEW_W = BASE_VIEW_W,
@@ -203,12 +289,16 @@
     dig: "assets/fx/chest-dig.webp", // loot machine: Grave Hog digging through the chest, 22 frames of 220x170
     hat: "assets/fx/sprinkler-hat.png", // Graveyard Sprinkler hat worn by Hog: 2 frames of 31x30 (spinning pipe head)
     hatIcon: "assets/fx/sprinkler-hat-icon.png", // hat frame 1 as the weapon icon (64x64)
-    chest: "assets/fx/chest.png", // treasure chest, 4 frames of 44x49 (green ghost-glow loop)
+    chest: "assets/fx/chest.png",
+    evofx: "assets/fx/evo-fx.png", // v0.11 evolutions: notes, bass note, chain link, static sparks, heal sparkles, cauldron, open grave // treasure chest, 4 frames of 44x49 (green ghost-glow loop)
     hud_clockmap: "assets/hud/clockmap.png", // clock + minimap device (176x272); window at CLOCKMAP_WIN
     hud_clockmap_broken: "assets/hud/clockmap_broken.png", // same device after the 6 AM clock explosion
     fire: "assets/fx/molotov-fire.png", // Molotov fire, 4 x 112x72
     flies: "assets/fx/witch-flies.png", // Witch's Jar fly swarm, 4 x 96x80
     trashQueen: "assets/props/trash-queen.png", // Trash Queen cameo: idle + 3 run frames, 4 x 84x80 (faces right)
+    // v18: unlockable JURN characters (the user's 4x8 sheets, 64px: idle / walk down / walk up / walk side (faces left) /
+    // attack / hurt / death / victory). Edge bleed from neighbouring rows was cleaned off. Plus their HUD portraits.
+    ...Object.fromEntries(["vox", "riff", "taz", "bonecrush", "trashqueen", "dieanna", "v1sion", "hog2"].flatMap((id) => [["ch_" + id, `assets/chars/${id}.png`], ["pt_" + id, `assets/chars/portrait-${id}.png`]])),
   };
   // v10: Stage 2 floor = 16 x 1024px chunks of the remade Mega Mart map, loaded in the background after the main art.
   const megaFloor = [];
@@ -398,6 +488,7 @@
     mob_death: ["boss_death_monster", 0.16, 0.12, 3, 1.7], // regular monster deaths: short, high, quiet
     chains: ["shovel_hit", 0.32, 0.3, 2, 0.7], // Ghost Chains: low clank
     whistle: ["laser_zap", 0.35, 0.5, 1, 0.55], // Death Whistle shockwave
+    laser_charge: ["laser_zap", 0.2, 0.5, 2, 0.45], // v0.12.0: security drone laser windup cue (the zap, low and quiet)
     bell_toll: ["holywater_spell", 0.45, 0.5, 1, 0.5], // Funeral Bell: the spell chime an octave down
     vacuum: ["gas_hiss", 0.5, 0.5, 1, 0.75], // Ghost Vacuum suction
     ui_click: ["pickup", 0.22, 0.05, 2, 0.8], // menu buttons / level-up choice / start shift
@@ -521,18 +612,120 @@
     const c = panel.firstElementChild;
     c.className = "card title-card";
     addButtons(c, [
-      ["START SHIFT", () => startRun(1), "primary"],
+      ["START SHIFT", () => showCharSelect(), "primary"],
       ["MAINTENANCE OFFICE", () => showOffice("title")],
       ["OPTIONS", () => showOptions("title")],
       ["COMPENDIUM", () => showCompendium("w")],
       ["CONTROLS", showControls],
     ]);
+    if (TEST_STAGE2_SKIP) {
+      // TEST-ONLY (TEST_STAGE2_SKIP): starts the Stage 2 (Mega Mart) run straight away, any number of times. Does not touch the save.
+      const sk = btn("TEST ONLY: SKIP TO STAGE 2", () => startRun(2, true));
+      sk.id = "test-stage2-skip";
+      sk.style.cssText = "border-color:#ff9f1a;color:#ffc866;background:#2a1604;font-size:12px;padding:4px 10px";
+      addButtons(c, []);
+      c.lastElementChild.style.marginTop = "4px";
+      c.lastElementChild.appendChild(sk);
+      const vt = panel.querySelector(".version-tag");
+      if (vt) vt.style.pointerEvents = "none"; // never let the version sticker eat taps meant for the test button
+    }
     if (save.shifts > 0) {
       const p = document.createElement("p");
       p.className = "muted";
       p.textContent = `Timecards filed: ${save.shifts} · Best kills: ${save.bestKills} · Best level: ${save.bestLevel}`;
       c.appendChild(p);
     }
+  }
+
+  // ---- v18: character select (START SHIFT -> pick who clocks in) ----
+  let selRaf = 0;
+  function drawCharFrame(c, ch, row, frame, locked) {
+    const x = c.getContext("2d"),
+      { img: im, U } = charSheet(ch);
+    // crisp-C: backing store = on-screen pixels (CSS size x devicePixelRatio) so the sprite is drawn once, from the
+    // sheet to final size, and the browser never rescales the canvas.
+    const dpr = window.devicePixelRatio || 1,
+      bw = Math.max(1, Math.round((c.clientWidth || 96) * dpr)),
+      bh = Math.max(1, Math.round((c.clientHeight || 144) * dpr));
+    if (c.width !== bw || c.height !== bh) {
+      c.width = bw;
+      c.height = bh;
+    }
+    const k = bw / 96;
+    x.clearRect(0, 0, c.width, c.height);
+    x.imageSmoothingEnabled = U > 1;
+    if (U > 1) x.imageSmoothingQuality = "high";
+    if (!ready(im)) return;
+    const dw = Math.round(64 * ch.sx * 1.5 * k),
+      dh = Math.round(64 * ch.sy * 1.5 * k),
+      dx = Math.round((c.width - dw) / 2),
+      dy = c.height - dh;
+    x.drawImage(im, frame * 64 * U, row * 64 * U, 64 * U, 64 * U, dx, dy, dw, dh);
+    if (locked) {
+      x.globalCompositeOperation = "source-atop";
+      x.fillStyle = "#07060a";
+      x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = "source-over";
+    }
+  }
+  function showCharSelect() {
+    if (!assetsReady) return toastMsg("Still loading the cemetery art…");
+    mode = "charselect";
+    if (!charUnlocked(save.char) || !CHAR_BY[save.char]) save.char = "hog";
+    let pick = save.char;
+    const n = CHARS.filter((c) => charUnlocked(c.id)).length;
+    panelShow(
+      `<div class="eyebrow">WHO'S WORKING TONIGHT?</div><h2>CLOCK IN</h2><p class="muted">${n} of ${CHARS.length} on the roster. Locked characters show what it takes to hire them.</p><div class="char-grid">${CHARS.map((ch) => {
+        const ok = charUnlocked(ch.id),
+          wpn = ch.start === "puddle" ? "Yellow Puddle (no upgrades)" : weaponName(ch.start);
+        return `<button class="char-card${ok ? "" : " locked"}${ch.id === pick ? " picked" : ""}" data-char="${ch.id}"${ok ? "" : ' aria-disabled="true"'}><canvas width="96" height="144"></canvas><b>${ok ? ch.name : "???"}</b>${
+          ok ? `<span class="char-role">${ch.role}</span><span class="char-wpn">STARTS WITH: ${wpn}</span>` : `<span class="char-goal">🔒 ${ch.goal}</span><span class="char-hint">${ch.hint}</span>`
+        }</button>`;
+      }).join("")}</div>`,
+    );
+    const card = panel.firstElementChild;
+    card.classList.add("char-select");
+    const cards = [...card.querySelectorAll(".char-card")];
+    const choose = (id) => {
+      pick = id;
+      cards.forEach((b) => b.classList.toggle("picked", b.dataset.char === id));
+    };
+    cards.forEach((b) => {
+      b.onclick = () => {
+        if (!charUnlocked(b.dataset.char)) {
+          toastMsg(`Locked. ${CHAR_BY[b.dataset.char].hint}`);
+          return;
+        }
+        if (pick === b.dataset.char) return go(); // second click / A on the picked card clocks in
+        choose(b.dataset.char);
+        sfx("ui_click", 1, () => audioBeep(520, 0.05, "square", 0.02));
+      };
+    });
+    const go = () => {
+      cancelAnimationFrame(selRaf);
+      save.char = pick;
+      saveGame();
+      startRun(1);
+    };
+    addButtons(card, [
+      ["CLOCK IN ▶", go, "primary"],
+      ["◀ BACK", () => (cancelAnimationFrame(selRaf), showTitle())],
+    ]);
+    const t0 = performance.now();
+    const anim = (now) => {
+      if (mode !== "charselect") return;
+      const k = Math.floor((now - t0) / 260);
+      cards.forEach((b) => {
+        const ch = CHAR_BY[b.dataset.char],
+          ok = charUnlocked(ch.id),
+          on = ok && ch.id === pick;
+        // the picked character cheers (victory row), everyone else breathes (idle)
+        drawCharFrame(b.firstElementChild, ch, on ? (ch.classic ? 10 : 7) : 0, ok ? k % 4 : 0, !ok);
+      });
+      selRaf = requestAnimationFrame(anim);
+    };
+    selRaf = requestAnimationFrame(anim);
+    card.querySelector(`[data-char="${pick}"]`)?.focus({ preventScroll: true });
   }
   // ---- v10: outro slideshows (the user's panels) and the ending screen ----
   let slides = null;
@@ -651,7 +844,7 @@
     mode = "compendium";
     const dx = dexBook(),
       lists = {
-        w: ALL_WEAPONS().map((id) => ({ id, known: !!dx.w[id], name: weaponName(id), line: UPGRADES.find((u) => u.id === id)?.desc || "", stat: "" })),
+        w: ALL_WEAPONS().map((id) => ({ id, known: !!dx.w[id], name: id === "shovel" ? "Shovel" : UPGRADES.find((u) => u.id === id)?.title || id, line: (UPGRADES.find((u) => u.id === id)?.desc || "") + evoDexLine(id), stat: "" })),
         e: [...Object.keys(TYPES), ...Object.keys(TYPES2)].map((id) => ({ id, known: dx.e[id] !== undefined, name: (TYPES[id] || TYPES2[id]).name, line: DEX_LORE[id] || "", stat: `Killed: ${dx.e[id] || 0}`, stage: TYPES[id] ? 1 : 2 })),
         b: Object.keys(BOSS).map((id) => ({ id, known: dx.b[id] !== undefined, name: BOSS[id].name, line: `“${BOSS[id].taunt}”`, stat: dx.b[id] ? `Defeated: ${dx.b[id]}` : "Not defeated yet", stage: BOSS[id].s2 ? 2 : 1 })),
       },
@@ -722,8 +915,22 @@
       `<div class="eyebrow">CEMETERY MAINTENANCE OFFICE</div><h2>PAYDAY, SORT OF</h2><p class="status-line">CEMETERY WAGES: ${save.wages}</p><p>Permanent perks survive a bad shift.${midShift ? " Perks bought now kick in from your next shift." : ""} Changed your mind? Reset the time card for a full refund.</p><div class="shop-grid">${PERK_ITEMS.map(([id, name, desc]) => {
         const maxed = PERK_MAX[id] && p[id] >= PERK_MAX[id];
         return `<div class="shop-item"><b>${name}</b><p>${desc}<br>Level ${p[id]}${PERK_MAX[id] ? `/${PERK_MAX[id]}` : ""} · ${maxed ? "MAXED" : `Next cost ${perkCostFor(id, p[id])}`}</p><button class="game-btn" data-buy="${id}"${maxed ? " disabled" : ""}>${maxed ? "MAXED" : "BUY"}</button></div>`;
-      }).join("")}</div>`,
+      }).join("")}</div>${
+        // v18: Dieanna Graves' bail (a one-time unlock, not a perk: Reset Time Card doesn't refund it)
+        charUnlocked("dieanna")
+          ? `<div class="shop-item bail done"><b>BAIL BONDS: PAID</b><p>Dieanna Graves is out and on the roster. She says thanks. (She doesn't.)</p></div>`
+          : `<div class="shop-item bail"><b>BAIL BONDS: GET BABE OUT OF JAIL</b><p>Dieanna Graves is in county lockup again. Bail is set at ${BAIL_COST.toLocaleString()} wages. Pay it and she joins the roster.</p><button class="game-btn primary" data-bail>PAY BAIL · ${BAIL_COST.toLocaleString()}</button></div>`
+      }`,
     );
+    const bail = panel.querySelector("[data-bail]");
+    if (bail)
+      bail.onclick = () => {
+        if (save.wages < BAIL_COST) return toastMsg(`Bail is ${BAIL_COST.toLocaleString()} wages. You have ${save.wages}. Keep working.`);
+        save.wages -= BAIL_COST;
+        saveGame();
+        unlockChar("dieanna");
+        showOffice();
+      };
     for (const b of panel.querySelectorAll("[data-buy]"))
       b.onclick = () => {
         const id = b.dataset.buy,
@@ -845,7 +1052,7 @@
       toastMsg(document.body.classList.contains("touch") ? "TIP: pinch or tap ZOOM to see more of the map." : "TIP: mouse wheel (or Z) zooms out to see more of the map.");
     }, 7000);
   }
-  function startRun(stageArg) {
+  function startRun(stageArg, testSkip) {
     zoomHint();
     const stage = stageArg === 2 ? 2 : 1; // also used directly as a click handler (event arg -> Stage 1)
     if (!assetsReady) {
@@ -855,10 +1062,10 @@
     if (stage === 2 && !megaFloorReady) {
       mode = "loading";
       panelShow(`<div class="eyebrow">STAGE 2</div><h2>MEGA MART</h2><p class="status-line">Unlocking the doors…</p>`);
-      loadMegaMartFloor().then(() => startRun(2));
+      loadMegaMartFloor().then(() => startRun(2, testSkip));
       return;
     }
-    if (stage === 2 && !save.stage2Unlocked) {
+    if (stage === 2 && !save.stage2Unlocked && !(TEST_STAGE2_SKIP && testSkip === true)) { // the test skip starts Stage 2 without writing the unlock to the save
       save.stage2Unlocked = true;
       saveGame();
     }
@@ -941,9 +1148,28 @@
       bossFireHits: { widow: 0, king: 0 },
     };
     initWeapons2(state);
+    // v18: the picked character clocks in with their signature weapon in slot 1 (instead of the shovel)
+    state.char = charUnlocked(save.char) && CHAR_BY[save.char] ? save.char : "hog";
+    {
+      const st = curChar().start;
+      if (st !== "shovel") {
+        state.weapons.shovel.level = 0;
+        state.slots = [];
+        if (st !== "puddle") state.weapons[st].level = 1;
+        state.lastUpgrade = st;
+      }
+      // v0.11 test build: everyone clocks in with their signature weapon already at LV 5 and EVOLVED
+      if (TEST_START_EVOLVED && EVO[st]) {
+        const up = UPGRADES.find((u) => u.id === st);
+        for (let i = 0; i < 12 && state.weapons[st].level < WMAX_BASE; i++) up.apply(state);
+        state.weapons[st].evo = true;
+        state.lastUpgrade = st;
+      }
+      if (st === "puddle") ((state.puddles = []), (state.puddleCd = 0.6));
+    }
     if (stage === 2) makeStage2Rewards();
     computeFlowField();
-    state.cameo = stage === 1 ? placeCameo() : null;
+    state.cameo = stage === 1 && state.char !== "trashqueen" ? placeCameo() : null; // she doesn't cameo in her own shift
     mode = "playing";
     panelHide();
     toastMsg(
@@ -1468,44 +1694,100 @@
   // v8: a collected treasure comes back at a NEW random spot: reachable, open ground (no solid cell within 3
   // cells), at least 7 tiles from Grave Hog and 12 tiles from every other treasure. Same object -> never a duplicate.
   const TREASURE_MIN_HOG = 7,
-    TREASURE_MIN_APART = 12;
-  function treasureSpotOk(x, y, others) {
+    TREASURE_MIN_APART = 12,
+    TREASURE_HARD_APART = 4, // tiles: no two chests are ever closer than this (chest art is ~1.4 tiles wide)
+    TREASURE_MAX_CHESTS = 150; // runaway safety cap on chests lying around at once (each boss death adds a full set)
+  // Placement tiers, strictest first. The spot must always be reachable, walkable open ground, clear of props, away from Hog
+  // and at least TREASURE_HARD_APART tiles from every other chest; only the comfort margins relax when the map is crowded.
+  const TREASURE_TIERS = [
+    { solidR: 3, hog: 7, apart: 12 },
+    { solidR: 3, hog: 7, apart: 8 },
+    { solidR: 2, hog: 6, apart: 6 },
+    { solidR: 1, hog: 5, apart: 4 },
+    { solidR: 1, hog: 3, apart: TREASURE_HARD_APART },
+  ];
+  function treasureSpotOk(x, y, others, opt = TREASURE_TIERS[0]) {
     const cx = Math.floor(x / CELL),
       cy = Math.floor(y / CELL);
     if (cx < 4 || cy < 4 || cx >= CW - 4 || cy >= CHH - 4) return false;
     if (!WORLD.reach[cy * CW + cx] || WORLD.nav[cy * CW + cx]) return false;
-    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (isSolidCell(cx + dx, cy + dy)) return false;
+    const sr = opt.solidR;
+    for (let dy = -sr; dy <= sr; dy++) for (let dx = -sr; dx <= sr; dx++) if (isSolidCell(cx + dx, cy + dy)) return false;
     // keep it out from behind tall scenery (sprites drawn above their footprint)
     for (const pr of WORLD.props) if (pr.foot && x > pr.foot[0] - 24 && x < pr.foot[2] + 24 && y > pr.foot[1] - 70 && y < pr.foot[3] + 16) return false;
     const p = state.player;
-    if (Math.hypot(x - p.x, y - p.y) < TREASURE_MIN_HOG * TILE) return false;
-    for (const o of others) if (Math.hypot(x - o.x, y - o.y) < TREASURE_MIN_APART * TILE) return false;
+    if (Math.hypot(x - p.x, y - p.y) < opt.hog * TILE) return false;
+    const apart = Math.max(opt.apart, TREASURE_HARD_APART) * TILE;
+    for (const o of others) if (Math.hypot(x - o.x, y - o.y) < apart) return false;
     return true;
   }
+  // Finds a free spot for chest rw (random tries per tier, then a full scan of every walkable cell at the loosest tier).
+  // Returns false (and leaves rw untouched) only if the map truly has no legal spot: a chest is never stacked on another.
   function relocateTreasure(rw) {
-    const others = state.rewards.filter((o) => o !== rw);
-    for (let i = 0; i < 600; i++) {
-      const x = (Math.floor(Math.random() * MW) + 0.5) * TILE,
-        y = (Math.floor(Math.random() * MH) + 0.5) * TILE;
-      if (treasureSpotOk(x, y, others)) {
+    const others = state.rewards.filter((o) => o !== rw && !o.taken);
+    for (const opt of TREASURE_TIERS) {
+      for (let i = 0; i < 400; i++) {
+        const x = (Math.floor(Math.random() * MW) + 0.5) * TILE,
+          y = (Math.floor(Math.random() * MH) + 0.5) * TILE;
+        if (treasureSpotOk(x, y, others, opt)) {
+          rw.x = x;
+          rw.y = y;
+          if (opt !== TREASURE_TIERS[0]) state.treasureRelaxed = (state.treasureRelaxed || 0) + 1;
+          return true;
+        }
+      }
+    }
+    // last resort: scan every tile centre in a random order at the loosest margins
+    const last = TREASURE_TIERS[TREASURE_TIERS.length - 1],
+      order = [];
+    for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) order.push([tx, ty]);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    for (const [tx, ty] of order) {
+      const x = (tx + 0.5) * TILE,
+        y = (ty + 0.5) * TILE;
+      if (treasureSpotOk(x, y, others, last)) {
         rw.x = x;
         rw.y = y;
+        state.treasureRelaxed = (state.treasureRelaxed || 0) + 1;
+        state.treasureScanned = (state.treasureScanned || 0) + 1;
         return true;
       }
     }
-    return false; // keep the old spot (never observed in testing; QA counts it)
+    return false;
   }
+  // Called once for EVERY boss death (no cooldown / "already restoring" flag, so simultaneous deaths each get their turn).
+  // A boss death spawns a full set of chests (one per starting chest slot): collected chests are put back first, and any
+  // shortfall is made up with brand-new chests, so a second boss dying in the same frame still gets its own set.
+  // Every chest goes through relocateTreasure, so spots are walkable, clear of walls/props/Hog and never overlap.
+  // Returns how many chests appeared.
   function restoreTreasures() {
+    const base = state.rewards.filter((rw) => !rw.extra),
+      reuse = state.rewards.filter((rw) => rw.taken);
     let n = 0;
-    for (const rw of state.rewards)
-      if (rw.taken) {
-        if (!relocateTreasure(rw)) state.treasureRelocateFails = (state.treasureRelocateFails || 0) + 1;
-        rw.taken = false;
-        rw.restoredAt = state.t;
-        n++;
-        addParticle(rw.x, rw.y, "#ffe08a", 14, 1);
+    for (const tpl of base) {
+      let rw = reuse.shift(),
+        fresh = false;
+      if (!rw) {
+        if (state.rewards.filter((o) => !o.taken).length >= TREASURE_MAX_CHESTS) break;
+        state.chestSeq = (state.chestSeq || 0) + 1;
+        rw = { id: tpl.id + "+" + state.chestSeq, kind: tpl.kind, label: tpl.label, x: state.player.x, y: state.player.y, taken: false, phase: Math.random() * TAU, extra: true };
+        fresh = true;
       }
+      if (!relocateTreasure(rw)) {
+        state.treasureRelocateFails = (state.treasureRelocateFails || 0) + 1;
+        continue; // no legal free spot: skip rather than stack a chest on another one
+      }
+      if (fresh) state.rewards.push(rw);
+      rw.taken = false;
+      rw.restoredAt = state.t;
+      n++;
+      addParticle(rw.x, rw.y, "#ffe08a", 14, 1);
+    }
     state.treasureRestores = (state.treasureRestores || 0) + 1;
+    state.treasureSpawned = (state.treasureSpawned || 0) + n;
     return n;
   }
   // v8: each treasure type carries one shift-long +2% bonus (stacks per pickup; gone when the next shift starts).
@@ -1574,11 +1856,9 @@
       // never leave the game stuck behind a chest: give the reward without the show and carry on
       console.warn("Loot machine failed; granting the reward directly.", err);
       lootSpin = null;
-      const c = lootCandidates();
-      if (c.length) {
-        const w = pick(c);
-        w.apply(state);
-        if (STAT_IDS.includes(w.id)) state.statPicks[w.id] = (state.statPicks[w.id] || 0) + 1;
+      const { win: w } = rollChest();
+      if (w) {
+        applyUp(w);
         syncSlots();
         toastMsg(`CHEST: ${w.title} upgraded!`);
       } else ((state.player.hp = state.player.maxHp), toastMsg("CHEST: full heal!"));
@@ -1586,13 +1866,42 @@
       panelHide();
     }
   }
-  function lootCandidates() {
-    return UPGRADES.filter((u) => {
-      const w = state.weapons[u.id];
-      if (w) return w.level > 0 && w.level < wmax();
-      if (STAT_IDS.includes(u.id)) return (state.statPicks?.[u.id] || 0) > 0 && state.statPicks[u.id] < STAT_MAX;
-      return false;
-    });
+  // TEST 3 (balance patch): a passive is an "evolution partner in need" when an owned, not-yet-evolved weapon needs it and it has never been taken.
+  const partnerNeeded = (statId) => !!state && !isV1() && !(state.statPicks?.[statId] > 0) && Object.keys(EVO).some((id) => EVO[id].partner === statId && state.weapons?.[id]?.level > 0 && !state.weapons[id].evo);
+  const PASSIVE_PARTNER_WEIGHT = 3; // an evolution-partner passive is 3x as likely as another passive wherever passives are drawn at random
+  const wpick = (arr, wf) => {
+    let tot = 0;
+    for (const x of arr) tot += wf(x);
+    let r = Math.random() * tot;
+    for (const x of arr) if ((r -= wf(x)) < 0) return x;
+    return arr[arr.length - 1];
+  };
+  const passivePool = () => UPGRADES.filter((u) => STAT_IDS.includes(u.id) && (state.statPicks?.[u.id] || 0) < STAT_MAX);
+  const passiveWeight = (u) => (partnerNeeded(u.id) ? PASSIVE_PARTNER_WEIGHT : 1);
+  // One chest = ONE prize. Evolution if one is ready (guaranteed, as before). Otherwise roll the category first:
+  // CHEST_PASSIVE_CHANCE (40%) passive, else weapon. Passive = any passive below STAT_MAX (owned or not), an evolution-partner
+  // passive of an owned weapon weighs 3x. Weapon = an owned weapon below its max level, all equal. If the rolled category has
+  // nothing to give, the other one is used; if neither has, it is the full-heal-plus-wages jackpot.
+  const CHEST_PASSIVE_CHANCE = 0.4;
+  const chestWeapons = () => UPGRADES.filter((u) => !STAT_IDS.includes(u.id) && state.weapons[u.id] && state.weapons[u.id].level > 0 && state.weapons[u.id].level < wmax());
+  function rollChest() {
+    const evoId = isV1() ? null : syncSlots().find(evoReady);
+    let win = null;
+    if (evoId) win = evoUpgrade(evoId);
+    else if (!isV1()) {
+      const pas = passivePool(),
+        wep = chestWeapons();
+      const wantPassive = Math.random() < CHEST_PASSIVE_CHANCE;
+      if (wantPassive && pas.length) win = wpick(pas, passiveWeight);
+      else if (wep.length) win = pick(wep);
+      else if (pas.length) win = wpick(pas, passiveWeight);
+    }
+    return { evoId, win, jackpot: !win };
+  }
+  function applyUp(u) {
+    u.apply(state);
+    if (STAT_IDS.includes(u.id)) state.statPicks[u.id] = (state.statPicks[u.id] || 0) + 1;
+    if (state.weapons[u.id]) state.lastUpgrade = u.id;
   }
   const STAT_GLYPH = { damage: ["✊", "#c8452e"], speed: ["»", "#3f8f5a"], maxhp: ["♥", "#b02a3a"], regen: ["✚", "#2f7f6a"], magnet: ["◎", "#5a4aa8"] };
   // Draws an upgrade's icon into a 48x48 canvas. (Never exported with toDataURL: browsers block that when the
@@ -1632,12 +1941,12 @@
   function showLootMachine() {
     mode = "loot";
     keys.clear();
-    const cands = lootCandidates(),
-      jackpot = !cands.length,
-      win = jackpot ? null : pick(cands),
-      winLabel = win ? `${win.title} — ${upgradeLabel(win).replace("PERK", "PERK LV")}` : "";
+    const ch = curChar(),
+      generic = ch.id !== "hog" && ch.id !== "hog2", // v18: Hog digs; everyone else gets the shake-and-pop chest
+      { evoId, win, jackpot } = rollChest(),
+      winLabel = win ? (win.evo ? `${win.title} — EVOLVED!` : `${win.title} — ${upgradeLabel(win).replace("PERK", "PERK LV")}`) : "";
     panelShow(
-      `<div class="eyebrow">YOU CRACKED OPEN A CHEST</div><h2>LOOT MACHINE</h2><div class="loot-stage"><canvas class="loot-dig" width="${DIG_W}" height="${DIG_H}"></canvas><div class="loot-prize"><canvas class="loot-icon" width="48" height="48"></canvas></div></div><p class="loot-result status-line">Grave Hog is digging…</p>`,
+      `<div class="eyebrow">${evoId ? "★ EVOLUTION READY ★" : "YOU CRACKED OPEN A"}</div><h2>${evoId ? "WEAPON EVOLUTION" : "DEAD MAN'S STASH"}</h2><div class="loot-stage"><canvas class="loot-dig" width="${DIG_W}" height="${DIG_H}"></canvas><div class="loot-prize"><canvas class="loot-icon" width="48" height="48"></canvas></div></div><p class="loot-result status-line">${generic ? `${ch.name} is prying it open…` : "Grave Hog is digging…"}</p>`,
     );
     const card = panel.firstElementChild,
       cv = card.querySelector(".loot-dig"),
@@ -1648,9 +1957,11 @@
     let step = 0,
       stepAt = performance.now(),
       revealed = false;
+    const t0 = performance.now();
     const drawFrame = (f) => {
       cx.fillStyle = "#000";
       cx.fillRect(0, 0, DIG_W, DIG_H);
+      if (generic) return drawGenericChest(cx, ch, f === "end" ? GENERIC_CHEST_T : (performance.now() - t0) / 1000);
       if (ready(IMAGES.dig)) cx.drawImage(IMAGES.dig, f * DIG_W, 0, DIG_W, DIG_H, 0, 0, DIG_W, DIG_H);
     };
     const reveal = () => {
@@ -1662,7 +1973,14 @@
         if (STAT_IDS.includes(win.id)) state.statPicks[win.id] = (state.statPicks[win.id] || 0) + 1;
         if (state.weapons[win.id]) state.lastUpgrade = win.id;
         syncSlots();
-        result.innerHTML = `UPGRADED: <b>${winLabel}</b>`;
+        result.innerHTML = (win.evo ? `EVOLVED: <b>${win.title}</b><br><span class="muted">${win.desc}</span>` : `UPGRADED: <b>${winLabel}</b>`);
+        if (win.evo) sfx("level_up", 1.2, () => audioBeep(880, 0.25, "triangle", 0.03));
+      } else if (isV1()) {
+        save.wages += 20;
+        state.earned += 20;
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + 25);
+        saveGame();
+        result.innerHTML = `FOUND: <b>a name tag. "HELLO, MY NAME IS V1SION."</b> +20 wages, +25 health`;
       } else {
         state.player.hp = state.player.maxHp;
         save.wages += 25;
@@ -1676,12 +1994,20 @@
       if (!lootSpin) return;
       cancelAnimationFrame(lootSpin.raf);
       lootSpin = null;
-      drawFrame(DIG_SEQ[DIG_SEQ.length - 1][0]);
+      drawFrame(generic ? "end" : DIG_SEQ[DIG_SEQ.length - 1][0]);
       reveal();
       addButtons(card, [["BACK TO WORK ▶", closeLootMachine, "primary"]]);
       card.querySelector(".game-btn.primary")?.focus({ preventScroll: true });
     };
     const tick = (now) => {
+      if (generic) {
+        const el = (now - t0) / 1000;
+        drawFrame(0);
+        if (el >= GENERIC_CHEST_POP + 0.08) reveal();
+        if (el >= GENERIC_CHEST_T) return finish();
+        lootSpin.raf = requestAnimationFrame(tick);
+        return;
+      }
       let [f, ms, tag] = DIG_SEQ[step];
       while (ms && now - stepAt >= ms && step < DIG_SEQ.length - 1) {
         stepAt += ms;
@@ -1696,9 +2022,61 @@
     };
     drawFrame(0);
     lootSpin = { raf: requestAnimationFrame(tick), finish };
-    if (!ready(IMAGES.dig)) finish(); // art missing: straight to the result
+    if (!generic && !ready(IMAGES.dig)) finish(); // art missing: straight to the result
     // tap / click / Enter / A during the animation skips straight to the result
     card.addEventListener("click", () => lootSpin && finish(), { once: true });
+  }
+
+  // v18: generic chest opening for everyone but Grave Hog: the character stands behind the chest, it shakes harder
+  // and harder, then pops open in a burst of green ghost-light and the character cheers.
+  const GENERIC_CHEST_POP = 1.5,
+    GENERIC_CHEST_T = 2.6;
+  function drawGenericChest(cx, ch, t) {
+    cx.imageSmoothingEnabled = false;
+    const im = IMAGES[ch.sheet],
+      popped = t >= GENERIC_CHEST_POP,
+      after = t - GENERIC_CHEST_POP;
+    // floor glow
+    const glow = cx.createRadialGradient(110, 150, 4, 110, 150, 110);
+    glow.addColorStop(0, popped ? "rgba(120,255,150,0.35)" : "rgba(60,140,80,0.18)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    cx.fillStyle = glow;
+    cx.fillRect(0, 0, DIG_W, DIG_H);
+    // character (2x): idle while it shakes, victory once it's open
+    if (ready(im)) {
+      const row = popped ? 7 : 0,
+        fr = popped ? Math.floor(after * 7) % 4 : Math.floor(t * 4) % 4,
+        dw = Math.round(128 * ch.sx),
+        dh = Math.round(128 * ch.sy);
+      cx.drawImage(im, fr * 64, row * 64, 64, 64, Math.round(110 - dw / 2), Math.round(168 - 98 - dh * 0.62), dw, dh); // stands behind the chest, chest-up visible
+    }
+    // chest (2x) in front
+    const CW = 44,
+      CH = 49,
+      im2 = IMAGES.chest;
+    if (!ready(im2)) return;
+    const amp = popped ? 0 : Math.min(1, t / GENERIC_CHEST_POP) ** 2 * 5,
+      jx = Math.round(Math.sin(t * 55) * amp),
+      jy = popped ? -Math.round(Math.max(0, 12 - after * 60)) : Math.round(Math.abs(Math.cos(t * 41)) * amp * -0.6),
+      fr = Math.floor(t * 8) % 4;
+    cx.drawImage(im2, fr * CW, 0, CW, CH, 110 - CW + jx, 168 - CH * 2 + jy, CW * 2, CH * 2);
+    if (popped) {
+      // burst: rays + sparks fading out
+      const k = Math.max(0, 1 - after / 0.9);
+      cx.save();
+      cx.globalAlpha = 0.7 * k;
+      cx.translate(110, 118);
+      cx.fillStyle = "#b8ffc8";
+      for (let i = 0; i < 10; i++) {
+        cx.rotate(TAU / 10);
+        cx.fillRect(-2, -18 - after * 60, 4, 22);
+      }
+      cx.restore();
+      if (after < 0.12) {
+        cx.fillStyle = `rgba(230,255,235,${0.8 - after * 6})`;
+        cx.fillRect(0, 0, DIG_W, DIG_H);
+      }
+    }
   }
   function closeLootMachine() {
     if (lootSpin) return lootSpin.finish();
@@ -1784,9 +2162,19 @@
     for (let i = 0; i < n; i++)
       state.particles.push({ x, y, vx: rand(-90, 90), vy: rand(-100, 80), life: rand(0.18, 0.6), max: 0.6, color, r: rand(2, 4) * scale });
   }
+  let gangSharing = false;
   function damageEnemy(e, amount, knock = true) {
     if (!state.enemies.includes(e)) return;
     if (!inReach(e)) return; // off-screen monsters can't be hurt (projectiles that fly off just miss)
+    // v0.11 Chain Gang: monsters chained in the same cast share half of any damage one of them takes
+    if (e.gang && !gangSharing && e.gang.until > state.t) {
+      gangSharing = true;
+      const was = dmgSrc;
+      dmgSrc = "chains";
+      for (const o of e.gang.members) if (o !== e && state.enemies.includes(o)) damageEnemy(o, amount * 0.5, false);
+      dmgSrc = was;
+      gangSharing = false;
+    }
     // damage breakdown: credit what was actually dealt (overkill doesn't count) to the weapon doing it
     const dealt = Math.max(0, Math.min(amount, e.hp));
     state.dmgBy = state.dmgBy || {};
@@ -1850,6 +2238,11 @@
       state.bossesDead[e.bossId] = true;
       state.lastBoss = e.bossId;
       drop(e.x, e.y, "wage", 12);
+      if (e.bossId === "digger") {
+        // TEST 3: Grave Digger drops 2x a normal mob's XP gem plus a Ghost Vacuum (pulls every gem/coin on the map to Hog). Chests: restoreTreasures() below already brings them back.
+        drop(e.x + rand(-10, 10), e.y + rand(-10, 10), "xp", NORMAL_MOB_XP * DIGGER_XP_MULT);
+      }
+      drop(e.x + rand(-16, 16), e.y + 14, "vacuum", 0); // every boss drops a Ghost Vacuum
       if (state.limitless) state.limitless.bosses++;
       state.eventText = state.limitless ? "BOSS CLOCKED OUT" : e.bossId === finalBossId() ? "TIME TO CLOCK OUT!" : "BOSS CLOCKED OUT";
       state.eventUntil = state.t + 3;
@@ -1857,9 +2250,15 @@
       if (restored && (e.bossId !== finalBossId() || state.limitless)) toastMsg(`${restored} ${STAGE === 2 ? "store" : "cemetery"} treasure${restored > 1 ? "s" : ""} reappeared. Go take another look around.`);
       sfx(BOSS_DEATH_SFX[e.bossId] || "boss_death_groan", 1, () => audioBeep(120, 0.5, "sawtooth", 0.06));
     } else if (!e.exploded) {
-      drop(e.x, e.y, "xp", e.xp);
-      // Rare Vacuum: ~1 in 280 regular kills, and never more than one lying on the ground at a time.
-      if (Math.random() < VACUUM_CHANCE && !state.drops.some((d) => d.type === "vacuum"))
+      {
+        // hidden late-game XP bonus (see LATE_XP_BONUS_*) and the rare yellow Ghost gem (see GOLD_GEM_*)
+        const lv = state.player.level,
+          bonus = lv >= LATE_XP_BONUS_LV2 ? LATE_XP_BONUS_2 : lv >= LATE_XP_BONUS_LV1 ? LATE_XP_BONUS_1 : 0;
+        if (e.type === "ghost" && lv >= GOLD_GEM_MIN_LEVEL && Math.random() < GOLD_GEM_CHANCE) drop(e.x, e.y, "xp", GOLD_GEM_XP + bonus, GOLD_GEM_COLOR);
+        else drop(e.x, e.y, "xp", e.xp + bonus);
+      }
+      // Rare Vacuum: ~1 in 280 regular kills. TEST 3 balance patch: no longer blocked by one already on the ground, just a sane cap (VACUUM_MAX_GROUND).
+      if (Math.random() < VACUUM_CHANCE && state.drops.filter((d) => d.type === "vacuum").length < VACUUM_MAX_GROUND)
         drop(e.x + rand(-6, 6), e.y + rand(-6, 6), "vacuum", 0);
       if (Math.random() < 0.14) {
         // wages and pizza each get their own value (they used to share one roll, so pizza sometimes healed 2)
@@ -1870,7 +2269,8 @@
       sfx("mob_death", 1, () => audioBeep(115 + Math.random() * 90, 0.055, "triangle", 0.02));
     }
   }
-  const VACUUM_CHANCE = 1 / 280;
+  const VACUUM_CHANCE = 1 / 280,
+    VACUUM_MAX_GROUND = 5;
   // v8 pickup art: tiny pixel sprites built once, each with an automatic dark outline, drawn at 2x nearest-neighbour.
   function makeIcon(w, h, mask, color, outline = "#1a0f08") {
     const c = document.createElement("canvas");
@@ -1897,6 +2297,7 @@
     ["#e2ffe6", "#4ee07a", "#1f9a44", "#0e5a26"], // medium (4-6 XP): green
     ["#f8e4ff", "#c46cff", "#7a2cc4", "#45127a"], // large (7+ XP): purple
   ];
+  const GEM_PAL_GOLD = ["#fff6c8", GOLD_GEM_COLOR, "#d99a10", "#8a5a08"]; // colour override palette for the yellow ghost gem (same gem shape)
   const makeGem = (pal) =>
     makeIcon(9, 11, (i, j) => Math.abs(i - 4) / 4.6 + Math.abs(j - 4) / (j <= 4 ? 4.4 : 6.2) <= 1, (i, j) => {
       if (j <= 1 && i >= 3 && i <= 4) return pal[0]; // glint
@@ -1938,6 +2339,7 @@
     gem1: makeGem(GEM_PAL[0]),
     gem2: makeGem(GEM_PAL[1]),
     gem3: makeGem(GEM_PAL[2]),
+    gemGold: makeGem(GEM_PAL_GOLD),
     magnet: makeIcon(14, 14, (i, j) => {
       if (j <= 6) {
         const d = Math.hypot(i - 6.5, j - 6.5);
@@ -1955,8 +2357,8 @@
   function pizzaHeal() {
     return PIZZA_BASE + PIZZA_PER_CHEESE * Math.min(PERK_MAX.cheese, save.perks.cheese || 0);
   }
-  function drop(x, y, type, value) {
-    state.drops.push({ x, y, type, value, r: type === "xp" ? 5 : type === "vacuum" ? 10 : 8, phase: Math.random() * TAU });
+  function drop(x, y, type, value, color) {
+    state.drops.push({ x, y, type, value, color, r: type === "xp" ? 5 : type === "vacuum" ? 10 : 8, phase: Math.random() * TAU });
   }
   // Vacuum: one-shot. Every loose ground pickup that exists right now (XP, wages, pizza) is pulled to Hog and
   // collected through the normal pickup code. Fixed starting treasures (state.rewards) are never affected.
@@ -2075,7 +2477,7 @@
     const def = typesFor()[type];
     // Health ramps over the shift. Stage 1 ramps much harder (testers could stand still and win): ~2.6x at 3 AM,
     // ~3.7x at 5 AM, ~4.3x at 6 AM. Stage 2 keeps its original curve (~2.4x by 6 AM).
-    const scale = 1 + state.t / (STAGE === 1 ? STAGE1_HP_RAMP : 520);
+    const scale = (1 + state.t / (STAGE === 1 ? STAGE1_HP_RAMP : 520)) * limitlessMul(); // Limitless: +2% per minute on top
     const spot = findSpawnPoint();
     if (!spot) return; // no valid reachable cell this tick — skip rather than spawn inside scenery
     { const de = dexBook().e; if (de[type] === undefined) de[type] = 0; } // compendium: met this monster
@@ -2103,13 +2505,15 @@
       size: def.size || 64,
     });
   }
+  const XP_GENTLE_FROM_LEVEL = 20,
+    XP_GENTLE_GROWTH = 1.02;
   function awardXP(amount) {
     const p = state.player;
     p.xp += amount * (1 + save.perks.xp * 0.05) * (state.limitless ? LIMITLESS_XP : 1);
     while (p.xp >= p.nextXp) {
       p.xp -= p.nextXp;
       p.level++;
-      p.nextXp = Math.floor(p.nextXp * 1.3 + 5);
+      p.nextXp = p.level >= XP_GENTLE_FROM_LEVEL ? Math.floor(p.nextXp * XP_GENTLE_GROWTH + 5) : Math.floor(p.nextXp * 1.3 + 5); // levels 1-19 unchanged (x1.3); from level 20 on only +2% per level
       pendingLevelUps++;
     }
     if (state.sunrise) pendingLevelUps = 0; // XP still counts; no pop-ups during the sunrise cinematic
@@ -2146,6 +2550,90 @@
   };
   for (const id of NW_IDS)
     UPGRADES.push({ id, title: NW[id][0], desc: NW[id][1], up: NW[id][2], apply: (s) => (s.weapons[id].level = Math.min(wmax(), s.weapons[id].level + 1)) });
+  // =====================================================================================
+  //  v0.11 WEAPON EVOLUTIONS: a weapon at level 5 + its partner stat perk (taken at least once) evolves in the NEXT
+  //  chest (guaranteed, same slot). Any character can evolve any of these; Limit Break levels keep stacking on top.
+  // =====================================================================================
+  const EVO = {
+    shovel: { name: "The Undertaker", partner: "damage", desc: "Full 360° swings. Every 5th swing slams the ground open and a grave swallows the weakened monsters around you." },
+    deadanomicon: { name: "The Deadanomicon: Unabridged", partner: "magnet", desc: "Bigger, longer black holes that also suck in gems and coins for you." },
+    witchjar: { name: "Swamp Hag's Cauldron", partner: "regen", desc: "Lands as a bubbling cauldron with a bigger, longer bug cloud. Every kill it makes heals you." },
+    chains: { name: "Chain Gang", partner: "maxhp", desc: "Every monster held in one cast is chained together: hurt one and the rest feel half of it." },
+    flyswatter: { name: "Bug Zapper Deluxe", partner: "speed", desc: "Twice the jumps, and every monster it zaps leaves a crackling static patch behind." },
+    whistle: { name: "Bass Drop", partner: "damage", desc: "Heavy bass notes: every landing thumps a shockwave that stuns." },
+    bell: { name: "Last Rites", partner: "regen", desc: "Wider tolls, longer terror, and every toll heals you." },
+  };
+  const statTitle = (id) => UPGRADES.find((u) => u.id === id)?.title || id;
+  const isEvo = (id) => !!state?.weapons?.[id]?.evo;
+  const evoReady = (id) => !!(EVO[id] && state && !isV1() && state.weapons?.[id] && !state.weapons[id].evo && state.weapons[id].level >= WMAX_BASE && (state.statPicks?.[EVO[id].partner] || 0) > 0);
+  const evoUpgrade = (id) => ({
+    id,
+    evo: true,
+    title: EVO[id].name,
+    desc: EVO[id].desc,
+    apply: (s) => {
+      s.weapons[id].evo = true;
+      s.evolved = (s.evolved || 0) + 1;
+      const dx = dexBook();
+      dx.evo = dx.evo || {};
+      dx.evo[id] = 1;
+      saveGame();
+    },
+  });
+  // hint lines (players are always told what an evolution needs)
+  function evoHintHTML(id) {
+    const ev = EVO[id];
+    if (!ev || !state || isV1()) return "";
+    if (isEvo(id)) return `<span class="choice-evo done">★ EVOLVED: ${ev.name}</span>`;
+    const lvOk = (state.weapons[id]?.level || 0) >= WMAX_BASE,
+      pkOk = (state.statPicks?.[ev.partner] || 0) > 0;
+    return `<span class="choice-evo">EVOLVES → <b>${ev.name}</b><br><i class="${lvOk ? "ok" : ""}">LV ${WMAX_BASE}${lvOk ? " ✔" : ""}</i> + <i class="${pkOk ? "ok" : ""}">${statTitle(ev.partner)}${pkOk ? " ✔" : ""}</i>${lvOk && pkOk ? " — next chest!" : ""}</span>`;
+  }
+  function partnerHintHTML(statId) {
+    if (!state || isV1()) return "";
+    const ws = Object.keys(EVO).filter((id) => EVO[id].partner === statId && state.weapons[id]?.level > 0 && !isEvo(id));
+    return ws.length ? `<span class="choice-evo">EVOLUTION PARTNER for ${ws.map((id) => weaponName(id)).join(", ")}</span>` : "";
+  }
+  function evoDexLine(id) {
+    const ev = EVO[id];
+    if (!ev) return "";
+    const done = !!dexBook().evo?.[id];
+    let run = "";
+    if (state && state.weapons?.[id]?.level > 0 && !isV1()) {
+      const lvOk = state.weapons[id].level >= WMAX_BASE,
+        pkOk = (state.statPicks?.[ev.partner] || 0) > 0;
+      run = isEvo(id) ? " <b class='ok'>EVOLVED THIS SHIFT</b>" : ` This shift: LV ${WMAX_BASE} ${lvOk ? "✔" : "✘"}, ${statTitle(ev.partner)} ${pkOk ? "✔" : "✘"}`;
+    }
+    return `<span class="dex-evo">${done ? "★ " : ""}EVOLVES into <b>${ev.name}</b>: get it to LV ${WMAX_BASE} and take <b>${statTitle(ev.partner)}</b>, then open a chest. ${ev.desc}${run}</span>`;
+  }
+  const healPlayer = (amt, gold) => {
+    const p = state.player,
+      before = p.hp;
+    p.hp = Math.min(p.maxHp, p.hp + amt);
+    if (p.hp > before && state.wfx.filter((f) => f.k === "heal").length < 14) fx({ k: "heal", x: p.x + rand(-12, 12), y: p.y - 8, t: 0, life: 0.8, gold });
+  };
+  let noteBeepAt = 0;
+  const NOTE_SCALE = [523, 587, 659, 784, 880, 1047, 1175];
+  function noteBeep(step, evo) {
+    const now = performance.now();
+    if (now - noteBeepAt < 60) return;
+    noteBeepAt = now;
+    const f = NOTE_SCALE[step % NOTE_SCALE.length];
+    sfx("note_hop", 1, () => (evo ? audioBeep(f / 4, 0.12, "square", 0.03) : audioBeep(f, 0.07, "triangle", 0.02)));
+  }
+  function undertakerSlam() {
+    const p = state.player,
+      sh = state.weapons.shovel,
+      R = 80 + 4 * sh.level;
+    dmgSrc = "shovel";
+    aoe(p.x, p.y, R, sh.damage * p.damage * 2.2, 130);
+    // the grave opens: weakened ordinary monsters near the middle drop in (bosses never do)
+    for (const e of enemiesIn(p.x, p.y + 4, R * 0.7)) if (!e.boss && e.hp <= e.maxHp * 0.5) damageEnemy(e, e.hp + 1, false);
+    fx({ k: "grave", x: p.x, y: p.y + 8, t: 0, life: 1.2, R });
+    shake = Math.max(shake, 9);
+    addParticle(p.x, p.y + 6, "#6a5a48", 26, 1.2);
+    sfx("slam_impact", 1.1, () => audioBeep(70, 0.2, "square", 0.04));
+  }
   const OLD_ICON = { shovel: 0, nail: 1, sprinkler: 2, chainsaw: 3, lantern: 4 };
   const FALLBACK_UPS = [
     { id: "fb_heal", title: "Overtime Snack", desc: "Every weapon and perk is maxed. Heal 40% of your health.", apply: (s) => (s.player.hp = Math.min(s.player.maxHp, s.player.hp + s.player.maxHp * 0.4)) },
@@ -2188,6 +2676,9 @@
     for (const id of ALL_WEAPONS()) if (state.weapons[id]?.level > 0 && !state.slots.includes(id)) state.slots.push(id);
     const dw = dexBook().w;
     for (const id of state.slots) dw[id] = 1; // compendium: weapons you've used
+    // v18 unlocks: Bonecrush = every weapon used at least once (ever); Riff = any weapon at level 5 in one shift
+    if (!charUnlocked("bonecrush") && ALL_WEAPONS().every((id) => dw[id])) unlockChar("bonecrush");
+    if (!charUnlocked("riff") && state.slots.some((id) => (state.weapons[id]?.level || 0) >= WMAX_BASE)) unlockChar("riff");
     return state.slots;
   }
   function getAvailableUpgrades() {
@@ -2200,23 +2691,34 @@
       return w.level > 0 || !full;
     });
   }
-  function pickChoices(available) {
+  // TEST 3 balance patch: level-up pity. After LEVELUP_PITY_AFTER consecutive level-ups with no passive card, the next one must include one (if any is available).
+  // Evolution-partner passives of owned weapons are drawn 3x as often as other passives when the free card is rolled.
+  const LEVELUP_PITY_AFTER = 3;
+  function pickChoices(available, pity = false) {
     const lv = (u) => state.weapons[u.id]?.level,
+      isPas = (u) => STAT_IDS.includes(u.id),
       ups = available.filter((u) => lv(u) > 0),
       news = available.filter((u) => lv(u) === 0),
       out = [],
       take = (arr) => {
         const pool = arr.filter((u) => !out.includes(u));
-        if (pool.length) out.push(pick(pool));
+        if (pool.length) out.push(wpick(pool, (u) => (isPas(u) ? passiveWeight(u) : 1)));
       };
     take(ups);
     take(news);
     while (out.length < Math.min(3, available.length)) take(available);
+    const pas = available.filter(isPas);
+    if (pity && pas.length && !out.some(isPas)) {
+      // swap one random card for a passive (never leave the shown set without one); keep the first (owned weapon) card when there are 3
+      const slot = out.length > 1 ? 1 + Math.floor(Math.random() * (out.length - 1)) : 0;
+      out[slot] = wpick(pas, passiveWeight);
+      state.luPityFired = (state.luPityFired || 0) + 1;
+    }
     return out.sort(() => Math.random() - 0.5);
   }
   function upgradeLabel(u) {
     const w = state.weapons[u.id];
-    if (!w) return u.id.startsWith("fb_") ? "BONUS" : `PERK ${(state.statPicks?.[u.id] || 0) + 1}/${STAT_MAX}`;
+    if (!w) return u.id.startsWith("v1_") ? "???" : u.id.startsWith("fb_") ? "BONUS" : `PERK ${(state.statPicks?.[u.id] || 0) + 1}/${STAT_MAX}`;
     return w.level ? `LV ${w.level} → ${w.level + 1}${w.level + 1 === wmax() ? " (MAX)" : ""}` : "NEW WEAPON";
   }
   // ---------- helpers ----------
@@ -2321,6 +2823,7 @@
         continue;
       }
       if (w.cd > 0) continue;
+      const sigId = curChar().start; // v0.11 test3: cooldown <= 0 here, so any cooldown > 0 after the branches below means this weapon fired
       if (id === "molotov") {
         const n = 1 + (L >= 3) + (L >= 5);
         let fired = 0;
@@ -2337,7 +2840,8 @@
         for (let k = 0; k < n; k++) {
           const t = k ? randomEnemyNear(240) : densestNear(240);
           if (!t) break;
-          fx({ k: "hole", x: t.x, y: t.y, t: 0, life: 2.2, L, kills: 0, cap: 5 + 2 * L, tick: 0 });
+          const big = !!w.evo;
+          fx({ k: "hole", x: t.x, y: t.y, t: 0, life: big ? 3.3 : 2.2, L, kills: 0, cap: Math.round((5 + 2 * L) * (big ? 1.7 : 1)), tick: 0, big });
           fired++;
         }
         if (fired) ((w.cd = 8.5 - 0.7 * L), sfx("lantern_spell", 1.3, () => audioBeep(70, 0.35, "sine", 0.03)), (p.bookFx = 0.6));
@@ -2378,10 +2882,13 @@
         const n = 2 + L,
           c = state.enemies.filter((e) => dist(p, e) < 230).sort((a, b) => dist(p, a) - dist(p, b)).slice(0, n);
         if (!c.length) continue;
+        const gang = w.evo && c.length > 1 ? { members: c, until: state.t + 1.2 + 0.3 * L } : null;
         for (const e of c) {
           hitStatus(e, 1.2 + 0.3 * L, 0, 0);
           fx({ k: "chain", e, x: e.x, y: e.y, t: 0, life: 1.2 + 0.3 * L, L, tick: 0 });
+          if (gang) e.gang = gang;
         }
+        if (gang) fx({ k: "gang", gang, x: p.x, y: p.y, t: 0, life: 1.2 + 0.3 * L });
         w.cd = 3.4 - 0.22 * L;
         sfx("chains", 1, () => audioBeep(180, 0.1, "square", 0.015));
       } else if (id === "rockets") {
@@ -2398,15 +2905,17 @@
         if (!cur) continue;
         const pts = [[p.x, p.y - 6]],
           seen = new Set(),
-          jumps = 2 + L;
-        let dmg = wdmg(20 + 8 * L);
+          jumps = (2 + L) * (w.evo ? 2 : 1);
+        let dmg = wdmg(20 + 8 * L),
+          statics = 0;
         for (let j = 0; j <= jumps && cur; j++) {
           seen.add(cur);
           pts.push([cur.x, cur.y - 6]);
           const was = cur;
           damageEnemy(cur, dmg, false);
           hitStatus(was, 0.15, 0, 0);
-          dmg *= 0.9;
+          if (w.evo && statics < 6) (statics++, fx({ k: "static", x: was.x, y: was.y, t: 0, life: 1.6, R: 22 + 2 * L, L, tick: 0, seed: rand(0, 9) }));
+          dmg *= w.evo ? 0.94 : 0.9;
           let nb = null,
             bd = 95;
           for (const e of state.enemies)
@@ -2440,10 +2949,18 @@
         }
         if (fired) w.cd = 2.3 - 0.15 * L;
       } else if (id === "whistle") {
-        if (!nearestEnemy(120 + 18 * L)) continue;
-        fx({ k: "ring", x: p.x, y: p.y, t: 0, life: 0.45, R: 105 + 18 * L, L, hit: new Set() });
-        w.cd = 3.1 - 0.2 * L;
-        sfx("whistle", 1, () => audioBeep(1500, 0.18, "sine", 0.02));
+        // v0.11: Death Whistle blows music notes that HOP from monster to monster (the Bell keeps the big ring)
+        const t = nearestEnemy(220);
+        if (!t) continue;
+        const evo = !!w.evo,
+          n = 1 + Math.floor(L / 2) + (L >= 6 ? 1 : 0),
+          hops = 2 + L + (evo ? 2 : 0);
+        for (let k = 0; k < n; k++) {
+          const tg = k === 0 ? t : randomEnemyNear(220) || t;
+          fx({ k: "note", x: p.x, y: p.y - 18, sx: p.x, sy: p.y - 18, tx: tg.x, ty: tg.y, tgt: tg, z: 0, t: 0, life: 99, hopT: -k * 0.08, hopDur: 0.32, hops, L, evo, hit: new Set(), seq: k, step: 0 });
+        }
+        w.cd = 2.6 - 0.16 * L;
+        sfx("whistle", 0.8, () => audioBeep(1500, 0.12, "sine", 0.015));
       } else if (id === "cleaver") {
         const c = state.enemies.filter((e) => dist(p, e) < 280).sort((a, b) => dist(p, a) - dist(p, b));
         if (!c.length) continue;
@@ -2458,21 +2975,22 @@
       } else if (id === "witchjar") {
         const t = nearestEnemy(240);
         if (!t) continue;
-        fx({ k: "jar", x: p.x, y: p.y, sx: p.x, sy: p.y, tx: t.x, ty: t.y, t: 0, life: 0.55, L });
+        fx({ k: "jar", x: p.x, y: p.y, sx: p.x, sy: p.y, tx: t.x, ty: t.y, t: 0, life: 0.55, L, evo: !!w.evo });
         w.cd = 5.2 - 0.4 * L;
       } else if (id === "bell") {
-        const R = 130 + 26 * L;
+        const R = (130 + 26 * L) * (w.evo ? 1.25 : 1);
         if (!nearestEnemy(R)) continue;
         aoe(p.x, p.y, R, wdmg(16 + 6 * L), 0);
         // v17: no knockback; every regular monster in range flees in terror for 1s per bell level (bosses don't scare)
         for (const e of enemiesIn(p.x, p.y, R)) {
           if (e.boss) continue;
-          e.fearT = Math.max(e.fearT || 0, L);
+          e.fearT = Math.max(e.fearT || 0, L + (w.evo ? 1.5 : 0));
           e.charge = null; // drop whatever they were winding up
           e.throwAt = 0;
           e.prime = 0;
         }
-        fx({ k: "toll", x: p.x, y: p.y, t: 0, life: 0.8, R });
+        fx({ k: "toll", x: p.x, y: p.y, t: 0, life: 0.8, R, evo: !!w.evo });
+        if (w.evo) for (let k = 0; k < 3; k++) healPlayer((p.maxHp * 0.03 + 1) / 3, true);
         w.cd = 4.6 - 0.45 * L;
         sfx("bell_toll", 1, () => audioBeep(196, 0.6, "sine", 0.035));
       } else if (id === "dust") {
@@ -2491,6 +3009,10 @@
         }
         w.cd = 2.7 - 0.2 * L;
         sfx("nailgun_shot", 1.3, () => audioBeep(140, 0.12, "sawtooth", 0.02));
+      }
+      if (id === sigId && w.cd > 0) {
+        const tg = nearestEnemy(340);
+        sigFire(tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : p.aim || 0);
       }
     }
     updateGnomes(dt);
@@ -2547,6 +3069,11 @@
             aoe(f.tx, f.ty, R, wdmg(15 + 6 * L), 40, (e) => hitStatus(e, 0, 1.6, 0.55));
             fx({ k: "foam", x: f.tx, y: f.ty, t: 0, life: 0.7, R });
             sfx("gas_hiss", 0.9, () => audioBeep(620, 0.12, "triangle", 0.018));
+          } else if (f.evo) {
+            const life = (3 + 0.9 * L) * 1.6;
+            fx({ k: "cauldron", x: f.tx, y: f.ty, t: 0, life });
+            fx({ k: "bugs", x: f.tx, y: f.ty, t: 0, life, R: (26 + 5 * L) * 1.4, L, tick: 0, evo: true });
+            addParticle(f.tx, f.ty, "#7ee36a", 14, 1);
           } else fx({ k: "bugs", x: f.tx, y: f.ty, t: 0, life: 3 + 0.9 * L, R: 26 + 5 * L, L, tick: 0 });
           continue;
         }
@@ -2565,12 +3092,26 @@
         if (f.tick <= 0) {
           f.tick = 0.25;
           const dps = k === "fire" ? 9 + 3 * L : k === "dust" ? 7 + 2.5 * L : 11 + 3 * L;
-          aoe(f.x, f.y, R, wdmg(dps * 0.25), 0, k === "dust" ? (e) => hitStatus(e, 0, 0.5, 0.5) : null);
+          aoe(f.x, f.y, R, wdmg(dps * 0.25), 0, k === "dust" ? (e) => hitStatus(e, 0, 0.5, 0.5) : f.evo ? (e) => !state.enemies.includes(e) && healPlayer(1.5) : null);
         }
       } else if (k === "hole") {
         f.tick -= dt;
-        const pullR = 115 + 8 * L,
-          strength = 170;
+        const pullR = (115 + 8 * L) * (f.big ? 1.45 : 1),
+          strength = f.big ? 210 : 170;
+        if (f.big)
+          for (const d of [...state.drops]) {
+            if (d.type === "vacuum") continue;
+            const ddx = f.x - d.x,
+              ddy = f.y - d.y,
+              dd = Math.hypot(ddx, ddy);
+            if (dd > pullR) continue;
+            if (dd < 14) collectDrop(d);
+            else {
+              const st = Math.min(dd, 280 * dt);
+              d.x += (ddx / dd) * st;
+              d.y += (ddy / dd) * st;
+            }
+          }
         for (const e of enemiesIn(f.x, f.y, pullR)) {
           const dx = f.x - e.x,
             dy = f.y - e.y,
@@ -2667,6 +3208,60 @@
             }
           }
         if (dead) continue;
+      } else if (k === "note") {
+        f.hopT += dt;
+        if (f.hopT < 0) {
+          if (f.t < f.life) keep.push(f);
+          continue;
+        }
+        const u = Math.min(1, f.hopT / f.hopDur);
+        if (f.tgt && state.enemies.includes(f.tgt)) ((f.tx = f.tgt.x), (f.ty = f.tgt.y));
+        f.x = f.sx + (f.tx - f.sx) * u;
+        f.y = f.sy + (f.ty - f.sy) * u;
+        f.z = Math.sin(u * Math.PI) * (f.evo ? 36 : 26);
+        if (u >= 1) {
+          const tg = f.tgt,
+            dmg = wdmg((14 + 6 * L) * (f.evo ? 1.35 : 1));
+          if (f.evo) {
+            const R = 42 + 5 * L;
+            aoe(f.tx, f.ty, R, dmg, 90, (e) => hitStatus(e, 0.55, 0, 0));
+            fx({ k: "thump", x: f.tx, y: f.ty, t: 0, life: 0.35, R });
+            shake = Math.max(shake, 3);
+          } else if (tg && state.enemies.includes(tg)) {
+            damageEnemy(tg, dmg, false);
+            if (state.enemies.includes(tg)) {
+              const d = Math.hypot(tg.x - f.sx, tg.y - f.sy) || 1,
+                kb = (70 + 15 * L) * (tg.boss ? 0.25 : 1);
+              tg.vx += ((tg.x - f.sx) / d) * kb;
+              tg.vy += ((tg.y - f.sy) / d) * kb;
+            }
+            fx({ k: "ting", x: f.tx, y: f.ty, t: 0, life: 0.25 });
+          }
+          if (tg) f.hit.add(tg);
+          noteBeep(f.step + f.seq * 2, f.evo);
+          f.step++;
+          let nb = null,
+            bd = 150;
+          if (f.step <= f.hops)
+            for (const e of state.enemies)
+              if (!f.hit.has(e) && inReach(e)) {
+                const d = Math.hypot(e.x - f.tx, e.y - f.ty);
+                if (d < bd) ((bd = d), (nb = e));
+              }
+          if (!nb) continue; // out of hops or nobody left to bounce to: the note fades out
+          f.sx = f.tx;
+          f.sy = f.ty;
+          f.tgt = nb;
+          f.tx = nb.x;
+          f.ty = nb.y;
+          f.hopT = 0;
+          f.hopDur = 0.22 + Math.min(0.16, bd / 900);
+        }
+      } else if (k === "static") {
+        f.tick -= dt;
+        if (f.tick <= 0) ((f.tick = 0.3), aoe(f.x, f.y, f.R, wdmg((6 + 2 * L) * 0.3), 0, (e) => hitStatus(e, 0, 0.4, 0.7)));
+      } else if (k === "gang") {
+        if (f.gang.members.every((e) => !state.enemies.includes(e))) continue;
       } else if (k === "ring") {
         const r = (f.t / f.life) * f.R;
         f.r = r;
@@ -3092,7 +3687,21 @@
           dh = Math.round((dw * 80) / 96);
         pxCircle(x, y, f.R, "#4a7a1a", 0.14 * fade);
         g.globalAlpha = fade;
-        g.drawImage(IMAGES.flies, fr * 96, 0, 96, 80, Math.round(x - dw / 2 + Math.sin(T * 5) * 2), Math.round(y - 6 - dh / 2 + Math.cos(T * 4) * 2), dw, dh);
+        if (f.evo) {
+          // v0.11 Swamp Hag's Cauldron: a wider cloud made of several normal-size swarms (flies keep their pixel size)
+          glow(x, y - 4, f.R * 0.9, "#3aff5a", 0.07 * fade);
+          const bw = Math.round((f.R / 1.4) * 2.3),
+            bh = Math.round((bw * 80) / 96);
+          g.drawImage(IMAGES.flies, fr * 96, 0, 96, 80, Math.round(x - bw / 2), Math.round(y - 6 - bh / 2), bw, bh);
+          const sw = Math.round(bw * 0.5),
+            sh = Math.round(bh * 0.5);
+          g.globalAlpha = fade * 0.75;
+          for (let i = 0; i < 2; i++) {
+            const a = T * 1.6 + i * Math.PI,
+              fi = (fr + 2 * i + 1) % 4;
+            g.drawImage(IMAGES.flies, fi * 96, 0, 96, 80, Math.round(x + Math.cos(a) * f.R * 0.75 - sw / 2), Math.round(y - 6 + Math.sin(a) * f.R * 0.45 - sh / 2), sw, sh);
+          }
+        } else g.drawImage(IMAGES.flies, fr * 96, 0, 96, 80, Math.round(x - dw / 2 + Math.sin(T * 5) * 2), Math.round(y - 6 - dh / 2 + Math.cos(T * 4) * 2), dw, dh);
         g.globalAlpha = 1;
         f.drawnFrame = fr;
       } else if (f.k === "bugs") {
@@ -3112,6 +3721,154 @@
       }
     }
     if (p.bookFx > 0) spr("deadanomicon", hx, hy - 42, 28, 0, false, Math.min(1, p.bookFx * 3));
+    drawEvoAir(camX, camY, hx, hy);
+  }
+  // ---------- v0.11 evolution / music-note fx: hand-pixelled sprites (assets/fx/evo-fx.png) + code glows ----------
+  const EVO_SPR = { note: [0, 0, 12, 15], double: [16, 0, 16, 13], bass: [40, 0, 22, 16], link: [64, 0, 10, 6], sparkA: [80, 0, 14, 12], sparkB: [96, 0, 14, 12], heal: [112, 0, 9, 9], gold: [124, 0, 9, 9], cauldron: [136, 0, 26, 24], grave: [0, 40, 72, 36] };
+  function evoSpr(n, x, y, sc = 1, a = 1, rot = 0) {
+    const im = IMAGES.evofx;
+    if (!ready(im) || a <= 0) return false;
+    const [sx, sy, sw, sh] = EVO_SPR[n];
+    g.save();
+    g.globalAlpha = Math.min(1, a);
+    g.translate(Math.round(x), Math.round(y));
+    if (rot) g.rotate(rot);
+    g.drawImage(im, sx, sy, sw, sh, Math.round((-sw * sc) / 2), Math.round((-sh * sc) / 2), Math.round(sw * sc), Math.round(sh * sc));
+    g.restore();
+    return true;
+  }
+  function glow(x, y, r, color, a) {
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    pxCircle(x, y, r, color, a);
+    g.restore();
+  }
+  function drawEvoGround(camX, camY) {
+    const T = state.t;
+    for (const f of state.wfx) {
+      const x = f.x - camX,
+        y = f.y - camY;
+      if (f.k === "grave") {
+        const open = Math.min(1, f.t / 0.12),
+          fade = Math.min(1, (f.life - f.t) / 0.35),
+          sc = ((f.R * 1.7) / 72) * (0.55 + 0.45 * open);
+        evoSpr("grave", x, y, sc, fade);
+        glow(x, y, f.R * 0.9 * open, "#ff8a3a", 0.12 * fade);
+        if (f.t < 0.25) {
+          g.globalAlpha = (1 - f.t / 0.25) * 0.7;
+          g.strokeStyle = "#e8d2a8";
+          g.lineWidth = 3;
+          g.beginPath();
+          g.ellipse(x, y, f.R * (0.6 + f.t * 2.4), f.R * (0.36 + f.t * 1.4), 0, 0, TAU);
+          g.stroke();
+          g.globalAlpha = 1;
+        }
+      } else if (f.k === "sweep") {
+        const u = f.t / f.life;
+        g.globalAlpha = (1 - u) * 0.75;
+        g.strokeStyle = "#e9dcc0";
+        g.lineWidth = 4;
+        g.beginPath();
+        g.ellipse(x, y, f.R * (0.75 + 0.3 * u), f.R * 0.5 * (0.75 + 0.3 * u), 0, f.a + u * TAU - 1.6, f.a + u * TAU + 1.6);
+        g.stroke();
+        g.strokeStyle = "#8a7a64";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.ellipse(x, y, f.R * 0.6, f.R * 0.36, 0, f.a + u * TAU - 1.2, f.a + u * TAU + 0.8);
+        g.stroke();
+        g.globalAlpha = 1;
+      } else if (f.k === "cauldron") {
+        const fade = Math.min(1, f.t / 0.2, (f.life - f.t) / 0.5);
+        pxCircle(x, y + 10, 16, "#000000", 0.35 * fade);
+        glow(x, y - 8, 22, "#4aff5a", 0.16 * fade * (0.8 + 0.2 * Math.sin(T * 6)));
+        evoSpr("cauldron", x, y, 1.15, fade);
+        for (let i = 0; i < 4; i++) {
+          const ph = (T * 0.9 + i * 0.27) % 1;
+          evoSpr("heal", x - 8 + i * 5, y - 14 - ph * 26, 0.6, (1 - ph) * fade * 0.8);
+        }
+      } else if (f.k === "static") {
+        const fade = Math.min(1, f.t / 0.1, (f.life - f.t) / 0.4);
+        glow(x, y, f.R, "#3aa8ff", 0.14 * fade);
+        for (let i = 0; i < 3; i++) {
+          const a = f.seed + i * 2.1 + Math.floor(T * 12) * 0.7,
+            rr = f.R * (0.25 + 0.5 * ((i * 37 + Math.floor(T * 12)) % 7) / 7);
+          evoSpr((Math.floor(T * 14) + i) % 2 ? "sparkA" : "sparkB", x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.6, 0.9, fade);
+        }
+      } else if (f.k === "gang") {
+        const live = f.gang.members.filter((e) => state.enemies.includes(e)).sort((a, b) => a.x - b.x),
+          fade = Math.min(1, (f.life - f.t) / 0.3);
+        for (let i = 1; i < live.length; i++) {
+          const a = live[i - 1],
+            b = live[i],
+            ax = a.x - camX,
+            ay = a.y - camY - 10,
+            bx = b.x - camX,
+            by = b.y - camY - 10,
+            d = Math.hypot(bx - ax, by - ay),
+            n = Math.max(2, Math.floor(d / 9)),
+            rot = Math.atan2(by - ay, bx - ax);
+          for (let j = 0; j <= n; j++) {
+            const u = j / n,
+              sag = Math.sin(u * Math.PI) * Math.min(14, d * 0.12);
+            evoSpr("link", ax + (bx - ax) * u, ay + (by - ay) * u + sag, 1, fade * 0.9, rot + (j % 2 ? 0.25 : -0.25));
+          }
+        }
+      } else if (f.k === "hole" && f.big) {
+        glow(x, y, 52 * Math.min(1, f.t / 0.25, (f.life - f.t) / 0.3), "#c070ff", 0.18);
+      }
+    }
+  }
+  function drawEvoAir(camX, camY, hx, hy) {
+    const T = state.t;
+    for (const f of state.wfx) {
+      const x = f.x - camX,
+        y = f.y - camY;
+      if (f.k === "note" && f.hopT >= 0) {
+        const z = f.z || 0,
+          wob = Math.sin(T * 12 + f.seq) * 0.3;
+        pxCircle(x, y, f.evo ? 7 : 5, "#000000", 0.3);
+        glow(x, y - z - 2, f.evo ? 16 : 11, f.evo ? "#d24bff" : "#5fd8ff", 0.35);
+        evoSpr(f.evo ? "bass" : f.seq % 2 ? "double" : "note", x, y - z - 2, f.evo ? 1.25 : 1.15, 1, wob);
+      } else if (f.k === "ting") {
+        const u = f.t / f.life;
+        g.globalAlpha = 1 - u;
+        g.strokeStyle = "#bff4ff";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.ellipse(x, y - 6, 6 + 16 * u, (6 + 16 * u) * 0.62, 0, 0, TAU);
+        g.stroke();
+        g.globalAlpha = 1;
+      } else if (f.k === "thump") {
+        const u = f.t / f.life;
+        glow(x, y, f.R * u, "#d24bff", 0.3 * (1 - u));
+        g.globalAlpha = 1 - u;
+        g.strokeStyle = "#f2a6ff";
+        g.lineWidth = 3;
+        g.beginPath();
+        g.ellipse(x, y, f.R * u, f.R * u * 0.62, 0, 0, TAU);
+        g.stroke();
+        g.strokeStyle = "#6a2ca0";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.ellipse(x, y, f.R * u * 0.7, f.R * u * 0.43, 0, 0, TAU);
+        g.stroke();
+        g.globalAlpha = 1;
+      } else if (f.k === "heal") {
+        const u = f.t / f.life;
+        evoSpr(f.gold ? "gold" : "heal", x, y - u * 26, 1, 1 - u);
+      } else if (f.k === "toll" && f.evo) {
+        const u = f.t / f.life;
+        glow(hx, hy - 46, 30, "#ffcf4a", 0.3 * (1 - u));
+        g.globalAlpha = (1 - u) * 0.6;
+        g.strokeStyle = "#fff3a0";
+        g.lineWidth = 3;
+        const r = f.R * Math.min(1, u * 1.4);
+        g.beginPath();
+        g.ellipse(x, y, r, r * 0.62, 0, 0, TAU);
+        g.stroke();
+        g.globalAlpha = 1;
+      }
+    }
   }
   // ---------- Stage 2 cold mist (Frozen Foods + Dairy only) and the shaded map edge ----------
   let fogTex = null;
@@ -3252,14 +4009,19 @@
     } else if (ready(IMAGES.wpn2)) ctx.drawImage(IMAGES.wpn2, NW_IDS.indexOf(id) * 64, 0, 64, 64, x, y, size, size);
   }
   let levelUpKeys = null; // keyboard/gamepad shortcuts for the open level-up card (R reroll, B banish, 1-3 pick)
+  let luRerolling = false;
   function showLevelUp() {
     if (!state || !pendingLevelUps) return;
     if (mode !== "levelup") sfx("level_up");
     mode = "levelup";
-    let available = getAvailableUpgrades();
+    let available = isV1() ? [] : getAvailableUpgrades();
     const fallback = !available.length;
-    if (fallback) available = FALLBACK_UPS.slice(); // v14: everything maxed -> heal or hazard pay
-    const choices = fallback ? available : pickChoices(available);
+    if (fallback) available = isV1() ? [V1_CARD] : FALLBACK_UPS.slice(); // v14: everything maxed -> heal or hazard pay; v18: V1sion can't read
+    // pity bookkeeping: counted once per level-up (a reroll redraws against the same starting count)
+    if (!luRerolling) state.luMissStart = state.luMiss || 0;
+    luRerolling = false;
+    const choices = fallback ? available : pickChoices(available, !isV1() && state.luMissStart >= LEVELUP_PITY_AFTER);
+    if (!fallback && !isV1()) state.luMiss = choices.some((u) => STAT_IDS.includes(u.id)) ? 0 : state.luMissStart + 1;
     const slotsUsed = syncSlots().length;
     state.lastChoices = choices.map((u) => u.id);
     panelShow(
@@ -3267,7 +4029,7 @@
         .map((u, i) => {
           const w = state.weapons[u.id],
             isNew = w && !w.level;
-          return `<button class="choice${isNew ? " is-new" : ""}" data-choice="${i}" data-id="${u.id}"><span class="choice-tag">${upgradeLabel(u)}</span><b>${u.title}</b>${w && w.level && u.up ? u.up : u.desc}</button>`;
+          return `<button class="choice${isNew ? " is-new" : ""}" data-choice="${i}" data-id="${u.id}"><span class="choice-tag">${upgradeLabel(u)}</span><b>${isEvo(u.id) ? EVO[u.id].name : u.title}</b>${w && w.level && u.up ? u.up : u.desc}${w ? evoHintHTML(u.id) : partnerHintHTML(u.id)}</button>`;
         })
         .join("")}</div>${
         fallback
@@ -3283,6 +4045,7 @@
       if (!rerollBtn || rerollBtn.disabled || state.rerolls <= 0) return;
       state.rerolls--;
       sfx("ui_click", 0.9, () => audioBeep(420, 0.08, "square", 0.02));
+      luRerolling = true;
       showLevelUp();
     };
     const toggleBanish = () => {
@@ -3327,11 +4090,16 @@
   // ---- Attack poses: priority + minimum display time so walking never instantly cancels a visible attack.
   // shovel (melee) > nail gun (ranged) > chainsaw > holy water. Shovel and gun poses also play while walking;
   // chainsaw / holy water only take over the body when Hog is standing still (their effects always show).
-  const POSE_PRI = { shovel: 4, nail: 3, chainsaw: 2, water: 1 },
-    POSE_DUR = { shovel: 0.32, nail: 0.24, chainsaw: 0.18, water: 0.2 },
+  const POSE_PRI = { shovel: 4, nail: 3, chainsaw: 2, water: 1, strike: 4 }, // v18 strike: other characters' attack row
+    POSE_DUR = { shovel: 0.32, nail: 0.24, chainsaw: 0.18, water: 0.2, strike: 0.44 },
     POSE_MIN = 0.16,
     SWING_HIT = 0.08;
-  function setPose(type, aim) {
+  // v0.11 test3: a character's body attack animation is driven ONLY by their signature (first) weapon. Characters who
+  // don't start with the shovel ignore the pose requests of every other weapon (shovel, nail gun, ...); the signature
+  // weapon asks with sig = true. Shovel-start characters (Grave Hog, New Look) behave exactly as before.
+  const sigIsShovel = () => curChar().start === "shovel";
+  function setPose(type, aim, sig) {
+    if (!sig && !sigIsShovel()) return false;
     const p = state.player,
       cur = p.pose;
     if (cur && cur.t < cur.dur) {
@@ -3343,11 +4111,19 @@
     p.aim = aim;
     return true;
   }
+  // Called once each time the character's signature weapon actually fires (its cooldown just restarted).
+  // Plays the "strike" attack pose once; counters are for QA only.
+  function sigFire(aim) {
+    state.sigFires = (state.sigFires || 0) + 1;
+    if (setPose("strike", aim, true)) state.sigAnims = (state.sigAnims || 0) + 1;
+  }
   function doAttack(dt) {
     const p = state.player,
       weapons = state.weapons,
       nearest = nearestEnemy(230),
       wdt = dt * weaponSpeedMul(); // v8 treasure bonus: weapons recharge faster
+    if (isV1()) return doPuddle(dt, wdt);
+    // v0.11 test3: the old fixed 0.9 s "strike" flourish is gone; non-shovel characters strike when their signature weapon fires (sigFire)
     weapons.shovel.cooldown -= wdt;
     if (p.swing) {
       p.swing.t += dt;
@@ -3359,7 +4135,7 @@
         for (const e of [...state.enemies]) {
           const ea = Math.atan2(e.y - p.y, e.x - p.x),
             delta = Math.atan2(Math.sin(ea - a), Math.cos(ea - a));
-          if (dist(p, e) < weapons.shovel.range + e.r && Math.abs(delta) < weapons.shovel.arc) {
+          if (dist(p, e) < weapons.shovel.range + e.r && (weapons.shovel.evo || Math.abs(delta) < weapons.shovel.arc)) {
             damageEnemy(e, weapons.shovel.damage * p.damage, true);
             hits++;
           }
@@ -3367,6 +4143,11 @@
         state.swingLog = state.swingLog || [];
         if (state.swingLog.length < 50) state.swingLog.push({ t: state.t, poseFrame: hogAnimState().frame, pose: p.pose?.type, hits });
         sfx("shovel_hit", 1, () => audioBeep(155, 0.06, "square", 0.03));
+        if (weapons.shovel.evo) {
+          state.ugSwings = (state.ugSwings || 0) + 1;
+          if (state.ugSwings % 5 === 0) undertakerSlam();
+          else fx({ k: "sweep", x: p.x, y: p.y, t: 0, life: 0.28, R: weapons.shovel.range, a, src: "shovel" });
+        }
       }
       if (p.swing.t >= POSE_DUR.shovel) p.swing = null;
     }
@@ -3491,6 +4272,80 @@
     }
     doAttack2(dt, wdt);
   }
+
+  // ---- v18: V1sion Goon's only "weapon": he drops a puddle of yellow water. No upgrades ever, but the puddle grows a
+  // little with every level, so a good enough player can technically win with him.
+  function doPuddle(dt, wdt) {
+    const p = state.player,
+      L = p.level,
+      near = nearestEnemy(150);
+    state.puddleCd -= wdt;
+    if (near && state.puddleCd <= 0) {
+      state.puddleCd = Math.max(1.1, 2.4 - L * 0.05);
+      state.puddles.push({ x: p.x, y: p.y + 10, r: Math.min(74, 24 + L * 2.2), t: 0, life: 4.5 + Math.min(3, L * 0.1), seed: Math.random() * 10 });
+      (state.sigFires = (state.sigFires || 0) + 1), setPose("strike", Math.atan2(near.y - p.y, near.x - p.x), true) && (state.sigAnims = (state.sigAnims || 0) + 1); // the shameful crouch (V1sion's puddle IS his signature weapon)
+      sfx("gas_hiss", 0.5, () => audioBeep(300, 0.08, "sine", 0.01), 1.6);
+    }
+    dmgSrc = "puddle";
+    const dps = (12 + L * 2.5) * p.damage;
+    for (const q of state.puddles) {
+      q.t += dt;
+      const grow = Math.min(1, q.t / 0.35);
+      for (const e of state.enemies) {
+        const dx = (e.x - q.x) / (q.r * grow + e.r),
+          dy = (e.y - q.y) / (q.r * 0.6 * grow + e.r);
+        if (dx * dx + dy * dy < 1) {
+          hitStatus(e, 0, 0.3, 0.55); // sticky
+          damageEnemy(e, dps * dt, false);
+        }
+      }
+    }
+    state.puddles = state.puddles.filter((q) => q.t < q.life);
+  }
+  function drawPuddles(camX, camY) {
+    for (const q of state.puddles) {
+      const k = Math.min(1, q.t / 0.35),
+        fade = Math.min(1, (q.life - q.t) / 1),
+        x = Math.round(q.x - camX),
+        y = Math.round(q.y - camY),
+        rx = q.r * k,
+        ry = q.r * 0.6 * k;
+      g.globalAlpha = 0.55 * fade;
+      g.fillStyle = "#b89a12";
+      g.beginPath();
+      g.ellipse(x, y, rx + 2, ry + 2, 0, 0, TAU);
+      g.fill();
+      g.fillStyle = "#e8d23a";
+      g.beginPath();
+      g.ellipse(x, y, rx, ry, 0, 0, TAU);
+      g.fill();
+      g.globalAlpha = 0.5 * fade;
+      g.fillStyle = "#fff59a";
+      g.beginPath();
+      g.ellipse(x - rx * 0.3, y - ry * 0.3, rx * 0.35, ry * 0.25, 0, 0, TAU);
+      g.fill();
+      // a ripple now and then
+      const ph = (state.t * 0.9 + q.seed) % 1;
+      g.globalAlpha = 0.4 * fade * (1 - ph);
+      g.strokeStyle = "#fff8c0";
+      g.lineWidth = 1;
+      g.beginPath();
+      g.ellipse(x + Math.sin(q.seed) * rx * 0.3, y, rx * ph * 0.6, ry * ph * 0.6, 0, 0, TAU);
+      g.stroke();
+      g.globalAlpha = 1;
+    }
+  }
+  const V1_CARD = {
+    id: "v1_read",
+    title: "V1SION CAN'T READ",
+    desc: "He stares at the upgrade cards for a while. Nothing happens. Feels a bit better though: +15 health, +5 wages. (His puddle got a little bigger.)",
+    apply: (s) => {
+      s.player.hp = Math.min(s.player.maxHp, s.player.hp + 15);
+      save.wages += 5;
+      s.earned += 5;
+      saveGame();
+    },
+  };
   // =====================================================================================
   //  UPDATE
   // =====================================================================================
@@ -3508,9 +4363,15 @@
     }
     return ax > ay ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
   }
+  // TEST 2: current multiplier for REGULAR enemies' damage (1.0 at midnight, ENEMY_DMG_SCALE_MAX at 6 AM, linear, capped past 6 AM).
+  function enemyDmgScale() {
+    const t0 = DMG_SCALE_START_HOUR * REAL_SECONDS_PER_HOUR; // TEST 3: flat 1.0x until 1 AM, then linear to MAX at 6 AM
+    return 1 + (ENEMY_DMG_SCALE_MAX - 1) * clamp((state.t - t0) / (SHIFT_SECONDS - t0), 0, 1);
+  }
   function hitPlayer(amount, invuln, shakeAmt, color = "#df6654") {
     const p = state.player;
     if (state.sunrise) return false; // the dead can't hurt anyone in daylight
+    amount *= limitlessMul(); // Limitless ramp: +2% damage per minute for every enemy, boss and hazard hit (1.0 outside Limitless)
     p.hp -= amount;
     state.damageTaken += amount;
     p.invuln = invuln;
@@ -3615,6 +4476,12 @@
       computeFlowField();
     }
     state.clock = Math.min(6, state.t / REAL_SECONDS_PER_HOUR);
+    if (!state.windWarned && state.t >= DMG_SCALE_START_HOUR * REAL_SECONDS_PER_HOUR) {
+      // TEST 3: 1 AM, monsters start hitting harder. Uses the big centre-screen event banner for a few seconds.
+      state.windWarned = true;
+      state.eventText = FOUL_WIND_TEXT;
+      state.eventUntil = state.t + 5;
+    }
     if (state.t >= SHIFT_SECONDS && !state.clockBoom) explodeClock();
     state.spawn -= dt;
     const cap = Math.min(85, 34 + state.t / 9);
@@ -3689,7 +4556,7 @@
           if (e.engaged && d < 300) {
             if (d < e.r + 28) {
               // close slam (unchanged v5 mechanic)
-              if (p.invuln <= 0 && hitPlayer(e.damage * 1.5, 0.75, 9)) return;
+              if (p.invuln <= 0 && hitPlayer(e.damage * 1.5 * GRAVE_DIGGER_DMG_MULT, 0.75, 9)) return;
             } else startBoneThrow(e);
           }
         } else if (e.attack <= 0) {
@@ -3763,7 +4630,9 @@
         }
       }
       if (d < e.r + p.r && p.invuln <= 0 && !(e.fearT > 0)) {
-        if (hitPlayer(e.damage, 0.55, 6)) return;
+        // TEST 2: regular enemies scale with the shift clock; bosses don't (Grave Digger is softened instead).
+        const contactDmg = e.boss ? e.damage * (e.bossId === "digger" ? GRAVE_DIGGER_DMG_MULT : 1) : e.damage * enemyDmgScale();
+        if (hitPlayer(contactDmg, 0.55, 6)) return;
       }
     }
     for (const q of [...state.projectiles]) {
@@ -3787,8 +4656,8 @@
         if (Math.random() < 0.6)
           state.particles.push({ x: q.x + rand(-3, 3), y: q.y + rand(-3, 3), vx: -q.vx * 0.15, vy: -q.vy * 0.15 - 20, life: 0.3, max: 0.3, color: q.fire === "blue" ? (Math.random() < 0.5 ? "#3a6bff" : "#9fd0ff") : Math.random() < 0.5 ? "#2bd94a" : "#b8ff9a", r: 3, float: true });
       }
-      if (solidAt(q.x, q.y)) {
-        // Nails, bones and boss bolts stop on walls, headstones and buildings.
+      if (!q.pierce && solidAt(q.x, q.y)) {
+        // Nails, bones and boss bolts stop on walls (not pierce shots: the security drone laser flies through them), headstones and buildings.
         if (q.bone) boneImpact(q.x, q.y);
         else addParticle(q.x, q.y, q.enemy ? q.color || "#d6c0ff" : "#d9d2bf", 3, 0.5);
         q.life = 0;
@@ -3803,7 +4672,10 @@
             state.bossFireHits[q.src]++;
             addParticle(q.x, q.y, q.color, 10, 1);
           }
-          if (hitPlayer(q.damage, 0.7, 8)) return;
+          // TEST 2: boss shots (digger bones, widow/king fire, stage 2 boss shots) are not scaled; regular enemy shots are.
+          const bossShot = q.bone || (q.src && BOSS[q.src]);
+          const shotDmg = q.bone ? q.damage * GRAVE_DIGGER_DMG_MULT : bossShot ? q.damage : q.damage * enemyDmgScale();
+          if (hitPlayer(shotDmg, 0.7, 8)) return;
         }
       } else {
         for (const e of [...state.enemies])
@@ -3920,6 +4792,12 @@
     for (const e of [...state.enemies]) {
       e.flash = 0;
       if (e.rising > 0) e.rising -= dt;
+      if (s.t >= HORDE_SECONDS && s.t < e.burnAt) {
+        // Sunrise has hit: everything stops dead (no chasing/pushing) until it ignites and burns out where it stands.
+        e.vx = e.vy = 0;
+        updateFacing(e);
+        continue;
+      }
       if (s.t < e.burnAt) {
         // shamble toward Grave Hog (harmless now), stopping short of him
         const d = dist(p, e) || 1;
@@ -3933,6 +4811,7 @@
         updateFacing(e);
         continue;
       }
+      e.vx = e.vy = 0; // burning monsters never move
       e.burnT += dt;
       const k = e.burnT / e.burnDur;
       if (Math.random() < 0.6)
@@ -4070,6 +4949,9 @@
     }
     save.shifts++;
     if (win && STAGE === 1) save.stage2Unlocked = true;
+    if (win && STAGE === 1 && !state.limitless) unlockChar("vox");
+    if (win && STAGE === 2 && !state.limitless) unlockChar("trashqueen");
+    if (!win && !state.limitless && state.t < 60) unlockChar("v1sion"); // Clocked Out Early
     if (win && STAGE === 2) save.megaMartClears = (save.megaMartClears || 0) + 1;
     save.bestKills = Math.max(save.bestKills, state.kills);
     save.bestLevel = Math.max(save.bestLevel, state.player.level);
@@ -4084,14 +4966,16 @@
       saveGame();
     }
     const p = state.player,
-      headline = LM ? `LIMITLESS: SURVIVED ${fmtMMSS(state.t - LM.t0)}` : win ? (STAGE === 2 ? "MEGA MART CLEARED!" : "SHIFT COMPLETE!") : "YOU GOT CLOCKED",
+      headline = LM ? `LIMITLESS: SURVIVED ${fmtMMSS(state.t - LM.t0)}` : win && isV1() ? "MANAGEMENT IS CONFUSED" : win ? (STAGE === 2 ? "MEGA MART CLEARED!" : "SHIFT COMPLETE!") : "YOU GOT CLOCKED",
+      unlockHTML = (state.newUnlocks || []).map((id) => `<div class="unlock-banner">★ NEW CHARACTER: ${CHAR_BY[id].name.toUpperCase()} ★<span>"${CHAR_BY[id].goal}" · pick them at START SHIFT</span></div>`).join("") + (win && isV1() && !LM ? `<div class="unlock-banner v1">🏅 EMPLOYEE OF THE MONTH (SOMEHOW)<span>V1sion survived the whole shift with no upgrades. Nobody can explain it.</span></div>` : ""),
       endMode = mode;
     // the results card can be reopened (BACK from the office), so the run is never lost by visiting the office
     resultsView = () => {
+    const WHO = curChar().name.replace(": New Look", "");
     mode = endMode;
     menuBack = "results";
     panelShow(
-      `<div class="eyebrow">${LM ? "THE NIGHT NEVER ENDS" : win ? "SUNRISE, FINALLY" : "THE NIGHT GOT YOU"}</div><h2>${headline}</h2>${LM ? `<p class="status-line">${LM.bosses} BOSSES BEATEN · ${LM.paid} LIMITLESS WAGES · BEST ${fmtMMSS(LM.best)}${LM.newBest ? " — NEW BEST!" : ""}</p>` : ""}<p>${LM ? "Grave Hog finally drops. Somebody else can cover the rest of this shift." : win ? (STAGE === 2 ? "The store lights flicker off. The aisles are quiet. Grave Hog has earned a nap." : "Grave Hog punches the timecard. The monsters burn off in the morning light.") : "Management has been notified. Management does not care."}</p><p class="status-line">${win ? "6:00 AM" : formatClock(state.clock)} · ${state.kills} KILLS · LEVEL ${p.level}<br>${state.bosses} BOSSES · ${state.earned} WAGES EARNED · ${Math.round(state.damageTaken)} DAMAGE TAKEN</p>${damageBreakdownHTML()}`,
+      `<div class="eyebrow">${LM ? "THE NIGHT NEVER ENDS" : win ? "SUNRISE, FINALLY" : "THE NIGHT GOT YOU"}</div><h2>${headline}</h2>${unlockHTML}${LM ? `<p class="status-line">${LM.bosses} BOSSES BEATEN · ${LM.paid} LIMITLESS WAGES · BEST ${fmtMMSS(LM.best)}${LM.newBest ? " — NEW BEST!" : ""}</p>` : ""}<p>${LM ? "" + WHO + " finally drops. Somebody else can cover the rest of this shift." : win ? (STAGE === 2 ? "The store lights flicker off. The aisles are quiet. " + WHO + " has earned a nap." : "" + WHO + " punches the timecard. The monsters burn off in the morning light.") : "Management has been notified. Management does not care."}</p><p class="status-line">${win ? "6:00 AM" : formatClock(state.clock)} · ${state.kills} KILLS · LEVEL ${p.level}<br>${state.bosses} BOSSES · ${state.earned} WAGES EARNED · ${Math.round(state.damageTaken)} DAMAGE TAKEN</p>${win ? "" : deathTipHTML()}${damageBreakdownHTML()}`,
     );
     const stageNow = STAGE;
     // v10 order: sunrise -> countdown -> results card -> CONTINUE -> outro panels -> next stage / ending screen.
@@ -4119,8 +5003,19 @@
     };
     resultsView();
   }
+  // TEST 3: death-screen tips (one random line per game over). Every line describes a real mechanic in this build.
+  const DEATH_TIPS = [
+    "Tip: Upgrade pizza healing at the Office (Extra Cheese: +3 health from every pizza).",
+    "Tip: A weapon at level 5 plus its partner perk (taken at least once) turns your next chest into an evolution. Level-up cards show the recipe.",
+    "Tip: Limit Break in the Office raises the max level of every weapon past 5.",
+    "Tip: Every boss you beat makes the chests reappear. Go open them: each one is a free upgrade.",
+    "Tip: Monsters hit harder after 1 AM, up to double by 6 AM. Keep moving and grab pizza.",
+    "Tip: The Ghost Vacuum pickup pulls every gem and coin on the map to you. The Grave Digger always drops one.",
+    "Tip: Don't like your level-up cards? Reroll (R) draws new ones and Banish (B) removes one for the whole shift. Buy more of both in the Office.",
+  ];
+  const deathTipHTML = () => `<p class="muted"><b>${pick(DEATH_TIPS)}</b></p>`;
   // Results: damage dealt by each weapon this shift, biggest first, as little bars
-  const weaponName = (id) => (id === "shovel" ? "Shovel" : id === "other" ? "Other" : UPGRADES.find((u) => u.id === id)?.title || id);
+  const weaponName = (id) => (isEvo(id) ? EVO[id].name : id === "shovel" ? "Shovel" : id === "puddle" ? "Yellow Puddle" : id === "other" ? "Other" : UPGRADES.find((u) => u.id === id)?.title || id);
   function damageBreakdownHTML(max = 6) {
     const rows = Object.entries(state.dmgBy || {})
       .filter(([, v]) => v >= 1)
@@ -4143,8 +5038,12 @@
   // half XP, and a paycheck every minute that grows the longer Hog survives. Ends when Hog drops. ----
   const LIMITLESS_FIRST_BOSS = 20,
     LIMITLESS_BOSS_EVERY = 60,
-    LIMITLESS_XP = 0.5,
+    LIMITLESS_XP = 1, // TEST 3 balance patch: full XP in Limitless (was 0.5)
     LIMITLESS_PAY_STEP = 15; // paycheck for minute n = 15 * n wages
+  // TEST 3 balance patch: every Limitless minute, enemy HP and damage grow another +2% of the value at Limitless start (no cap).
+  const LIMITLESS_RAMP_PER_MIN = 0.02;
+  const limitlessMinutes = () => (state && state.limitless ? Math.max(0, (state.t - state.limitless.t0) / 60) : 0);
+  const limitlessMul = () => 1 + LIMITLESS_RAMP_PER_MIN * limitlessMinutes();
   const fmtMMSS = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   function startLimitless() {
     if (!state) return;
@@ -4163,7 +5062,7 @@
     panelHide();
     state.eventText = "LIMITLESS MODE";
     state.eventUntil = state.t + 4;
-    toastMsg("LIMITLESS: a boss every minute, half XP, and a bigger paycheck every minute you survive.");
+    toastMsg("LIMITLESS: a boss every minute, full XP, a bigger paycheck every minute, and monsters get +2% HP and damage each minute.");
   }
   function updateLimitless() {
     const L = state.limitless,
@@ -4176,6 +5075,7 @@
       const b = state.enemies[state.enemies.length - 1];
       if (b && b.bossId === id) {
         if (spot) ((b.x = spot.x), (b.y = spot.y));
+        b.hp = b.maxHp = b.maxHp * limitlessMul(); // Limitless ramp applies to bosses too (their damage is scaled in hitPlayer)
         b.engaged = true; // no arena waiting in Limitless: it comes straight for Hog
         b.limitless = true;
       }
@@ -4183,6 +5083,7 @@
       shake = Math.max(shake, 9);
       sfx("slam_impact", 1.2, () => audioBeep(60, 0.5, "sawtooth", 0.07));
     }
+    if (el >= 600 && !charUnlocked("taz")) unlockChar("taz"); // Keep the Beat
     if (el >= L.nextPay) {
       L.nextPay += 60;
       L.minute++;
@@ -4191,7 +5092,7 @@
       state.earned += pay;
       L.paid += pay;
       saveGame();
-      toastMsg(`LIMITLESS PAYCHECK: minute ${L.minute} survived, +${pay} wages.`);
+      toastMsg(`LIMITLESS PAYCHECK: minute ${L.minute} survived, +${pay} wages. Monsters now +${Math.round((limitlessMul() - 1) * 100)}% HP and damage.`);
       sfx("pickup", 1.4, () => audioBeep(880, 0.15, "triangle", 0.04));
     }
   }
@@ -4299,6 +5200,8 @@
     return forkOk && state.t > 240 && Math.random() < 0.12 ? ["forklift_zombie"] : late;
   }
   const FORKLIFT_MAX = 2;
+  const LASER_WINDUP = 0.7; // v0.12.0: security drone laser telegraph: charge (red pulse + aim line) this long, then fire. The 2.4 s cooldown starts with the windup, so the fire rate is unchanged.
+  const LASER_LOCK_T = 0.45; // the aim line tracks Hog until here, then locks (solid line) so a sidestep dodges it
   function triggerTestBox() {
     state.testBoxUsed = true;
     state.endedByTestBox = true;
@@ -4308,13 +5211,13 @@
     audioBeep(660, 0.25, "triangle", 0.05);
     showSlides(1, () => startRun(2));
   }
-  function enemyShot(e, kind, speed, damage, r, spread = 0, n = 1, color) {
+  function enemyShot(e, kind, speed, damage, r, spread = 0, n = 1, color, aim) {
     if (!onScreen(e, -8)) return; // never fire from off-screen
     const p = state.player,
-      a0 = Math.atan2(p.y - (e.y - 10), p.x - e.x);
+      a0 = aim !== undefined ? aim : Math.atan2(p.y - (e.y - 10), p.x - e.x);
     for (let j = 0; j < n; j++) {
       const a = a0 + (j - (n - 1) / 2) * spread;
-      state.projectiles.push({ x: e.x + Math.cos(a) * 14, y: e.y - 10 + Math.sin(a) * 8, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 2.6, damage, r, enemy: true, kind, spin: Math.random() * TAU, color, src: e.bossId || e.type });
+      state.projectiles.push({ x: e.x + Math.cos(a) * 14, y: e.y - 10 + Math.sin(a) * 8, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 2.6, damage, r, enemy: true, kind, spin: Math.random() * TAU, color, src: e.bossId || e.type, pierce: kind === "laser" }); // v-test3: security drone lasers pass through walls/obstacles (pierce)
     }
     state.s2Shots = state.s2Shots || {};
     state.s2Shots[kind] = (state.s2Shots[kind] || 0) + n;
@@ -4336,7 +5239,7 @@
       }
       if (c.t > 0.25 && p.invuln <= 0 && Math.hypot(p.x - c.x, p.y - c.y) < c.r + p.r * 0.5) {
         state.cloudHits = (state.cloudHits || 0) + 1;
-        if (hitPlayer(6, 0.5, 3, "#7dff6a")) return true;
+        if (hitPlayer(6 * enemyDmgScale(), 0.5, 3, "#7dff6a")) return true; // TEST 2: cleaning-bot gas (regular enemy) scales
       }
     }
     return false;
@@ -4405,7 +5308,7 @@
             killEnemy(e);
             if (hitHog) {
               state.produceBlastHits = (state.produceBlastHits || 0) + 1;
-              if (hitPlayer(16, 0.7, 8, "#ff9a2a")) return true;
+              if (hitPlayer(16 * enemyDmgScale(), 0.7, 8, "#ff9a2a")) return true; // TEST 2: mutated produce blast (regular enemy) scales
             }
             return false;
           }
@@ -4417,16 +5320,30 @@
           k = d > want ? 1 : -1.2;
         e.vx += (dirX * k * 1.4 - dirY * 0.6) * e.speed * dt;
         e.vy += (dirY * k * 1.4 + dirX * 0.6) * e.speed * dt;
-        if (e.attack <= 0 && d < 250 && onScreen(e)) {
+        if (e.laserWind) {
+          // v0.12.0 telegraph: charging windup, aim tracks Hog until LASER_LOCK_T, then locks; fires at LASER_WINDUP
+          const w = e.laserWind;
+          w.t += dt;
+          if (w.t < LASER_LOCK_T) w.a = Math.atan2(p.y - (e.y - 10), p.x - e.x);
+          if (w.t >= LASER_WINDUP) {
+            e.laserWind = null;
+            e.animT = 0.4;
+            enemyShot(e, "laser", 270, 7, 4, 0, 1, "#ff4a4a", w.a);
+          }
+        } else if (e.attack <= 0 && d < 250 && onScreen(e)) {
           e.attack = 2.4;
-          e.animT = 0.4;
           e.shots = (e.shots || 0) + 1;
-          if (e.shots % 3 === 0) {
+          if (e.shots % 3 !== 0) {
+            e.laserWind = { t: 0, a: Math.atan2(p.y - (e.y - 10), p.x - e.x) };
+            state.laserWinds = (state.laserWinds || 0) + 1;
+            sfx("laser_charge", 1, () => audioBeep(500, 0.25, "sine", 0.015));
+          } else {
+            e.animT = 0.4;
             e.siren = 0.6;
             state.sirens = (state.sirens || 0) + 1;
             sfx("alarm_short", 1, () => (audioBeep(980, 0.2, "square", 0.025), setTimeout(() => audioBeep(740, 0.2, "square", 0.025), 200)));
             if (state.enemies.length < 90) for (let i = 0; i < 2; i++) addEnemy("shopper_zombie");
-          } else enemyShot(e, "laser", 270, 7, 4, 0, 1, "#ff4a4a");
+          }
         }
         if (e.siren > 0) e.siren -= dt;
         break;
@@ -4654,6 +5571,29 @@
       g.stroke();
       g.setLineDash([]);
     }
+    if (e.laserWind) {
+      // v0.12.0 security drone laser telegraph: pulsing red glow + a thin aim line (flickers while tracking, solid once locked)
+      const w = e.laserWind,
+        f = w.t / LASER_WINDUP,
+        locked = w.t >= LASER_LOCK_T,
+        ox0 = sx + Math.cos(w.a) * 14,
+        oy0 = sy - 10 + Math.sin(w.a) * 8;
+      g.save();
+      g.strokeStyle = `rgba(255,60,60,${0.25 + f * 0.6})`;
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(sx, sy - 6, 5 + (1 - f) * 16, 0, TAU);
+      g.stroke();
+      if (locked || Math.floor(state.t * 30) % 2 === 0) {
+        g.strokeStyle = locked ? "rgba(255,80,80,0.95)" : "rgba(255,110,110,0.6)";
+        g.lineWidth = locked ? 1.5 : 1;
+        g.beginPath();
+        g.moveTo(ox0, oy0);
+        g.lineTo(ox0 + Math.cos(w.a) * 260, oy0 + Math.sin(w.a) * 260);
+        g.stroke();
+      }
+      g.restore();
+    }
     if (e.burnT > 0) {
       const k = Math.min(1, e.burnT / e.burnDur);
       g.globalAlpha = 1 - k * 0.75;
@@ -4661,6 +5601,7 @@
       g.globalAlpha = 1;
     } else if (e.flash > 0) drawTinted(im, frame * fs, row * fs, fs, fs, dx, dy, fs, fs, flip, 0.45);
     else if (e.prime && Math.floor(state.t * 16) % 2) drawTinted(im, frame * fs, row * fs, fs, fs, dx, dy, fs, fs, flip, 0.35, "#ff5a2a");
+    else if (e.laserWind && Math.floor(state.t * (10 + 24 * (e.laserWind.t / LASER_WINDUP))) % 2) drawTinted(im, frame * fs, row * fs, fs, fs, dx, dy, fs, fs, flip, 0.55 + 0.3 * (e.laserWind.t / LASER_WINDUP), "#ff2a2a");
     else blit(im, frame * fs, row * fs, fs, fs, dx, dy, fs, fs, flip);
     if (e.rising > 0) {
       g.fillStyle = "#2a2420";
@@ -4729,8 +5670,81 @@
     VIEW_H = Math.min(WORLD_H, Math.round((VIEW_W * H) / W));
   }
   const viewScale = () => W / VIEW_W;
-  const g = view.getContext("2d");
-  g.imageSmoothingEnabled = false;
+  const viewCtx = view.getContext("2d");
+  viewCtx.imageSmoothingEnabled = false;
+  // crisp-C: the hero is NOT drawn into the low-res view. Everything that must cover him (items sorted after him,
+  // projectiles, weapon fx, floaters, hat...) goes to `front` (same size/scale as view, transparent); the hero is
+  // drawn straight from his sheet to the screen at final size between `view` and `front`.
+  const front = document.createElement("canvas");
+  front.width = view.width;
+  front.height = view.height;
+  const frontCtx = front.getContext("2d");
+  frontCtx.imageSmoothingEnabled = false;
+  let g = viewCtx;
+  let heroPending = null;
+  let overlayArgs = null;
+  // the character's original 64px-cell sheet (drawn nearest-neighbour; the Scale2x x4 sheets were tried and looked softer)
+  function charSheet(ch) {
+    return { img: IMAGES[ch.sheet] || hogSheet, U: 1 };
+  }
+  // crisp-C: the visible canvas' backing store follows its on-screen size (CSS px x devicePixelRatio, capped at 4x of 960x600)
+  // instead of the fixed 960x600, so the browser never has to rescale it. Game code keeps drawing in 960x600 logical
+  // units (ctx carries a backK scale); only the hero sprite is drawn in device pixels.
+  let backK = 1;
+  function syncBacking() {
+    const cw = canvas.clientWidth;
+    let k = cw > 0 ? Math.min(4, Math.max(1, (cw * (window.devicePixelRatio || 1)) / W)) : backK;
+    k = Math.round(k * 100) / 100;
+    if (k !== backK || canvas.width !== Math.round(W * k)) {
+      backK = k;
+      canvas.width = Math.round(W * k);
+      canvas.height = Math.round(H * k);
+    }
+    ctx.setTransform(backK, 0, 0, backK, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+  }
+  const heroTint = document.createElement("canvas");
+  const heroTctx = heroTint.getContext("2d");
+  function presentHero(ox, oy) {
+    const h = heroPending;
+    if (!h) return;
+    heroPending = null;
+    // device pixels: the canvas backing store is backK x the 960x600 logical size (see syncBacking)
+    const K = backK,
+      dwS = Math.round(h.dw * K),
+      dhS = Math.round(h.dh * K),
+      x = Math.round((h.cx + ox) * K - dwS / 2),
+      y = Math.round((h.feetY + oy) * K) - dhS,
+      C = h.C;
+    let src = h.sheet,
+      sx0 = h.sx0,
+      sy0 = h.sy0;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = h.smooth;
+    if (h.smooth) ctx.imageSmoothingQuality = "high";
+    if (h.flash > 0) {
+      if (heroTint.width !== C) heroTint.width = heroTint.height = C;
+      heroTctx.clearRect(0, 0, C, C);
+      heroTctx.globalCompositeOperation = "source-over";
+      heroTctx.imageSmoothingEnabled = false;
+      heroTctx.drawImage(src, sx0, sy0, C, C, 0, 0, C, C);
+      heroTctx.globalCompositeOperation = "source-atop";
+      heroTctx.globalAlpha = h.flash;
+      heroTctx.fillStyle = "#ffffff";
+      heroTctx.fillRect(0, 0, C, C);
+      heroTctx.globalAlpha = 1;
+      heroTctx.globalCompositeOperation = "source-over";
+      src = heroTint;
+      sx0 = sy0 = 0;
+    }
+    if (h.flip) {
+      ctx.translate(x + dwS, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(src, sx0, sy0, C, C, 0, 0, dwS, dhS);
+    } else ctx.drawImage(src, sx0, sy0, C, C, x, y, dwS, dhS);
+    ctx.restore();
+  }
   ctx.imageSmoothingEnabled = false;
   const tintCanvas = document.createElement("canvas");
   tintCanvas.width = tintCanvas.height = 160;
@@ -4836,6 +5850,7 @@
     nail: 6,
     chainsaw: 7,
     water: 6,
+    strike: 5,
     hurt: 8,
     death: 9,
     victory: 10,
@@ -4847,7 +5862,21 @@
     TAUNT_EVERY = 9,
     TAUNT_FRAME = 0.6;
   let hogDebug = null;
+  // v18: the classic Grave Hog sheet has 12 rows; everyone else uses the 8-row layout, so the same animation logic
+  // is remapped: side walk is one left-facing row (mirrored for right), every attack uses row 4, and their attack
+  // and hurt art faces left (Hog's faces right), so those flips invert.
+  const ROW12_TO_8 = [0, 1, 2, 3, 3, 4, 4, 4, 5, 6, 7, 7];
   function hogAnimState() {
+    const a = hogAnimState12();
+    if (curChar().classic) return a;
+    const r = a.row,
+      b = { ...a, row: ROW12_TO_8[r] ?? 0 };
+    if (r === 4) b.flip = true;
+    else if (r >= 5 && r <= 7) b.flip = !a.flip;
+    else if (r === 8) ((b.flip = state?.player?.dir === "right"), (b.frame = Math.min(2, a.frame)));
+    return b;
+  }
+  function hogAnimState12() {
     const p = state?.player;
     if (!p) return { row: 0, frame: Math.floor(performance.now() / 500) % 4, flip: false, label: "title-idle" };
     if (mode === "gameover") return { row: 9, frame: Math.min(3, Math.floor(state.endT * 6)), flip: false, label: "death" };
@@ -4864,7 +5893,7 @@
       const frame = pose.type === "shovel" ? (pose.t < SWING_HIT ? 0 : Math.min(3, 1 + Math.floor(((pose.t - SWING_HIT) / (pose.dur - SWING_HIT)) * 3))) : pose.type === "nail" ? Math.min(3, 1 + Math.floor(k * 3)) : Math.min(3, Math.floor(k * 4));
       return { row: HOG_ROWS[pose.type], frame, flip: Math.cos(pose.aim) < 0, label: "attack-" + pose.type };
     };
-    if (pose && (pose.type === "shovel" || pose.type === "nail")) return poseState();
+    if (pose && (pose.type === "shovel" || pose.type === "nail" || pose.type === "strike")) return poseState();
     if (p.moving) return { row: DIRS[p.dir], frame: Math.floor(p.stride / 10) % 4, flip: false, label: "walk-" + p.dir };
     if (pose) return poseState();
     const it = p.idleT || 0;
@@ -4886,6 +5915,13 @@
     HAT_NOZZLE_Y = 5, // hat art: where the water comes out (pipe hub)
     HAT_RIGHT_ROWS = [4, 5, 6, 7];
   function hatPose(a) {
+    const ch = curChar();
+    if (!ch.classic) {
+      // v18: other characters: anchors measured from their sheets (top of the head), scaled like the body
+      const [bx, by] = CHAR_ANCHORS[ch.id]?.[a.row]?.[a.frame] || [32, 21],
+        x = a.flip ? 63 - bx : bx;
+      return { x: 32 + (x - 32) * ch.sx, y: 64 - (64 - by) * ch.sy, mirror: !!a.flip };
+    }
     const [bx, by] = HAT_ANCHOR[a.row]?.[a.frame] || [32, 21],
       mirror = HAT_RIGHT_ROWS.includes(a.row) !== !!a.flip,
       x = a.flip ? 63 - bx : bx;
@@ -4912,24 +5948,52 @@
       dx = sx - 32,
       dy = sy - 48; // anchor: collision centre; feet baseline lands 14px below it
     hogDebug = { ...a, dx, dy, w: 64, h: 64, drawn: false };
-    if (!ready(hogSheet)) return;
+    const ch = curChar(),
+      { img: sheet, U } = charSheet(ch),
+      dw = Math.round(64 * ch.sx),
+      dh = Math.round(64 * ch.sy),
+      bx = sx - (dw >> 1),
+      by = sy + 16 - dh; // same feet baseline as Hog
+    if (!ready(sheet)) return;
     const flash = p && p.invuln > 0 && p.hurtAnim <= 0 ? (Math.floor(p.invuln * 10) % 2 ? 0.45 : 0) : p && p.hurtAnim > 0 ? 0.55 : 0;
     // soft contact shadow keeps him grounded
     g.fillStyle = "rgba(0,0,0,0.35)";
     g.beginPath();
     g.ellipse(sx, sy + 13, 15, 5, 0, 0, TAU);
     g.fill();
-    if (flash > 0) drawTinted(hogSheet, a.frame * 64, a.row * 64, 64, 64, dx, dy, 64, 64, a.flip, flash);
-    else blit(hogSheet, a.frame * 64, a.row * 64, 64, 64, dx, dy, 64, 64, a.flip);
+    // crisp-C: queue the hero for a screen-resolution draw straight from the sheet (see presentHero); same feet baseline
+    // and centre as before, just not rounded to whole 1x-buffer pixels. Everything drawn from here on lands on `front`.
+    {
+      const vsX = W / VIEW_W,
+        vsY = H / VIEW_H,
+        C = 64 * U;
+      heroPending = {
+        sheet,
+        C,
+        sx0: a.frame * C,
+        sy0: a.row * C,
+        cx: sx * vsX,
+        feetY: (sy + 16) * vsY,
+        dw: 64 * ch.sx * vsX,
+        dh: 64 * ch.sy * vsY,
+        flip: a.flip,
+        flash,
+        smooth: U > 1,
+      };
+      frontCtx.clearRect(0, 0, VIEW_W + 2, VIEW_H + 2);
+      g = frontCtx;
+    }
     if (p && state.weapons.gsprinkler?.level) drawHat(dx, dy, a, flash);
     hogDebug.drawn = true;
     // Shovel sweep: appears on the strike frame (when the damage is applied) and fades over the follow-through.
-    if (p && p.pose?.type === "shovel" && p.pose.t >= SWING_HIT && ready(weaponFx)) {
-      const k = (p.pose.t - SWING_HIT) / (p.pose.dur - SWING_HIT);
+    // (characters whose signature isn't the shovel have no shovel body pose, so the sweep follows the swing timer instead)
+    const sweep = p?.pose?.type === "shovel" ? p.pose : p && p.swing && !sigIsShovel() ? { t: p.swing.t, dur: POSE_DUR.shovel, aim: p.swing.a } : null;
+    if (sweep && sweep.t >= SWING_HIT && ready(weaponFx)) {
+      const k = (sweep.t - SWING_HIT) / (sweep.dur - SWING_HIT);
       g.save();
       g.globalAlpha = 0.85 * (1 - k * 0.7);
       g.translate(sx, sy - 6);
-      g.rotate(p.pose.aim - 0.5 + k * 1.0);
+      g.rotate(sweep.aim - 0.5 + k * 1.0);
       g.drawImage(weaponFx, 0, 128, 64, 64, 4, -30, 58, 58);
       g.restore();
     }
@@ -5261,6 +6325,13 @@
   let lastCam = { x: 0, y: 0 },
     frameStamp = 0;
   function drawWorld(camX, camY) {
+    g = viewCtx;
+    heroPending = null;
+    overlayArgs = null;
+    drawWorldInner(camX, camY);
+    g = viewCtx;
+  }
+  function drawWorldInner(camX, camY) {
     g.fillStyle = "#11161d";
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     if (STAGE === 2) {
@@ -5279,6 +6350,7 @@
         }
     if (state && STAGE === 1 && WORLD.testBox && !state.testBoxUsed) drawTestBox(WORLD.testBox, camX, camY);
     if (state && state.clouds.length) drawClouds(camX, camY);
+    if (state?.puddles?.length) drawPuddles(camX, camY); // v18 V1sion
     if (state && STAGE === 2) (drawColdFog(camX, camY), drawMapEdge(camX, camY)); // v14
     // Visible tall props (culled by bucket), depth-sorted with characters by their base Y.
     frameStamp++;
@@ -5295,6 +6367,7 @@
         }
       }
     if (state) {
+      if (state.wfx) drawEvoGround(camX, camY); // v0.11: graves, cauldrons, static and chain links sit on the floor, under everyone
       for (const rw of state.rewards) if (!rw.taken) list.push({ y: rw.y, reward: rw });
       for (const d of state.drops) {
         const x = Math.round(d.x - camX),
@@ -5323,7 +6396,7 @@
           const tier = gemTier(d.value),
             gw = [14, 18, 22][tier],
             gh = Math.round((gw * 11) / 9);
-          g.drawImage(ICONS["gem" + (tier + 1)], x - (gw >> 1), y - gh + 6, gw, gh);
+          g.drawImage(d.color === GOLD_GEM_COLOR ? ICONS.gemGold : ICONS["gem" + (tier + 1)], x - (gw >> 1), y - gh + 6, gw, gh);
           if (Math.sin(d.phase * 1.3) > 0.93) {
             g.fillStyle = "#ffffff";
             g.fillRect(x - 1 + (gw >> 2), y - gh + 6, 2, 2);
@@ -5362,7 +6435,8 @@
           bx = pr.x - camX,
           by = pr.y - camY;
         // Scenery in front of Grave Hog turns translucent instead of hiding him.
-        const overlapsHog = hogDrawn && bx + pr.w / 2 > hx - 18 && bx - pr.w / 2 < hx + 18 && by > hy - 34 && by - pr.h < hy + 14;
+        // TEST 3: fences and walls in front of Hog draw fully opaque over him (they used to be ghosted like trees/crypts, which made Hog look like he was on top of them).
+        const overlapsHog = hogDrawn && !SOLID_FRONT_KINDS.has(pr.kind) && bx + pr.w / 2 > hx - 18 && bx - pr.w / 2 < hx + 18 && by > hy - 34 && by - pr.h < hy + 14;
         if (k.fountain) {
           const im = IMAGES.fountain;
           if (ready(im)) {
@@ -5513,6 +6587,12 @@
       g.globalAlpha = 1;
     }
     if (cleanRender) return;
+    overlayArgs = { camX, camY, hx, hy };
+  }
+  // crisp-C: screen-wide lighting (night vignette, King's dark, sunrise) now runs after the layers are composited so it
+  // lights the hero too. g is the screen ctx scaled by the buffer->screen factor, so the maths is unchanged.
+  function drawWorldOverlays(camX, camY, hx, hy) {
+    if (!state) return;
     const sun = sunriseLight();
     // Night vignette (static relative to the screen, so it can't shimmer). It lifts as the sun comes up.
     const vg = g.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.45, VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.72);
@@ -5725,6 +6805,7 @@
     ctx.fillText(text, x, y);
     ctx.textAlign = "left";
   }
+  const SOLID_FRONT_KINDS = new Set(["fence", "fence_v", "fence_broken", "fence_broken_v", "wall"]); // never ghosted when in front of Hog
   const CLOCKMAP_WIN = [34, 54, 137, 211]; // window inside hud/clockmap.png (x0, y0, x1, y1), just inside the bevel
   function hudImg(key, x, y) {
     const im = IMAGES[key];
@@ -5760,7 +6841,7 @@
     ctx.fillRect(xx + 2, xy + 2, Math.round((xw - 4) * clamp(p.xp / p.nextXp, 0, 1)), xh - 4);
     hudText(`LV ${p.level}`, xx + xw - 6, xy + xh - 5, "#bff6ff", "bold 14px monospace", "right");
     // portrait on top of the bar frame's left end, like the mockup
-    hudImg("hud_portrait", L.portrait[0], L.portrait[1]);
+    hudImg(curChar().portrait, L.portrait[0], L.portrait[1]) || hudImg("hud_portrait", L.portrait[0], L.portrait[1]);
     // clock + minimap device, top right: one in-world gadget (the user's frame art) with the clock readout at the top
     // of its window and the minimap below. After the 6 AM explosion it swaps to the busted version of the same frame.
     {
@@ -5877,7 +6958,18 @@
         ctx.fillRect(x + 12, sy0 + 14, 34, 31);
       }
       hudText(String(i + 1), x + 9, sy0 + 20, w ? "#fff1d0" : "#7d7466", "bold 13px monospace");
-      if (w) hudText(w.level >= wmax() ? "MAX" : `L${w.level}`, x + 49, sy0 + 48, "#ffd76a", "bold 11px monospace", "right");
+      if (w && w.evo) {
+        ctx.strokeStyle = "#d26bff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 11, sy0 + 13, 36, 33);
+        hudText("★", x + 47, sy0 + 24, "#f2a6ff", "bold 13px monospace", "right");
+      } else if (w && evoReady(id)) {
+        ctx.strokeStyle = `rgba(255,215,90,${0.55 + 0.45 * Math.sin(performance.now() / 160)})`;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x + 10, sy0 + 12, 38, 35);
+        hudText("EVO", x + 47, sy0 + 24, "#ffe27a", "bold 10px monospace", "right");
+      }
+      if (w) hudText(w.level >= wmax() ? "MAX" : `L${w.level}`, x + 49, sy0 + 48, w.evo ? "#f2a6ff" : "#ffd76a", "bold 11px monospace", "right");
     }
     // wages counter, bottom right
     if (hudImg("hud_coins", L.coins[0], L.coins[1])) {
@@ -6103,7 +7195,7 @@
   }
   function draw(dt = 0) {
     updateZoom(dt);
-    ctx.imageSmoothingEnabled = false;
+    syncBacking();
     const p = state?.player,
       cam = photoCam ? cameraFor(photoCam[0], photoCam[1]) : cameraFor(p ? p.x : WORLD.startX, p ? p.y : WORLD.startY - 60);
     lastCam = cam;
@@ -6120,6 +7212,23 @@
     ctx.fillStyle = "#0b0d12";
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(view, 0, 0, VIEW_W, VIEW_H, sx, sy, W, H);
+    {
+      const heroDrawn = !!heroPending;
+      presentHero(sx, sy);
+      if (heroDrawn) ctx.drawImage(front, 0, 0, VIEW_W, VIEW_H, sx, sy, W, H);
+      if (overlayArgs) {
+        const o = overlayArgs;
+        overlayArgs = null;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.scale(W / VIEW_W, H / VIEW_H);
+        g = ctx;
+        drawWorldOverlays(o.camX, o.camY, o.hx, o.hy);
+        g = viewCtx;
+        ctx.restore();
+        ctx.imageSmoothingEnabled = false;
+      }
+    }
     if (!state) {
       if (!assetsReady) {
         ctx.fillStyle = "#f1d69b";
@@ -6154,6 +7263,19 @@
       ctx.textAlign = "center";
       ctx.font = "bold 30px monospace";
       ctx.fillStyle = "#f1d69b";
+      if (state.eventText === FOUL_WIND_TEXT) {
+        // TEST 3: bigger, outlined, shrinks to fit narrow (phone) screens and stay clear of the HUD clock
+        let fs = 42;
+        ctx.font = `bold ${fs}px monospace`;
+        // TEST 3 fix: the text is centred, so keep its whole width (plus the 6px outline) left of the clock/minimap device (top right, x >= W - 180)
+        const maxTextW = 2 * (HUD_LAYOUT.clockmap[0] - 14 - W / 2) - 8;
+        while (fs > 18 && ctx.measureText(state.eventText).width > maxTextW) ctx.font = `bold ${--fs}px monospace`;
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#1a0f08";
+        ctx.lineJoin = "round";
+        ctx.strokeText(state.eventText, W / 2, H * 0.3);
+        ctx.fillStyle = "#b9e07a";
+      }
       ctx.fillText(state.eventText, W / 2, H * 0.3);
       ctx.textAlign = "left";
     }
@@ -6200,6 +7322,7 @@
     loadMegaMartFloor(); // Stage 2 floor streams in behind the title screen
     for (const set of Object.values(PANEL_SETS)) for (const src of set) new Image().src = src; // warm the outro panels
     measureHogFrames();
+    checkSaveUnlocks();
   }
   window.addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
@@ -6448,6 +7571,8 @@
       },
       v15: () => ({ SPLAT_SCALE, CLEAVER_SIZE, CLEAVER_HIT_R, COFFIN_HIT_T, COFFIN_LIFE, coffinR: [1, 2, 3, 4, 5].map(coffinRadius), FOG_OVER, STORE_RECT, MM_DECOR, EDGE_FOG_D }),
       v16: () => ({ MUSIC_FILES, musicWant, musicOn, musicDuck, musicStats, music: Object.fromEntries(Object.entries(musicEls).map(([n, a]) => [n, { vol: a.volume, paused: a.paused, t: a.currentTime, ready: a.readyState, err: !!a.error }])), SFX_VAR, sfxAll: Object.keys(SFX_ALL), sfxVol: Object.fromEntries(Object.entries(SFX_ALL).map(([n, d]) => [n, d.vol])), FOG_OVER, perkRefund: perkRefund(), menuBack, gemTier: [1, 3, 4, 6, 7, 9].map(gemTier) }),
+      v18: { showCharSelect, showLootMachine, unlockChar, showOffice, showLevelUp, CHARS, get state() { return state; }, get mode() { return mode; }, setMode: (m) => (mode = m) },
+      evo: { EVO, evoReady, isEvo, evoUpgrade, undertakerSlam, showCompendium },
       musicTick,
       awardXP,
       finishRun,
@@ -6537,6 +7662,16 @@
       },
       restoreTreasures,
       treasureSpotOk,
+      pickChoices,
+      updateLimitless,
+      typesFor,
+      hitPlayer,
+      rollChest,
+      chestWeapons,
+      consts10: { CHEST_PASSIVE_CHANCE, PASSIVE_PARTNER_WEIGHT },
+      partnerNeeded,
+      limitlessMul,
+      consts9: { XP_GENTLE_FROM_LEVEL, XP_GENTLE_GROWTH, VACUUM_MAX_GROUND, LIMITLESS_XP, LEVELUP_PITY_AFTER, LIMITLESS_RAMP_PER_MIN },
       hudStatChips,
       upgrades: UPGRADES,
       ghostAlpha,

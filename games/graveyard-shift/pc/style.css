@@ -160,3 +160,30 @@ html:fullscreen .game-frame{border-width:0;box-shadow:none}
 @media (max-height:520px){.version-tag{top:6px;right:6px}}
 body.touch .version-tag{top:auto;bottom:6px;right:6px;transform:rotate(-3deg)}
 @media (max-height:700px){body:not(.touch) .shell{width:min(calc(100vw - 24px), calc((100vh - 74px) * 1.6))}}
+/* v18: character select, unlock banners, bail bonds */
+.card.char-select{max-width:980px;width:min(100%,980px)}
+.char-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px auto}
+.char-card{display:flex;flex-direction:column;align-items:center;gap:2px;background:#242633;border:2px solid #5e564e;padding:6px 6px 8px;cursor:pointer;color:#eadfc9;font:12px ui-monospace,monospace;text-align:center;min-height:0}
+.char-card canvas{width:96px;height:144px;image-rendering:pixelated;background:radial-gradient(ellipse at 50% 85%,#3a4a3a,#15171f 70%)}
+.char-card b{font:15px ui-monospace,monospace;color:#eac476;line-height:1.1}
+.char-card:hover,.char-card:focus{border-color:#e9bc6f;background:#38313a;outline:none}
+.char-card.picked{border-color:#9dff5a;box-shadow:0 0 14px #9dff5a55;background:#2a3328}
+.char-card.locked{cursor:help;background:#1b1c24}.char-card.locked b{color:#6e6878}
+.char-role{color:#cfc4ac;font-size:11px;line-height:1.3}
+.char-wpn{color:#9dff5a;font-size:10px;letter-spacing:.5px;margin-top:2px}
+.char-goal{color:#e4bd70;font-size:11px}.char-hint{color:#8f8876;font-size:10px;line-height:1.3}
+.unlock-banner{margin:8px auto;padding:8px 12px;max-width:560px;background:linear-gradient(90deg,#2c3a1c,#3e5222,#2c3a1c);border:2px solid #9dff5a;color:#eaffc8;font:18px ui-monospace,monospace;letter-spacing:1px;box-shadow:0 0 18px #9dff5a44;animation:reelStop .4s ease-out}
+.unlock-banner span{display:block;font-size:11px;color:#c6e8a0;letter-spacing:0;margin-top:2px}
+.unlock-banner.v1{background:linear-gradient(90deg,#3a3414,#5a4e18,#3a3414);border-color:#ffe45a;color:#fff6c0}
+.shop-item.bail{margin:8px auto 0;max-width:520px;border-color:#c86a8c;background:#2b2230}
+.shop-item.bail b{color:#ff9ac0}.shop-item.bail.done{border-color:#5e564e;opacity:.75}
+@media(max-width:620px),(max-height:520px){.char-grid{grid-template-columns:repeat(5,1fr);gap:4px;margin:4px auto}.char-card{padding:3px}.char-card canvas{width:64px;height:96px}.char-card b{font-size:11px}.char-role,.char-hint{font-size:9px}.char-wpn,.char-goal{font-size:9px}.unlock-banner{font-size:13px;padding:4px 8px;margin:4px auto}}
+/* v0.11 weapon evolutions: recipe hints on level-up cards and in the Compendium */
+.choice-evo{display:block;margin-top:8px;padding:5px 7px;border:1px dashed #a46be0;background:#2a1f3a;color:#d9b8ff;font:11px ui-monospace,monospace;line-height:1.4;letter-spacing:.5px}
+.choice-evo b{display:inline!important;font:11px ui-monospace,monospace!important;color:#f2a6ff!important;margin:0!important}
+.choice-evo i{font-style:normal;color:#bfa9d8}.choice-evo i.ok{color:#8ff0a0}
+.choice-evo.done{border-style:solid;border-color:#d26bff;color:#f2a6ff}
+.dex-evo{display:block;margin-top:4px;color:#d9b8ff}.dex-evo b{color:#f2a6ff}.dex-evo .ok,.dex-evo b.ok{color:#8ff0a0}
+@media(max-width:620px){.choice-evo{font-size:9px;margin-top:4px;padding:3px 5px}.choice-evo b{font-size:9px!important}}
+.dex-card .dex-evo b,.dex-card .dex-evo .ok{display:inline!important;font:inherit!important;font-weight:bold!important;color:#f2a6ff!important;margin:0!important}
+.dex-card .dex-evo b.ok{color:#8ff0a0!important}
