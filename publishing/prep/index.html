@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RG06HTMTSE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RG06HTMTSE');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#141210;--fg:#f4efe6;--fg2:#d6cfc4;--fg3:#aaaaaa;--amber:#f0a030;--rule:#444444}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:400 1.15rem/1.6 'Crimson Pro',Georgia,serif}
+    a{color:var(--amber)} a:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+    .skip{position:absolute;left:-999px} .skip:focus{left:1rem;top:1rem;background:var(--bg);padding:.5rem;z-index:2}
+    header.site,footer.site{max-width:60rem;margin:0 auto;padding:0 1.5rem;display:flex;flex-wrap:wrap;gap:.5rem 1rem;justify-content:space-between;align-items:center;font:400 .8rem 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.25em}
+    header.site a,footer.site a{color:var(--fg2);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;padding:.7rem 0} header.site a:hover,footer.site a:hover{color:var(--amber)}
+    footer.site{border-top:1px solid var(--rule);margin-top:4rem;color:var(--fg3);letter-spacing:.15em}
+    main{max-width:60rem;margin:0 auto;padding:0 1.5rem}
+    h1,h2,h3{font-family:'Oswald',sans-serif;text-transform:uppercase;color:var(--amber);font-weight:600;letter-spacing:.06em;line-height:1.15}
+    h1{font-size:clamp(2rem,6vw,3.5rem);margin:2.5rem 0 .5rem} h2{font-size:1.1rem;letter-spacing:.25em;margin:3rem 0 1rem;border-bottom:1px solid var(--amber);padding-bottom:.4rem}
+    .tag{font-style:italic;color:var(--fg2);font-size:1.4rem;margin:0}
+    .sign{display:inline-block;border:1px solid var(--amber);color:var(--amber);font:400 .75rem 'Oswald',sans-serif;letter-spacing:.3em;text-transform:uppercase;padding:.35rem .7rem}
+    .mono,dl.meta{font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--fg2)}
+    p{color:var(--fg2);max-width:38rem} .pitch{font-style:italic;color:var(--fg);font-size:1.35rem}
+    img{max-width:100%;height:auto;display:block}
+    .btn{display:inline-block;background:var(--amber);color:#141210;font:600 1rem 'Oswald',sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:.8rem 1.6rem;text-decoration:none;min-height:44px}
+    .btn:hover{background:var(--fg)}
+    button.btn{border:0;cursor:pointer}
+    small,.small{font-size:1rem;color:var(--fg3)}
+    fieldset{border:0;padding:0;margin:0 0 1.15rem;min-width:0}
+    legend{font:400 .8rem 'Oswald',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);padding:0;margin:0 0 .5rem}
+    .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+    .chip{font:400 .85rem/1.2 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;background:transparent;color:var(--fg2);border:1px solid var(--rule);min-height:44px;padding:.55rem .9rem;cursor:pointer;max-width:100%;text-align:left}
+    .chip[aria-pressed="true"]{border-color:var(--amber);color:var(--amber);background:#241c12}
+    .chip:hover{border-color:var(--amber);color:var(--amber)}
+    .chip:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+    .hint{margin:.55rem 0 0}
+    .results{list-style:none;padding:0;margin:0}
+    .results li{border-bottom:1px solid var(--rule);padding:.85rem 0 1rem}
+    .results h3{font-size:1.2rem;margin:0;letter-spacing:.04em}
+    .results h3 a{color:var(--amber);text-decoration:none;display:inline-block;min-height:44px;padding:.45rem 0;line-height:1.3}
+    .results h3 a:hover{text-decoration:underline}
+    .results .by{color:var(--fg3);font-style:italic;margin:.15rem 0}
+    .results p{margin:.3rem 0}
+    .results .mono{font-size:.85rem;margin:.35rem 0 0}
+    .sheet{border:1px solid var(--amber);padding:1.25rem 1.25rem 1.5rem;margin:0 0 1.5rem}
+    .sheet h2{margin-top:0}
+    .field{display:block;font:400 .75rem 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:1rem 0 .25rem}
+    .sheet input[type="text"],.sheet textarea{display:block;width:100%;max-width:36rem;font:400 1.15rem 'Crimson Pro',Georgia,serif;background:transparent;color:var(--fg);border:0;border-bottom:1px solid var(--rule);border-radius:0;padding:.45rem 0;min-height:44px;-webkit-appearance:none;appearance:none}
+    .sheet textarea{min-height:5.5rem;resize:vertical}
+    .check{display:flex;align-items:flex-start;gap:.75rem;min-height:44px;padding:.4rem 0;color:var(--fg2);max-width:38rem;cursor:pointer}
+    .check input{width:1.35rem;height:1.35rem;margin-top:.25rem;flex:0 0 auto;accent-color:var(--amber)}
+    .more a{display:inline-block;min-height:44px;padding:.55rem 0}
+    .on-paper{display:none}
+    .on-paper ul{margin:.2rem 0 0;padding-left:1.1rem;color:var(--fg2)}
+    .sheet-foot{margin:1.25rem 0 0;font-size:.85rem}
+    #cta[hidden]{display:none}
+    @media(max-width:600px){
+      main,header.site,footer.site{padding-left:1rem;padding-right:1rem}
+      h1{margin-top:1.75rem}
+    }
+    @media print{
+      :root{--bg:#fff;--fg:#111;--fg2:#111;--fg3:#222;--amber:#111;--rule:#111}
+      body{background:#fff;color:#111;font-size:12pt}
+      header.site,footer.site,.noprint,.skip{display:none !important}
+      main{max-width:none;margin:0;padding:0}
+      .sheet{border:0;margin:0;padding:0}
+      .sheet h2{margin:0 0 .35rem;font-size:16pt;color:#111;border-color:#111}
+      .sign{color:#111;border-color:#111}
+      .field,.check{color:#111}
+      .sheet input[type="text"],.sheet textarea{color:#111;border:0 !important;border-bottom:1px solid #111 !important;background:transparent;min-height:0;padding:.12rem 0;font-size:12pt;box-shadow:none !important}
+      .sheet textarea{height:4.6rem;overflow:hidden;resize:none}
+      *:focus,*:focus-visible{outline:none !important}
+      .check{min-height:0;padding:.12rem 0;break-inside:avoid}
+      .check input{accent-color:#111}
+      .on-paper{display:block;margin-top:.8rem}
+      .on-paper[hidden]{display:none !important}
+      .on-paper ul{color:#111;margin:0}
+      a{color:#111;text-decoration:none}
+      @page{margin:14mm}
+    }
+  </style>
+  <title>GM Night Prep | Pit Stop Publishing</title>
+  <meta name="description" content="Pick a system, a session length, and a vibe. Get a shortlist of horror one-shots from the Finder and a checklist you can print.">
+  <link rel="canonical" href="https://thejurn.com/publishing/prep/">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><a href="/publishing/">Pit Stop Publishing</a></header>
+<main id="main">
+  <div class="noprint" id="night">
+    <span class="sign">GM Table · Open All Night</span>
+    <h1>GM Night Prep</h1>
+    <p class="tag">Pick your night, get a shortlist and a checklist.</p>
+    <p>Choose a system, how long you have, and a vibe. The shortlist is drawn from the Horror One-Shot Finder.</p>
+
+    <h2>Your night</h2>
+    <fieldset>
+      <legend>System</legend>
+      <div class="chips" id="sys-chips">
+        <button type="button" class="chip" data-sys="" aria-pressed="true">Any</button>
+        <button type="button" class="chip" data-sys="Mothership" aria-pressed="false">Mothership</button>
+        <button type="button" class="chip" data-sys="Mörk Borg" aria-pressed="false">Mörk Borg</button>
+        <button type="button" class="chip" data-sys="Liminal Horror" aria-pressed="false">Liminal Horror</button>
+        <button type="button" class="chip" data-sys="Cairn" aria-pressed="false">Cairn</button>
+        <button type="button" class="chip" data-sys="24XX" aria-pressed="false">24XX</button>
+        <button type="button" class="chip" data-sys="System-neutral" aria-pressed="false">System-neutral</button>
+        <button type="button" class="chip" data-sys="Into the Odd" aria-pressed="false">Into the Odd</button>
+        <button type="button" class="chip" data-sys="Call of Cthulhu" aria-pressed="false">Call of Cthulhu</button>
+        <button type="button" class="chip" data-sys="Trophy Dark" aria-pressed="false">Trophy Dark</button>
+        <button type="button" class="chip" data-sys="Cy_Borg" aria-pressed="false">Cy_Borg</button>
+        <button type="button" class="chip" data-sys="Vaesen" aria-pressed="false">Vaesen</button>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Session length</legend>
+      <div class="chips" id="len-chips">
+        <button type="button" class="chip" data-len="short" aria-pressed="false">~1 hour</button>
+        <button type="button" class="chip" data-len="medium" aria-pressed="true">2–3 hours</button>
+        <button type="button" class="chip" data-len="long" aria-pressed="false">Long night</button>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Vibe</legend>
+      <div class="chips" id="vibe-chips">
+        <button type="button" class="chip" data-vibe="isolation" aria-pressed="false">Isolation</button>
+        <button type="button" class="chip" data-vibe="body" aria-pressed="false">Body horror</button>
+        <button type="button" class="chip" data-vibe="occult" aria-pressed="false">Occult</button>
+        <button type="button" class="chip" data-vibe="corporate" aria-pressed="false">Corporate</button>
+        <button type="button" class="chip" data-vibe="cosmic" aria-pressed="false">Cosmic</button>
+        <button type="button" class="chip" data-vibe="roadside" aria-pressed="false">Roadside / small-town</button>
+      </div>
+      <p class="small hint">A loose match on titles and descriptions. Click again to clear. If the shelf is thin, a few more from the same night stay in the list.</p>
+    </fieldset>
+
+    <h2 id="shortlist-h">Tonight's shortlist</h2>
+    <p id="status" aria-live="polite"></p>
+    <ul class="results" id="results" aria-labelledby="shortlist-h"></ul>
+    <noscript><p>Scripts are off, so the shortlist stays empty. The <a href="/publishing/finder/">Finder</a> still has the whole shelf, and the checklist below can be filled in by hand.</p></noscript>
+    <p class="small" id="cta" hidden></p>
+    <p class="small">Prices as listed on itch.io on 2026-10-26. Check the page for the current price.</p>
+  </div>
+
+  <section class="sheet" id="sheet" aria-label="Prep checklist">
+    <span class="sign">Printable</span>
+    <h2>Prep checklist</h2>
+    <p class="mono" id="paper-night"></p>
+    <label class="field" for="f-session">Session name</label>
+    <input id="f-session" type="text" autocomplete="off">
+    <label class="field" for="f-system">System</label>
+    <input id="f-system" type="text" autocomplete="off" placeholder="Write the system" data-auto="">
+    <label class="field" for="f-start">Start time</label>
+    <input id="f-start" type="text" autocomplete="off">
+    <label class="field" for="f-players">Players</label>
+    <textarea id="f-players" rows="3" autocomplete="off"></textarea>
+    <label class="check"><input type="checkbox"> <span>Safety tools: lines and veils, an X-card, or whatever this table already uses.</span></label>
+    <label class="check"><input type="checkbox"> <span>Read the module</span></label>
+    <label class="field" for="f-module">Module</label>
+    <input id="f-module" type="text" autocomplete="off" aria-label="Module title" data-auto="">
+    <label class="check"><input type="checkbox"> <span>NPCs and maps</span></label>
+    <label class="check"><input type="checkbox"> <span>Props</span></label>
+    <label class="check"><input type="checkbox"> <span>Snacks</span></label>
+    <div class="on-paper" id="paper-block">
+      <p class="field">On the table</p>
+      <ul id="paper-picks"></ul>
+    </div>
+    <p class="mono sheet-foot">thejurn.com/publishing/prep</p>
+    <p class="noprint"><button type="button" class="btn" id="print-btn">Print checklist</button></p>
+  </section>
+
+  <p class="more noprint">Every module on the shelf is in the <a href="/publishing/finder/">Horror One-Shot Finder</a>.</p>
+</main>
+<footer class="site"><span>© 2026 Pit Stop Publishing</span><a href="https://pitstoppublishing.itch.io" rel="noopener">itch.io</a></footer>
+  <script>
+    document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href*="itch.io"]');if(!a)return;gtag('event','itch_click',{site:'publishing',link_url:a.href,transport_type:'beacon'});});
+  </script>
+  <script src="/publishing/modules.js"></script>
+  <script src="/publishing/prep/night.js"></script>
+</body>
+</html>
