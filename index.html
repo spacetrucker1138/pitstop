@@ -208,11 +208,60 @@
   </style>
 <style>
 
-    /* 2026 homepage facelift: clear entry path + new release bridge */
-    .jurn-start-here { max-width:1100px; margin:2.5rem auto 0; padding:1.25rem 1.5rem; border:1px solid rgba(57,255,20,.22); border-left:3px solid var(--neon-green); background:linear-gradient(105deg,rgba(57,255,20,.07),rgba(191,0,255,.06)); }
-    .jurn-start-here .eyebrow { font: .65rem/1.2 'Courier New',monospace; letter-spacing:3px; text-transform:uppercase; color:var(--neon-green); }
-    .jurn-start-here p { margin:.35rem 0 0; color:var(--bone-white); font-size:1.02rem; }
-    .jurn-start-here a { color:var(--neon-green); font-family:'Courier New',monospace; font-size:.78rem; letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; }
+    /* Pick-a-door splash. The artwork carries the words; the four doors are real links. */
+    .pick-a-door { position:relative; margin:1.75rem auto 0; }
+    .pick-a-door img { width:100%; height:auto; display:block; border-radius:10px; }
+    .pick-a-door-lead {
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+      clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+    .pick-a-door a {
+      position:absolute; top:38.2%; height:49.9%;
+      color:transparent; text-decoration:none; border-radius:14px;
+    }
+    .pick-a-door a small { display:block; }
+    .pick-a-door a:focus-visible,
+    .pick-a-door a:hover {
+      outline:3px solid var(--neon-green); outline-offset:-8px;
+      box-shadow:inset 0 0 0 2px rgba(57,255,20,.35);
+    }
+    .pick-a-door .door-book { left:10.24%; width:18.3%; }
+    .pick-a-door .door-listen { left:30.61%; width:18.26%; }
+    .pick-a-door .door-shift { left:51.08%; width:18.21%; }
+    .pick-a-door .door-radio { left:71.46%; width:18.21%; }
+    @media (max-width:900px) {
+      .pick-a-door { display:flex; flex-direction:column; gap:.85rem; }
+      .pick-a-door img { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+      .pick-a-door-lead {
+        position:static; width:auto; height:auto; margin:0; overflow:visible; clip:auto;
+        white-space:normal; text-align:center; line-height:1.45; padding:0 .25rem;
+      }
+      .pick-a-door-lead .eyebrow {
+        font:.72rem/1.2 'Courier New',monospace; letter-spacing:3px; text-transform:uppercase;
+        color:var(--neon-green); margin:0;
+      }
+      .pick-a-door-lead .headline {
+        font-family:'Creepster',cursive; font-weight:400; letter-spacing:1px;
+        font-size:clamp(2.4rem,10vw,3.4rem); color:#f4e8ff; text-shadow:0 0 18px #bf00ff; margin:.15rem 0 .35rem;
+      }
+      .pick-a-door-lead p { margin:.2rem 0; color:var(--bone-white); font-size:1rem; }
+      .pick-a-door-lead .grab { color:var(--neon-green); font-style:italic; }
+      .pick-a-door a {
+        position:relative; top:auto; height:auto;
+        aspect-ratio:372 / 386; display:block; overflow:hidden; border-radius:16px;
+        background-image:url('images/pick-a-door.jpg'); background-repeat:no-repeat;
+        color:transparent;
+      }
+      .pick-a-door .door-book,
+      .pick-a-door .door-listen,
+      .pick-a-door .door-shift,
+      .pick-a-door .door-radio { left:auto; width:100%; }
+      .pick-a-door .door-book { background-size:546.24% 200.52%; background-position:12.53% 76.29%; }
+      .pick-a-door .door-listen { background-size:547.71% 200.52%; background-position:37.45% 76.29%; }
+      .pick-a-door .door-shift { background-size:549.19% 200.52%; background-position:62.45% 76.29%; }
+      .pick-a-door .door-radio { background-size:549.19% 200.52%; background-position:87.36% 76.29%; }
+    }
+    @media (prefers-reduced-motion:reduce) { .pick-a-door a { transition:none; } }
     .jurn-release { max-width:1100px; margin:2rem auto 0; padding:0 1.5rem; }
     .jurn-release-head { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
     .jurn-release-head h2 { font-family:'Creepster',cursive; color:var(--bone-white); font-size:clamp(1.8rem,4vw,2.8rem); line-height:1; }
@@ -260,7 +309,7 @@
         </ul>
       </li>
     </ul>
-    <a href="https://ko-fi.com/spacetrucker" class="nav-join" target="_blank" rel="noopener">Join the Crew</a>
+    <a href="https://youtu.be/YjIYzjUynrM" class="nav-join" target="_blank" rel="noopener">What is the Graveyard Crew?</a>
     <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -302,11 +351,19 @@
     </div>
   </div>
 
-  <div class="jurn-start-here fade-in">
-    <div class="eyebrow">Latest transmission</div>
-    <p>New to The JURN? Pick a door — a book, a song, a shift, or the radio.</p>
-    <a href="#latest-release">Read the latest transmission &darr;</a>
-  </div>
+  <section class="pick-a-door" aria-label="New to The JURN? Pick a door.">
+    <img src="images/pick-a-door.jpg" width="2032" height="774" alt="New to The JURN? Pick a door. Every signal leads into the same universe. Start with a book, a song, a shift, or the radio. No wrong entrance. Follow what grabs you.">
+    <div class="pick-a-door-lead" aria-hidden="true">
+      <p class="eyebrow">New to The JURN?</p>
+      <p class="headline">Pick a door.</p>
+      <p>Every signal leads into the same universe. Start with a book, a song, a shift, or the radio.</p>
+      <p class="grab">No wrong entrance. Follow what grabs you.</p>
+    </div>
+    <a class="door door-book" href="#latest-release">Read the latest transmission<small>Start with the newest transmission.</small></a>
+    <a class="door door-listen" href="/music.html">Listen to The JURN<small>Albums, singles, and undead anthems.</small></a>
+    <a class="door door-shift" href="/games/graveyard-shift/">Clock in for Graveyard Shift<small>Punch in. Don't let them climb out.</small></a>
+    <a class="door door-radio" href="https://www.youtube.com/@Spacetrucker138/live" target="_blank" rel="noopener">Enter Double Future Radio<small>A pirate signal from two tomorrows at once.</small></a>
+  </section>
 
 
 
