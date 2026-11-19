@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trash Queen Tarot - THE JURN</title>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&display=swap');
 
@@ -114,6 +115,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   padding: 3vh 2vw 4vh;
+  padding-top: max(3vh, calc(44px + 0.75rem));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -318,16 +320,22 @@ body {
 /* ========== BACK TO ARCADE ========== */
 .back-to-arcade {
   position: fixed;
-  top: 1.2rem;
-  left: 1.5rem;
+  top: 0;
+  left: 0;
   z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1.15rem 0 1.25rem;
   font-family: 'Cinzel', serif;
-  font-size: clamp(0.7rem, 1vw, 0.85rem);
-  color: #8a7d65;
+  font-size: clamp(0.8rem, 2.2vw, 0.9rem);
+  color: #c8b89a;
   text-decoration: none;
   letter-spacing: 0.1em;
   transition: color 0.3s;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.7);
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .back-to-arcade:hover {
@@ -371,6 +379,11 @@ body {
 @media (max-width: 600px) {
   .cards-row { gap: 0.8rem; }
   .card-slot { width: 28vw; }
+  .spread-label {
+    padding: 0 0.75rem;
+    line-height: 1.35;
+    text-align: center;
+  }
 }
 
 /* Reversed card image */
@@ -864,7 +877,26 @@ VIDEOS.forEach(src => {
   v.src = src;
 });
 
-// Keyboard listener
+function isTouchUI() {
+  return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+}
+
+function applyInputCopy() {
+  const start = document.getElementById('start-btn');
+  const hint = document.getElementById('flip-hint');
+  const touch = isTouchUI();
+  if (start) start.textContent = touch ? 'TAP FOR A READING' : 'PRESS E FOR A READING';
+  if (hint) hint.textContent = touch ? 'TAP A CARD TO REVEAL YOUR FATE' : 'CLICK A CARD TO REVEAL YOUR FATE';
+}
+
+applyInputCopy();
+if (window.matchMedia) {
+  const mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+  if (mq.addEventListener) mq.addEventListener('change', applyInputCopy);
+  else if (mq.addListener) mq.addListener(applyInputCopy);
+}
+
+// Keyboard listener (desktop; still works if a keyboard is attached)
 document.addEventListener('keydown', e => {
   if (e.key === 'e' || e.key === 'E') {
     if (document.getElementById('splash').style.display !== 'none') {
